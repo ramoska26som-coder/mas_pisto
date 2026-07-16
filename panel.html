@@ -1,1191 +1,1367 @@
 <!DOCTYPE html>
-<html lang="es-HN">
+<html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0F2A24">
-<title>Más Pisto — Panel de crédito</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1877F2">
+<title>Panel de Crédito · Más Pisto</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{
-  --billete:#0F2A24; --billete-2:#163B32; --billete-3:#1D4A3E;
-  --lima:#7BE3A6; --recibo:#F5F0E3; --tinta:#17201D;
-  --sello:#E8574B; --ambar:#F2B341; --gris:#8FA69E;
-  --linea:rgba(123,227,166,.16);
-  --r-lg:16px; --r-md:11px; --r-sm:7px;
-  --display:'Familjen Grotesk',system-ui,sans-serif;
-  --body:'Instrument Sans',system-ui,sans-serif;
-  --mono:'JetBrains Mono',monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  font-family:var(--body);background:var(--billete);color:var(--recibo);
-  line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;
-}
-button,input,select,textarea{font-family:inherit;font-size:inherit}
-:focus-visible{outline:2px solid var(--lima);outline-offset:2px}
-
-/* ===== LOGIN ===== */
-#login{
-  position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
-  background:var(--billete);
-}
-#login::before{
-  content:'';position:absolute;inset:0;
-  background-image:
-    repeating-linear-gradient(45deg,transparent 0 12px,rgba(123,227,166,.02) 12px 13px),
-    repeating-linear-gradient(-45deg,transparent 0 12px,rgba(123,227,166,.02) 12px 13px);
-}
-.login-box{position:relative;width:100%;max-width:360px}
-.login-marca{
-  font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.24em;
-  text-transform:uppercase;color:var(--lima);text-align:center;
-}
-.login-box h1{
-  font-family:var(--display);font-size:30px;margin:10px 0 26px;
-  text-align:center;letter-spacing:-.02em;
-}
-.login-card{
-  background:var(--billete-2);border:1px solid var(--linea);
-  border-radius:var(--r-lg);padding:24px;
-}
-
-/* ===== APP ===== */
-#app{display:none;height:100dvh;flex-direction:column;min-height:0}
-.topbar{
-  display:flex;align-items:center;gap:12px;padding:12px 16px;
-  border-bottom:1px solid var(--linea);background:var(--billete-2);flex-shrink:0;
-}
-.topbar .marca{
-  font-family:var(--display);font-weight:700;font-size:13px;
-  letter-spacing:.2em;text-transform:uppercase;color:var(--lima);
-}
-.topbar .sp{flex:1}
-.chip{
-  font-size:11.5px;padding:5px 10px;border-radius:20px;
-  background:rgba(123,227,166,.12);color:var(--lima);
-  border:1px solid rgba(123,227,166,.24);white-space:nowrap;
-}
-.ibtn{
-  background:transparent;border:1px solid rgba(255,255,255,.14);
-  color:var(--gris);width:34px;height:34px;border-radius:9px;cursor:pointer;
-  display:grid;place-items:center;flex-shrink:0;
-}
-.ibtn:hover{color:var(--recibo);border-color:rgba(255,255,255,.3)}
-
-/* Tabs */
-.tabs{
-  display:flex;gap:2px;padding:0 12px;background:var(--billete-2);
-  border-bottom:1px solid var(--linea);overflow-x:auto;flex-shrink:0;
-  scrollbar-width:none;
-}
-.tabs::-webkit-scrollbar{display:none}
-.tab{
-  padding:11px 14px;background:none;border:0;cursor:pointer;
-  color:var(--gris);font-size:13.5px;font-weight:500;white-space:nowrap;
-  border-bottom:2px solid transparent;
-}
-.tab.on{color:var(--lima);border-bottom-color:var(--lima)}
-.tab .n{
-  display:inline-block;margin-left:6px;padding:1px 6px;border-radius:10px;
-  background:rgba(255,255,255,.1);font-size:11px;
-}
-.tab.on .n{background:rgba(123,227,166,.22)}
-
-main{flex:1;overflow-y:auto;min-height:0;padding:14px;-webkit-overflow-scrolling:touch}
-
-/* ===== TARJETAS DE SOLICITUD ===== */
-.sol{
-  background:var(--billete-2);border:1px solid var(--linea);
-  border-radius:var(--r-md);padding:14px;margin-bottom:10px;cursor:pointer;
-  transition:border-color .15s;
-}
-.sol:hover{border-color:rgba(123,227,166,.4)}
-.sol-top{display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:8px}
-.sol-nom{font-weight:600;font-size:15px;line-height:1.3}
-.sol-folio{font-family:var(--mono);font-size:11px;color:var(--lima);margin-top:2px}
-.sol-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.pill{
-  font-size:11px;padding:3px 8px;border-radius:6px;
-  background:rgba(255,255,255,.07);color:var(--gris);
-}
-.pill.dato{background:rgba(123,227,166,.12);color:var(--lima)}
-
-/* SLA */
-.sla{font-family:var(--mono);font-size:11px;padding:3px 7px;border-radius:5px;white-space:nowrap}
-.sla.ok{background:rgba(123,227,166,.14);color:var(--lima)}
-.sla.medio{background:rgba(242,179,65,.16);color:var(--ambar)}
-.sla.tarde{background:rgba(232,87,75,.16);color:#FF9B92}
-
-.vacio{text-align:center;padding:50px 20px;color:var(--gris)}
-.vacio .em{font-size:34px;margin-bottom:10px;opacity:.5}
-.vacio p{font-size:14px}
-
-/* ===== DETALLE (bottom sheet) ===== */
-#sheet{
-  position:fixed;inset:0;z-index:60;display:none;
-}
-#sheet.ver{display:block}
-.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
-.sheet-body{
-  position:absolute;left:0;right:0;bottom:0;top:0;
-  background:var(--billete);display:flex;flex-direction:column;min-height:0;
-}
-@media(min-width:720px){
-  .sheet-body{
-    left:50%;transform:translateX(-50%);width:680px;top:24px;
-    border-radius:var(--r-lg) var(--r-lg) 0 0;border:1px solid var(--linea);
+  :root{
+    --azul:#1877F2; --azul-oscuro:#0B5AD6; --azul-tinta:#0A2A66;
+    --amarillo:#FFD400; --amarillo-oscuro:#E6BE00;
+    --cielo:#EAF3FF; --gris:#5B6B82; --linea:#DCE6F5;
+    --error:#D63B3B; --error-lt:#FFF0F0;
+    --ok:#1F9D57; --ok-lt:#EFFAF3;
+    --amber:#B7791F; --amber-lt:#FFF8E6;
+    --fondo:#F7FAFF;
+    --sombra:0 10px 40px rgba(11,90,214,.12);
+    --sombra-sm:0 2px 8px rgba(11,90,214,.07);
   }
-}
-.sheet-head{
-  display:flex;align-items:center;gap:12px;padding:14px 16px;
-  border-bottom:1px solid var(--linea);flex-shrink:0;background:var(--billete-2);
-}
-.sheet-head h2{font-family:var(--display);font-size:17px;line-height:1.2}
-.sheet-head .f{font-family:var(--mono);font-size:11px;color:var(--lima)}
-.sheet-scroll{flex:1;overflow-y:auto;min-height:0;padding:16px;padding-bottom:100px}
-.sheet-pie{
-  position:absolute;left:0;right:0;bottom:0;padding:12px 16px;
-  padding-bottom:calc(12px + env(safe-area-inset-bottom));
-  background:linear-gradient(to top,var(--billete) 65%,transparent);
-  display:flex;gap:8px;
-}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--azul-tinta);background:var(--fondo);
+    line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+  button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+  :focus-visible{outline:3px solid rgba(24,119,242,.35);outline-offset:1px}
+  h1,h2,h3,h4{font-family:'Poppins';letter-spacing:-.3px}
+  a{color:var(--azul)}
 
-/* ===== SECCIONES ===== */
-.sec{
-  background:var(--billete-2);border:1px solid var(--linea);
-  border-radius:var(--r-md);padding:16px;margin-bottom:12px;
-}
-.sec h3{
-  font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--lima);margin-bottom:12px;
-  display:flex;align-items:center;gap:8px;
-}
-.sec h3 .badge{
-  margin-left:auto;font-size:10px;padding:2px 7px;border-radius:5px;
-  letter-spacing:0;text-transform:none;font-weight:500;
-}
-.badge.pend{background:rgba(255,255,255,.09);color:var(--gris)}
-.badge.hecho{background:rgba(123,227,166,.18);color:var(--lima)}
-.badge.malo{background:rgba(232,87,75,.18);color:#FF9B92}
+  /* LOGIN */
+  #login{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:20px;
+    background:radial-gradient(1100px 600px at 100% -10%,rgba(24,119,242,.10),transparent 60%),
+               radial-gradient(900px 500px at -10% 110%,rgba(255,212,0,.10),transparent 55%),var(--fondo)}
+  .login-box{width:100%;max-width:380px}
+  .brand{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:20px}
+  .brand svg{width:44px;height:44px;flex:none}
+  .brand .name{font-family:'Poppins';font-weight:800;font-size:26px;color:var(--azul);letter-spacing:-.5px;line-height:1}
+  .brand .tag{font-family:'Poppins';font-weight:600;font-size:9.5px;letter-spacing:1.5px;color:var(--gris);margin-top:2px}
+  .login-card{background:#fff;border:1px solid var(--linea);border-radius:22px;box-shadow:var(--sombra);overflow:hidden}
+  .login-hero{background:linear-gradient(135deg,var(--azul),var(--azul-oscuro));color:#fff;padding:24px 26px;position:relative;overflow:hidden}
+  .login-hero::after{content:"";position:absolute;right:-70px;top:-70px;width:200px;height:200px;
+    background:radial-gradient(circle,rgba(255,212,0,.35),transparent 70%);border-radius:50%}
+  .login-hero .eyebrow{font-family:'Poppins';font-weight:700;font-size:11px;letter-spacing:2px;color:var(--amarillo);text-transform:uppercase}
+  .login-hero h1{font-size:24px;font-weight:800;margin-top:5px}
+  .login-body{padding:24px 26px 26px}
 
-.dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13.5px}
-.dl dt{color:var(--gris);white-space:nowrap}
-.dl dd{text-align:right;word-break:break-word}
+  /* LAYOUT */
+  #app{display:none;height:100dvh;min-height:0}
+  .shell{display:flex;height:100dvh;min-height:0}
+  .side{width:232px;flex:none;background:#fff;border-right:1px solid var(--linea);
+    display:flex;flex-direction:column;min-height:0;transition:margin-left .22s ease}
+  .side.hide{margin-left:-232px}
+  .side-top{padding:18px 16px;border-bottom:1px solid var(--linea)}
+  .side-brand{display:flex;align-items:center;gap:10px}
+  .side-brand svg{width:32px;height:32px;flex:none}
+  .side-brand .name{font-family:'Poppins';font-weight:800;font-size:19px;color:var(--azul);line-height:1}
+  .side-brand .tag{font-family:'Poppins';font-weight:600;font-size:7.5px;letter-spacing:1.2px;color:var(--gris);margin-top:1px}
+  .nav{flex:1;padding:12px 10px;overflow-y:auto}
+  .nav-i{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;border:0;background:none;
+    border-radius:11px;cursor:pointer;text-align:left;font-family:'Poppins';font-weight:600;
+    font-size:14px;color:var(--gris);margin-bottom:3px}
+  .nav-i:hover{background:var(--cielo);color:var(--azul)}
+  .nav-i.on{background:var(--azul);color:#fff}
+  .nav-i svg{width:18px;height:18px;flex:none}
+  .nav-i .cnt{margin-left:auto;font-size:11px;font-weight:700;background:rgba(0,0,0,.08);padding:1px 7px;border-radius:9px}
+  .nav-i.on .cnt{background:rgba(255,255,255,.25)}
+  .nav-sep{font-family:'Poppins';font-weight:700;font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;
+    color:var(--gris);padding:14px 12px 6px;opacity:.7}
+  .side-pie{padding:12px;border-top:1px solid var(--linea)}
+  .yo{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:11px;background:var(--cielo)}
+  .yo-av{width:32px;height:32px;border-radius:50%;background:var(--azul);color:#fff;flex:none;
+    display:grid;place-items:center;font-family:'Poppins';font-weight:700;font-size:13px}
+  .yo-n{font-family:'Poppins';font-weight:600;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .yo-r{font-size:10.5px;color:var(--gris);text-transform:capitalize}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+  .top{display:flex;align-items:center;gap:12px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--linea);flex:none}
+  .burger{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--linea);background:#fff;
+    cursor:pointer;display:grid;place-items:center;flex:none;color:var(--gris)}
+  .burger:hover{border-color:var(--azul);color:var(--azul)}
+  .top h2{font-size:18px;font-weight:700;flex:1}
+  .cont{flex:1;overflow-y:auto;min-height:0;padding:18px;-webkit-overflow-scrolling:touch}
+  .cont-in{max-width:960px;margin:0 auto}
+  .scrim{position:fixed;inset:0;background:rgba(10,42,102,.4);z-index:80;display:none}
+  @media(max-width:820px){
+    .side{position:fixed;z-index:90;height:100dvh;box-shadow:var(--sombra)}
+    .scrim.on{display:block}
+  }
 
-label{display:block;font-size:12.5px;font-weight:500;margin-bottom:6px;color:var(--recibo)}
-input,select,textarea{
-  width:100%;font-size:16px;padding:11px 12px;border-radius:var(--r-md);
-  background:rgba(0,0,0,.24);color:var(--recibo);
-  border:1.5px solid rgba(255,255,255,.1);
-}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--lima)}
-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237BE3A6' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
-textarea{resize:vertical;min-height:62px}
-.campo{margin-bottom:13px}
-.campo:last-child{margin-bottom:0}
-.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:420px){.f2{grid-template-columns:1fr}}
+  .chips-row{display:flex;gap:7px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+  .chips-row::-webkit-scrollbar{display:none}
+  .chip{padding:8px 14px;border-radius:999px;border:1.5px solid var(--linea);background:#fff;cursor:pointer;
+    font-size:13.5px;font-weight:500;white-space:nowrap;color:var(--gris)}
+  .chip:hover{border-color:var(--azul)}
+  .chip.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
+  .chip .n{margin-left:6px;font-size:11px;opacity:.85}
 
-.btn{
-  padding:12px 16px;border-radius:var(--r-md);border:0;cursor:pointer;
-  font-family:var(--display);font-size:14px;font-weight:600;
-}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-1{background:var(--lima);color:var(--billete);flex:1}
-.btn-2{background:transparent;color:var(--gris);border:1.5px solid rgba(255,255,255,.14)}
-.btn-mal{background:var(--sello);color:#fff}
-.btn-sm{padding:8px 12px;font-size:12.5px}
+  .card{background:#fff;border:1px solid var(--linea);border-radius:16px;box-shadow:var(--sombra-sm);
+    padding:16px;margin-bottom:11px;cursor:pointer;transition:border-color .15s,transform .1s}
+  .card:hover{border-color:var(--azul)}
+  .card:active{transform:scale(.995)}
+  .c-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .c-nom{font-family:'Poppins';font-weight:600;font-size:15.5px;line-height:1.25}
+  .c-folio{font-size:11.5px;color:var(--azul);font-weight:600;margin-top:2px;letter-spacing:.3px}
+  .c-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .tag{font-size:11.5px;padding:3px 9px;border-radius:7px;background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
+  .tag.b{background:var(--cielo);color:var(--azul);border-color:#C7DFFB;font-weight:600}
+  .tag.y{background:#FFF8DC;color:#8A6D00;border-color:#F2E08A;font-weight:600}
+  .sla{font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap;flex:none}
+  .sla.ok{background:var(--ok-lt);color:var(--ok)}
+  .sla.md{background:var(--amber-lt);color:var(--amber)}
+  .sla.no{background:var(--error-lt);color:var(--error)}
+  .vacio{text-align:center;padding:60px 20px;color:var(--gris)}
+  .vacio svg{opacity:.3;margin-bottom:12px}
+  .vacio p{font-size:14.5px}
 
-/* ===== COMPROBANTES DE INGRESO ===== */
-.comp{
-  display:grid;grid-template-columns:1fr 1fr auto;gap:8px;
-  align-items:end;margin-bottom:8px;
-}
-.comp input{padding:9px 10px;font-size:14px}
-.del{
-  background:none;border:0;color:var(--gris);cursor:pointer;
-  padding:9px;border-radius:6px;line-height:1;
-}
-.del:hover{color:var(--sello);background:rgba(232,87,75,.1)}
+  .modal{position:fixed;inset:0;z-index:100;display:none}
+  .modal.on{display:block}
+  .modal-bg{position:absolute;inset:0;background:rgba(10,42,102,.45)}
+  .modal-b{position:absolute;inset:0;background:var(--fondo);display:flex;flex-direction:column;min-height:0}
+  @media(min-width:760px){
+    .modal-b{left:50%;transform:translateX(-50%);width:720px;top:20px;bottom:0;
+      border-radius:20px 20px 0 0;box-shadow:var(--sombra);overflow:hidden}
+  }
+  .modal-h{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#fff;border-bottom:1px solid var(--linea);flex:none}
+  .modal-h h3{font-size:17px;font-weight:700;line-height:1.2}
+  .modal-h .f{font-size:11.5px;color:var(--azul);font-weight:600}
+  .modal-s{flex:1;overflow-y:auto;min-height:0;padding:16px;padding-bottom:100px}
+  .modal-p{position:absolute;left:0;right:0;bottom:0;padding:12px 16px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--linea);display:flex;gap:9px}
+  .x{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--linea);background:#fff;cursor:pointer;
+    display:grid;place-items:center;flex:none;font-size:15px;color:var(--gris)}
+  .x:hover{border-color:var(--error);color:var(--error)}
 
-/* ===== TABLA DE PAGOS ===== */
-.pagos-head{display:grid;grid-template-columns:38px 1fr 1fr auto;gap:8px;
-  font-size:10.5px;color:var(--gris);text-transform:uppercase;letter-spacing:.08em;
-  padding:0 2px 6px}
-.pago{display:grid;grid-template-columns:38px 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:7px}
-.pago .n{font-family:var(--mono);font-size:12px;color:var(--gris);text-align:center}
-.pago input{padding:9px;font-size:14px}
-.pago .dias{font-family:var(--mono);font-size:12px;text-align:center;padding:9px 6px;border-radius:6px;min-width:52px}
-.dias.p{background:rgba(123,227,166,.14);color:var(--lima)}
-.dias.m{background:rgba(242,179,65,.16);color:var(--ambar)}
-.dias.g{background:rgba(232,87,75,.16);color:#FF9B92}
+  .sec{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:18px;margin-bottom:12px}
+  .sec-h{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .sec-h h4{font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--azul)}
+  .badge{margin-left:auto;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:7px}
+  .badge.p{background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
+  .badge.k{background:var(--ok-lt);color:var(--ok)}
+  .badge.m{background:var(--error-lt);color:var(--error)}
+  .badge.a{background:var(--amber-lt);color:var(--amber)}
 
-/* ===== REFERENCIAS ===== */
-.ref{
-  background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.07);
-  border-radius:var(--r-md);padding:12px;margin-bottom:9px;
-}
-.ref-t{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
-.ref-n{font-weight:600;font-size:14px}
-.ref-tel{font-family:var(--mono);font-size:12px;color:var(--lima)}
-.ref-par{font-size:11.5px;color:var(--gris)}
-.res-ops{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
-.res{
-  flex:1;min-width:68px;padding:8px 4px;border-radius:7px;cursor:pointer;
-  background:rgba(255,255,255,.05);border:1.5px solid transparent;
-  color:var(--gris);font-size:11.5px;text-align:center;font-weight:500;
-}
-.res:hover{background:rgba(255,255,255,.09)}
-.res.on[data-r="ok"]{background:rgba(123,227,166,.18);border-color:var(--lima);color:var(--lima)}
-.res.on[data-r="no_respondio"]{background:rgba(242,179,65,.18);border-color:var(--ambar);color:var(--ambar)}
-.res.on[data-r="negativa"]{background:rgba(232,87,75,.14);border-color:rgba(232,87,75,.5);color:#FF9B92}
-.res.on[data-r="falsa"]{background:var(--sello);border-color:var(--sello);color:#fff}
-.ref textarea{min-height:44px;font-size:14px;padding:8px 10px}
+  .dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13.5px}
+  .dl dt{color:var(--gris);white-space:nowrap}
+  .dl dd{text-align:right;word-break:break-word;font-weight:500}
 
-/* ===== RESULTADO ===== */
-.resu{
-  background:linear-gradient(160deg,var(--billete-3),var(--billete-2));
-  border:1px solid rgba(123,227,166,.34);border-radius:var(--r-md);
-  padding:18px;margin-bottom:12px;
-}
-.resu.mal{border-color:rgba(232,87,75,.45);background:linear-gradient(160deg,#3A1F1C,var(--billete-2))}
-.resu-monto{
-  font-family:var(--display);font-size:34px;font-weight:700;
-  letter-spacing:-.02em;color:var(--lima);line-height:1;
-}
-.resu.mal .resu-monto{font-size:20px;color:#FF9B92}
-.resu-lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gris);margin-bottom:7px}
-.resu-row{display:flex;gap:20px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
-.resu-it{flex:1}
-.resu-v{font-family:var(--display);font-size:18px;font-weight:600;margin-top:2px}
-.resu-razon{font-size:12px;color:var(--gris);margin-top:12px;line-height:1.45}
+  label{display:block;font-family:'Poppins';font-weight:600;font-size:12.5px;margin-bottom:6px}
+  label small{display:block;font-family:'Inter';font-weight:400;font-size:11px;color:var(--gris);margin-top:1px}
+  input,select,textarea{width:100%;font-size:14.5px;padding:11px 13px;border:1.5px solid var(--linea);
+    border-radius:11px;background:#fff;transition:border-color .15s,box-shadow .15s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 4px rgba(24,119,242,.13)}
+  input:read-only{background:var(--fondo);color:var(--gris)}
+  textarea{resize:vertical;min-height:64px}
+  .fld{margin-bottom:13px}
+  .fld:last-child{margin-bottom:0}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+  @media(max-width:520px){.g2,.g3{grid-template-columns:1fr}}
 
-/* ===== AVISOS ===== */
-.aviso{border-radius:var(--r-md);padding:11px 13px;font-size:13px;margin-bottom:12px;display:none}
-.aviso.ver{display:block}
-.aviso.mal{background:rgba(232,87,75,.12);border:1px solid rgba(232,87,75,.34);color:#FFB5AE}
-.aviso.info{background:rgba(242,179,65,.1);border:1px solid rgba(242,179,65,.3);color:#FFD98A}
+  .tipo-g{display:flex;gap:7px;flex-wrap:wrap}
+  .tipo-g button{flex:1;min-width:96px;padding:10px 8px;border:1.5px solid var(--linea);background:#fff;
+    border-radius:11px;cursor:pointer;font-family:'Poppins';font-weight:600;font-size:13px;color:var(--gris)}
+  .tipo-g button:hover{border-color:var(--azul)}
+  .tipo-g button.on{background:var(--azul);border-color:var(--azul);color:#fff}
 
-.toast{
-  position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);
-  background:var(--lima);color:var(--billete);padding:12px 20px;border-radius:24px;
-  font-weight:600;font-size:13.5px;z-index:200;opacity:0;
-  transition:transform .28s cubic-bezier(.2,.8,.3,1),opacity .28s;
-  box-shadow:0 8px 24px rgba(0,0,0,.35);
-}
-.toast.ver{transform:translateX(-50%) translateY(0);opacity:1}
-.toast.mal{background:var(--sello);color:#fff}
+  .btn{font-family:'Poppins';font-weight:700;font-size:14.5px;border:none;border-radius:12px;
+    padding:13px 18px;cursor:pointer;transition:background .15s,transform .08s}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn-y{background:var(--amarillo);color:var(--azul-tinta);box-shadow:0 6px 16px rgba(255,212,0,.35);flex:1}
+  .btn-y:hover:not(:disabled){background:var(--amarillo-oscuro)}
+  .btn-b{background:var(--azul);color:#fff;box-shadow:0 6px 16px rgba(24,119,242,.3);flex:1}
+  .btn-b:hover:not(:disabled){background:var(--azul-oscuro)}
+  .btn-g{background:#fff;border:1.5px solid var(--linea);color:var(--gris)}
+  .btn-g:hover{border-color:var(--azul);color:var(--azul)}
+  .btn-r{background:var(--error);color:#fff;flex:1}
+  .btn-sm{padding:8px 13px;font-size:12.5px;border-radius:9px}
+  .btn-full{width:100%}
 
-.spin{
-  display:inline-block;width:14px;height:14px;border-radius:50%;
-  border:2px solid rgba(15,42,36,.3);border-top-color:var(--billete);
-  animation:g .7s linear infinite;vertical-align:-2px;margin-right:6px;
-}
-@keyframes g{to{transform:rotate(360deg)}}
-.oculto{display:none!important}
-@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  .row-d{display:grid;grid-template-columns:1fr 140px 40px;gap:9px;align-items:center;margin-bottom:8px}
+  @media(max-width:520px){.row-d{grid-template-columns:1fr 100px 40px}}
+  .row-d input{padding:9px 11px;font-size:14px}
+  .del{border:1.5px solid var(--linea);background:#fff;color:var(--error);border-radius:9px;
+    height:40px;cursor:pointer;font-size:19px;line-height:1;font-weight:700}
+  .del:hover{background:var(--error-lt);border-color:var(--error)}
+  .add{background:var(--cielo);color:var(--azul);border:1.5px dashed var(--azul);border-radius:10px;
+    padding:9px 14px;font-family:'Poppins';font-weight:600;font-size:13px;cursor:pointer}
+  .add:hover{background:#DFEEFF}
+
+  .paste{width:100%;min-height:96px;font-family:ui-monospace,monospace;font-size:12.5px;
+    border:1.5px dashed var(--azul);border-radius:12px;padding:12px;background:var(--cielo);resize:vertical}
+  .paste:focus{outline:none;background:#fff;border-style:solid}
+  .paste-h{font-size:11.5px;color:var(--gris);margin-top:6px}
+
+  .tw{overflow-x:auto;margin:0 -18px;padding:0 18px}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:540px}
+  th{font-family:'Poppins';font-weight:600;font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--gris);text-align:left;padding:8px 7px;border-bottom:1.5px solid var(--linea);white-space:nowrap}
+  td{padding:7px;border-bottom:1px solid var(--linea);white-space:nowrap}
+  td input{padding:6px 8px;font-size:12.5px;border-radius:7px}
+  .dd{font-weight:700;text-align:center;padding:3px 8px;border-radius:6px;font-size:12px;display:inline-block;min-width:40px}
+  .dd.k{background:var(--ok-lt);color:var(--ok)}
+  .dd.a{background:var(--amber-lt);color:var(--amber)}
+  .dd.m{background:var(--error-lt);color:var(--error)}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:9px}
+  .kpi{background:var(--fondo);border:1px solid var(--linea);border-radius:11px;padding:11px;text-align:center}
+  .kpi.k{background:var(--ok-lt);border-color:#BFE8CF}
+  .kpi.a{background:var(--amber-lt);border-color:#F2E08A}
+  .kpi.m{background:var(--error-lt);border-color:#F3C4C4}
+  .kpi-v{font-family:'Poppins';font-weight:800;font-size:22px;line-height:1}
+  .kpi-l{font-size:10.5px;color:var(--gris);margin-top:3px}
+
+  .ref{background:var(--fondo);border:1px solid var(--linea);border-radius:12px;padding:13px;margin-bottom:9px}
+  .ref-t{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+  .ref-n{font-family:'Poppins';font-weight:600;font-size:14px}
+  .ref-d{font-size:12px;color:var(--gris);margin-top:1px}
+  .res-g{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+  .res{flex:1;min-width:72px;padding:8px 4px;border-radius:9px;cursor:pointer;background:#fff;
+    border:1.5px solid var(--linea);font-size:11.5px;font-weight:600;color:var(--gris);text-align:center}
+  .res:hover{border-color:var(--azul)}
+  .res.on[data-r="ok"]{background:var(--ok-lt);border-color:var(--ok);color:var(--ok)}
+  .res.on[data-r="no_respondio"]{background:var(--amber-lt);border-color:var(--amber);color:var(--amber)}
+  .res.on[data-r="negativa"]{background:var(--error-lt);border-color:var(--error);color:var(--error)}
+  .res.on[data-r="falsa"]{background:var(--error);border-color:var(--error);color:#fff}
+  .ref textarea{min-height:40px;font-size:13px;padding:8px 10px}
+
+  .veredicto{border-radius:14px;padding:18px;margin-bottom:12px;border:2px solid}
+  .veredicto.k{background:var(--ok-lt);border-color:var(--ok)}
+  .veredicto.m{background:var(--error-lt);border-color:var(--error)}
+  .v-t{font-family:'Poppins';font-weight:800;font-size:18px;margin-bottom:4px}
+  .v-d{font-size:13.5px;color:var(--gris);line-height:1.45}
+  .v-row{display:flex;gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,.09)}
+  .v-i{flex:1}
+  .v-l{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gris)}
+  .v-v{font-family:'Poppins';font-weight:800;font-size:24px;line-height:1.1;margin-top:2px}
+
+  .callout{background:var(--cielo);border:1px solid var(--linea);border-radius:12px;padding:13px 15px;font-size:13.5px;margin-bottom:12px}
+  .callout.w{background:var(--amber-lt);border-color:#F2E08A}
+  .callout.r{background:var(--error-lt);border-color:#F3C4C4}
+  .callout b{font-family:'Poppins';font-weight:600}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(90px);
+    background:var(--azul-tinta);color:#fff;padding:13px 22px;border-radius:26px;
+    font-family:'Poppins';font-weight:600;font-size:13.5px;z-index:300;opacity:0;
+    transition:transform .28s cubic-bezier(.2,.8,.3,1),opacity .28s;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .toast.on{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast.k{background:var(--ok)} .toast.m{background:var(--error)}
+
+  .sp{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);
+    border-top-color:#fff;animation:g .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes g{to{transform:rotate(360deg)}}
+  .hide{display:none!important}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+  .u-row{display:flex;align-items:center;gap:11px;padding:13px;background:#fff;border:1px solid var(--linea);
+    border-radius:13px;margin-bottom:9px;flex-wrap:wrap}
+  .u-av{width:38px;height:38px;border-radius:50%;background:var(--cielo);color:var(--azul);flex:none;
+    display:grid;place-items:center;font-family:'Poppins';font-weight:700;font-size:14px}
+  .u-i{flex:1;min-width:130px}
+  .u-n{font-family:'Poppins';font-weight:600;font-size:14.5px}
+  .u-m{font-size:12px;color:var(--gris);word-break:break-all}
+  .u-off{opacity:.5}
 </style>
 </head>
 <body>
 
-<!-- ===== LOGIN ===== -->
 <div id="login">
   <div class="login-box">
-    <div class="login-marca">Más Pisto</div>
-    <h1>Panel de crédito</h1>
+    <div class="brand">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22 46h10V36h-10V25h-10v11H2v10h10v11h10V46z" fill="#1877F2"/>
+        <path d="M46 25h30a3 3 0 0 1 3 3v14c0 15-10 25-25 25V57c8 0 14-6 14-15v-7H46V25z" fill="#1877F2"/>
+        <rect x="46" y="35" width="10" height="42" rx="1" fill="#1877F2"/>
+      </svg>
+      <div><div class="name">más pisto</div><div class="tag">FÁCIL, RÁPIDOS Y CONFIABLES</div></div>
+    </div>
     <div class="login-card">
-      <div class="aviso mal" id="login-err"></div>
-      <div class="campo">
-        <label for="email">Correo</label>
-        <input id="email" type="email" autocomplete="username" placeholder="vos@maspisto.hn">
+      <div class="login-hero">
+        <p class="eyebrow">Uso interno</p>
+        <h1>Panel de crédito</h1>
       </div>
-      <div class="campo">
-        <label for="pass">Contraseña</label>
-        <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••">
+      <div class="login-body">
+        <div class="callout r hide" id="lerr"></div>
+        <div class="fld"><label for="email">Correo</label>
+          <input id="email" type="email" autocomplete="username" placeholder="vos@maspisto.hn"></div>
+        <div class="fld"><label for="pass">Contraseña</label>
+          <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+        <button class="btn btn-b btn-full" id="btn-login" style="margin-top:6px">Entrar</button>
       </div>
-      <button class="btn btn-1" id="btn-login" style="width:100%;margin-top:6px">Entrar</button>
     </div>
   </div>
 </div>
 
-<!-- ===== APP ===== -->
 <div id="app">
-  <div class="topbar">
-    <span class="marca">Más Pisto</span>
-    <span class="sp"></span>
-    <span class="chip" id="quien">—</span>
-    <button class="ibtn" id="btn-param" title="Parámetros">⚙</button>
-    <button class="ibtn" id="btn-salir" title="Salir">⏻</button>
-  </div>
+  <div class="scrim" id="scrim"></div>
+  <div class="shell">
+    <aside class="side" id="side">
+      <div class="side-top">
+        <div class="side-brand">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 46h10V36h-10V25h-10v11H2v10h10v11h10V46z" fill="#1877F2"/>
+            <path d="M46 25h30a3 3 0 0 1 3 3v14c0 15-10 25-25 25V57c8 0 14-6 14-15v-7H46V25z" fill="#1877F2"/>
+            <rect x="46" y="35" width="10" height="42" rx="1" fill="#1877F2"/>
+          </svg>
+          <div><div class="name">más pisto</div><div class="tag">PANEL DE CRÉDITO</div></div>
+        </div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="side-pie">
+        <div class="yo">
+          <div class="yo-av" id="yo-av">—</div>
+          <div style="flex:1;min-width:0">
+            <div class="yo-n" id="yo-n">—</div>
+            <div class="yo-r" id="yo-r">—</div>
+          </div>
+          <button class="x" id="salir" title="Salir">⏻</button>
+        </div>
+      </div>
+    </aside>
 
-  <div class="tabs" id="tabs"></div>
-  <main id="main"></main>
+    <div class="main">
+      <div class="top">
+        <button class="burger" id="burger" aria-label="Menú">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <h2 id="titulo">Solicitudes</h2>
+        <button class="btn btn-b btn-sm hide" id="btn-nueva" style="flex:none">+ Nueva</button>
+      </div>
+      <div class="cont"><div class="cont-in" id="cont"></div></div>
+    </div>
+  </div>
 </div>
 
-<!-- ===== DETALLE ===== -->
-<div id="sheet">
-  <div class="sheet-bg" id="sheet-bg"></div>
-  <div class="sheet-body">
-    <div class="sheet-head">
-      <button class="ibtn" id="cerrar">✕</button>
-      <div>
-        <h2 id="d-nom">—</h2>
-        <div class="f" id="d-folio">—</div>
-      </div>
+<div class="modal" id="modal">
+  <div class="modal-bg" id="modal-bg"></div>
+  <div class="modal-b">
+    <div class="modal-h">
+      <button class="x" id="m-cerrar">✕</button>
+      <div style="flex:1;min-width:0"><h3 id="m-t">—</h3><div class="f" id="m-f">—</div></div>
     </div>
-    <div class="sheet-scroll" id="d-body"></div>
-    <div class="sheet-pie" id="d-pie"></div>
+    <div class="modal-s" id="m-body"></div>
+    <div class="modal-p" id="m-pie"></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-/* ==================================================================
-   CONFIG
-   ================================================================== */
-const SUPABASE_URL = 'https://qmxkmslxydxjlojxhzhb.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGttc2x4eWR4amxvanhoemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTM0NTYsImV4cCI6MjA5OTc4OTQ1Nn0.TF1Fvaa5B_eT_qHdM1NpVGMqOub758I0f7NGpm2_mfY';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const SB_URL='https://qmxkmslxydxjlojxhzhb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGttc2x4eWR4amxvanhoemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTM0NTYsImV4cCI6MjA5OTc4OTQ1Nn0.TF1Fvaa5B_eT_qHdM1NpVGMqOub758I0f7NGpm2_mfY';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 
-const $ = s => document.querySelector(s);
-const $$ = s => [...document.querySelectorAll(s)];
+let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[];
 
-let YO = null;      // { id, nombre, rol, roles_extra }
-let P = null;       // parametros_sistema.valores
-let SOLS = [];      // solicitudes cargadas
-let ACTUAL = null;  // solicitud abierta
-let TAB = null;
+const fmt=n=>new Intl.NumberFormat('es-HN',{maximumFractionDigits:0}).format(n||0);
+const fmtL=n=>'L '+new Intl.NumberFormat('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m,t){const e=$('#toast');e.textContent=m;e.className='toast on'+(t?' '+t:'');
+  clearTimeout(e._t);e._t=setTimeout(()=>e.className='toast',2800);}
+const rol=r=>YO&&(YO.rol===r||(YO.roles_extra||[]).includes(r));
+const esAdmin=()=>rol('admin');
 
-/* ==================================================================
-   MOTOR DE ANÁLISIS
-   ================================================================== */
-/* El formulario captura antigüedad como años + meses por separado.
-   El motor necesita el total en meses. */
-function mesesAntiguedad(d){
-  if(!d) return 0;
-  return (parseInt(d.antiguedad_anios)||0) * 12 + (parseInt(d.antiguedad_meses)||0);
+/* El formulario manda 'nombre'. Antes se leía nombres+apellidos y salía vacío. */
+function nombreDe(d){
+  if(!d) return 'Sin nombre';
+  const n=d.nombre||[d.nombres,d.apellidos].filter(Boolean).join(' ');
+  return String(n||'').trim()||'Sin nombre';
 }
-function mesesVivienda(d){
-  if(!d) return 0;
-  return (parseInt(d.vivienda_anios)||0) * 12 + (parseInt(d.vivienda_meses)||0);
+const cedulaDe=d=>d?.cedula||d?.identidad||'—';
+
+/* Antigüedad COMO CLIENTE (fecha_ingreso_cliente), no laboral */
+function mesesCliente(s){
+  if(!s?.fecha_ingreso_cliente) return 0;
+  const i=new Date(s.fecha_ingreso_cliente+'T12:00:00'),h=new Date();
+  let m=(h.getFullYear()-i.getFullYear())*12+(h.getMonth()-i.getMonth());
+  if(h.getDate()<i.getDate()) m--;
+  return Math.max(0,m);
 }
-function fmt(n){ return new Intl.NumberFormat('es-HN',{maximumFractionDigits:0}).format(n||0); }
-function fmtL(n){ return 'L' + new Intl.NumberFormat('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0); }
-
-function calcularLimite(ingreso, meses){
-  if(!ingreso || ingreso <= 0) return {ok:false, motivo:'Sin ingreso registrado'};
-  if(ingreso < P.ingreso_minimo_mensual)
-    return {ok:false, motivo:`Ingreso de L${fmt(ingreso)} es menor al mínimo de L${fmt(P.ingreso_minimo_mensual)}`};
-
-  const L = P.limites_por_antiguedad;
-  let factor, tramo;
-  if(meses >= 6)      { factor = L.seis_meses; tramo = '6+ meses'; }
-  else if(meses >= 3) { factor = L.tres_meses; tramo = '3-5 meses'; }
-  else                { factor = L.nuevo;      tramo = 'nuevo'; }
-
-  let monto = Math.ceil((ingreso * factor) / P.redondeo_credito) * P.redondeo_credito;
-  const topado = monto > P.credito_max;
-  monto = Math.min(monto, P.credito_max);
-
-  if(monto < P.credito_min)
-    return {ok:false, motivo:`El límite calculado (L${fmt(monto)}) es menor al mínimo de L${fmt(P.credito_min)}`};
-
-  return {ok:true, monto, factor, tramo, topado};
+function labelMeses(m){
+  const a=Math.floor(m/12),r=m%12;
+  if(a<=0) return m+' mes'+(m===1?'':'es');
+  return `${m} meses (${a} año${a>1?'s':''}${r>0?` y ${r} mes${r>1?'es':''}`:''})`;
+}
+function perfilRubro(nom){
+  if(!nom||!P?.rubros) return 'normal';
+  const b=String(nom).replace(/\s*\(otro\)$/i,'').trim().toLowerCase();
+  const r=P.rubros.find(x=>String(x.nombre).toLowerCase()===b);
+  if(!r) return 'normal';
+  return r.riesgo?'riesgo':(r.ideal?'ideal':'normal');
+}
+function catEquifax(s){
+  if(!s) return null;
+  const r=(P.equifax_rangos||[]).find(x=>s>=x.min&&s<=x.max);
+  return r?r.nombre:'Fuera de rango';
 }
 
-function calcularTasa(comp, meses){
-  const T = P.tasas, SP = P.super_preferencial;
-  if(!comp || !comp.pagos || !comp.pagos.length)
-    return {tasa:T.estandar, categoria:'Estándar', razon:'Cliente sin historial de pagos'};
-
-  const pu = comp.pagos_puntuales ?? 0;
-  const a46 = comp.atrasos_4_6 ?? 0;
-  const a7 = comp.atrasos_7_mas ?? 0;
-
-  if(meses >= SP.meses_antiguedad_min && pu >= SP.pagos_puntuales_min &&
-     a7 <= SP.atrasos_7_o_mas_max && a46 <= SP.atrasos_4_a_6_max)
-    return {tasa:T.super_preferencial, categoria:'Súper preferencial',
-            razon:`${pu} pagos puntuales, ${meses} meses de antigüedad`};
-
-  if(a7 === 0 && pu >= 2){
-    const f = [];
-    if(meses < SP.meses_antiguedad_min) f.push(`le faltan ${SP.meses_antiguedad_min-meses} meses de antigüedad`);
-    if(pu < SP.pagos_puntuales_min) f.push(`tiene ${pu} de ${SP.pagos_puntuales_min} pagos puntuales`);
-    if(a46 > SP.atrasos_4_a_6_max) f.push(`${a46} atrasos de 4-6 días`);
-    return {tasa:T.preferencial, categoria:'Preferencial',
-            razon: f.length ? 'No llega a súper: ' + f.join('; ') : 'Buen comportamiento'};
+/* ===== MOTOR (portado de analisis-credito.html) ===== */
+function calcLimite(prom,tipo,meses){
+  if(!prom||prom<=0) return {ok:false,motivo:'Sin ingreso registrado'};
+  if(prom<P.minIngreso) return {ok:false,motivo:`El ingreso promedio (${fmtL(prom)}) no alcanza el mínimo de ${fmtL(P.minIngreso)}.`};
+  let pct,regla;
+  if(tipo==='nuevo'){pct=P.pctNuevo/100;regla=`Nuevo ingreso: ${P.pctNuevo}% del ingreso mensual`;}
+  else if(meses>=P.mesAlto){pct=P.pctAlto/100;regla=`Antigüedad ≥${P.mesAlto} meses: ${P.pctAlto}%`;}
+  else if(meses>P.mesMedio){pct=P.pctMedio/100;regla=`Antigüedad >${P.mesMedio} meses: ${P.pctMedio}%`;}
+  else{pct=P.pctNuevo/100;regla=`Antigüedad ≤${P.mesMedio} meses: ${P.pctNuevo}%`;}
+  const red=Math.ceil((prom*pct)/(P.redondeo||1000))*(P.redondeo||1000);
+  const fin=Math.min(P.limiteMax,Math.max(P.limiteMin,red));
+  return {ok:true,monto:fin,pct,regla,clamped:Math.round(fin)!==Math.round(red)};
+}
+function calcTasa(tipo,prom,perfil,meses,h){
+  let tasa=P.tasaStd,tipoTasa='Estándar',regla='';
+  if(tipo==='nuevo'){
+    if(prom>=P.ingresoPref&&perfil==='ideal'){tasa=P.tasaPref;tipoTasa='Preferencial';regla=`Nuevo + ≥${fmtL(P.ingresoPref)} + perfil ideal`;}
+    else regla=perfil==='riesgo'?'Perfil de riesgo':'Nuevo sin condición preferencial';
+    return {tasa,tipoTasa,regla};
   }
-
-  const c = [];
-  if(a7 > 0) c.push(`${a7} atraso(s) de 7+ días`);
-  if(pu < 2) c.push('pocos pagos puntuales');
-  return {tasa:T.estandar, categoria:'Estándar', razon: c.join('; ') || 'Comportamiento estándar'};
+  if(prom>=P.ingresoPref&&perfil==='ideal'){tasa=P.tasaPref;tipoTasa='Preferencial';regla=`≥${fmtL(P.ingresoPref)} + perfil ideal`;}
+  else regla=perfil==='riesgo'?'Perfil de riesgo':'Sin condición preferencial';
+  const hh=h||{ok:0,late:0,maxDias:0};
+  const grave=hh.maxDias>=P.spDiasGrave;
+  const cumple=!grave&&hh.late<=P.spMaxLeves;
+  if(perfil!=='riesgo'&&meses>=P.spAntig&&hh.ok>=P.spCuotas&&cumple){
+    const prev=tasa;tasa=tasa===P.tasaStd?P.tasaPref:P.tasaSuper;tipoTasa='Súper Preferencial';
+    regla+=` → ≥${P.spAntig}m + ≥${P.spCuotas} buenos + ≤${P.spMaxLeves} leves + 0 graves: ${prev}% → ${tasa}%`;
+  }else if(perfil!=='riesgo'&&meses>=P.spAntig&&hh.ok>=P.spCuotas&&!cumple){
+    regla+=grave?` · No aplica preferencial (tardío de ${hh.maxDias}d)`
+                :` · No aplica preferencial (${hh.late} tardíos, máx ${P.spMaxLeves})`;
+  }
+  return {tasa,tipoTasa,regla};
 }
-
-function analizarPagos(pagos){
-  let pu=0, a46=0, a7=0;
-  pagos.forEach(p=>{
-    const d = Number(p.dias);
-    if(isNaN(d) || p.dias === '' || p.dias === null) return;
-    if(d <= 3) pu++;
-    else if(d <= 6) a46++;
-    else a7++;
+function analizarCuotas(cs){
+  let ok=0,late=0,maxDias=0,total=0;
+  (cs||[]).forEach(c=>{
+    c._dias=null;
+    if(!c.pactada||!c.pagada) return;
+    total++;
+    const d=Math.round((new Date(c.pagada+'T12:00:00')-new Date(c.pactada+'T12:00:00'))/864e5);
+    c._dias=d;
+    if(d>P.diasTarde){late++;maxDias=Math.max(maxDias,d);} else ok++;
   });
-  return {pagos_puntuales:pu, atrasos_4_6:a46, atrasos_7_mas:a7, total:pagos.length,
-          resultado: a7>0 ? 'con atrasos graves' : (a46>0 ? 'con atrasos leves' : 'favorable')};
+  return {ok,late,maxDias,total};
 }
 
-function catEquifax(score){
-  if(!score) return null;
-  const r = P.equifax_rangos.find(r => score >= r.min && score <= r.max);
-  return r ? r.nombre : 'Fuera de rango';
-}
-
-/* ==================================================================
-   UTILIDADES
-   ================================================================== */
-function toast(msg, mal){
-  const t = $('#toast');
-  t.textContent = msg;
-  t.className = 'toast ver' + (mal ? ' mal' : '');
-  clearTimeout(t._t);
-  t._t = setTimeout(()=> t.className = 'toast' + (mal?' mal':''), 2600);
-}
-
-function tengoRol(r){
-  if(!YO) return false;
-  return YO.rol === r || (YO.roles_extra || []).includes(r);
-}
-
-function slaClase(desde, estado){
-  const horas = (Date.now() - new Date(desde)) / 36e5;
-  const lim = (P.sla_horas || {})[estado] || 24;
-  if(horas > lim) return 'tarde';
-  if(horas > lim * 0.66) return 'medio';
-  return 'ok';
-}
-function slaTexto(desde){
-  const m = Math.floor((Date.now() - new Date(desde)) / 6e4);
-  if(m < 60) return m + 'm';
-  const h = Math.floor(m/60);
-  if(h < 24) return h + 'h';
-  return Math.floor(h/24) + 'd';
-}
-
-const ETIQUETA = {
-  pendiente_revision:'Nuevas', en_revision_asesor:'En revisión',
-  en_analisis:'Análisis', por_verificar:'Por verificar',
-  en_verificacion:'Verificando', verificado:'Decidir',
-  aprobado:'Aprobadas', denegado:'Denegadas', desembolsado:'Entregadas'
-};
-
-/* ==================================================================
-   LOGIN
-   ================================================================== */
-$('#btn-login').addEventListener('click', entrar);
-$('#pass').addEventListener('keydown', e => { if(e.key === 'Enter') entrar(); });
-
+/* ===== LOGIN ===== */
+$('#btn-login').addEventListener('click',entrar);
+$('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')entrar()});
+$('#email').addEventListener('keydown',e=>{if(e.key==='Enter')$('#pass').focus()});
 async function entrar(){
-  const b = $('#btn-login');
-  b.disabled = true; b.innerHTML = '<span class="spin"></span>Entrando';
-  $('#login-err').classList.remove('ver');
-
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: $('#email').value.trim(),
-    password: $('#pass').value
-  });
-
+  const b=$('#btn-login');b.disabled=true;b.innerHTML='<span class="sp"></span>Entrando';
+  $('#lerr').classList.add('hide');
+  const {data,error}=await sb.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#pass').value});
   if(error){
-    $('#login-err').textContent = error.message.includes('Invalid')
-      ? 'Correo o contraseña incorrectos.' : error.message;
-    $('#login-err').classList.add('ver');
-    b.disabled = false; b.textContent = 'Entrar';
-    return;
+    $('#lerr').textContent=error.message.includes('Invalid')?'Correo o contraseña incorrectos.':error.message;
+    $('#lerr').classList.remove('hide');b.disabled=false;b.textContent='Entrar';return;
   }
   await arrancar(data.session);
 }
-
 async function arrancar(session){
-  const { data: perfil, error } = await sb.from('usuarios')
-    .select('*').eq('id', session.user.id).single();
-
-  if(error || !perfil){
-    $('#login-err').textContent = 'Tu usuario no tiene perfil asignado. Contactá al administrador.';
-    $('#login-err').classList.add('ver');
-    await sb.auth.signOut();
-    $('#btn-login').disabled = false; $('#btn-login').textContent = 'Entrar';
-    return;
-  }
-  if(!perfil.activo){
-    $('#login-err').textContent = 'Tu usuario está desactivado.';
-    $('#login-err').classList.add('ver');
-    await sb.auth.signOut();
-    $('#btn-login').disabled = false; $('#btn-login').textContent = 'Entrar';
-    return;
-  }
-
-  YO = perfil;
-
-  const { data: par } = await sb.from('parametros_sistema').select('valores').eq('id',1).single();
-  P = par.valores;
-
-  $('#login').style.display = 'none';
-  $('#app').style.display = 'flex';
-
-  const roles = [YO.rol, ...(YO.roles_extra||[])];
-  $('#quien').textContent = `${YO.nombre} · ${[...new Set(roles)].join('/')}`;
-
-  pintarTabs();
-  await cargar();
-  vivo();
+  const fail=async m=>{$('#lerr').textContent=m;$('#lerr').classList.remove('hide');
+    await sb.auth.signOut();$('#btn-login').disabled=false;$('#btn-login').textContent='Entrar';};
+  const {data:perfil,error}=await sb.from('usuarios').select('*').eq('id',session.user.id).single();
+  if(error||!perfil) return fail('Tu usuario no tiene perfil asignado. Contactá al administrador.');
+  if(!perfil.activo) return fail('Tu usuario está desactivado.');
+  YO=perfil;
+  const {data:par}=await sb.from('parametros_sistema').select('valores').eq('id',1).single();
+  P=par.valores;
+  $('#login').style.display='none';
+  $('#app').style.display='block';
+  const roles=[...new Set([YO.rol,...(YO.roles_extra||[])])];
+  $('#yo-av').textContent=(YO.nombre||'?').trim().charAt(0).toUpperCase();
+  $('#yo-n').textContent=YO.nombre;
+  $('#yo-r').textContent=roles.join(' · ');
+  pintarNav(); await cargar(); vivo();
 }
+$('#salir').addEventListener('click',async()=>{await sb.auth.signOut();location.reload();});
 
-$('#btn-salir').addEventListener('click', async ()=>{
-  await sb.auth.signOut();
-  location.reload();
-});
+/* ===== MENÚ ===== */
+const ICO={
+ solicitudes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+ historial:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+ parametros:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+ usuarios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>'};
 
-/* ==================================================================
-   TABS SEGÚN ROL
-   ================================================================== */
+function pintarNav(){
+  let h=`<button class="nav-i" data-v="solicitudes">${ICO.solicitudes}Solicitudes<span class="cnt" id="cnt-s">0</span></button>
+         <button class="nav-i" data-v="historial">${ICO.historial}Historial</button>`;
+  if(esAdmin()) h+=`<div class="nav-sep">Administración</div>
+    <button class="nav-i" data-v="parametros">${ICO.parametros}Parámetros</button>
+    <button class="nav-i" data-v="usuarios">${ICO.usuarios}Usuarios</button>`;
+  $('#nav').innerHTML=h;
+  $$('.nav-i').forEach(b=>b.addEventListener('click',()=>{ir(b.dataset.v);if(innerWidth<=820)cerrarSide();}));
+  ir('solicitudes');
+}
+function ir(v){
+  VISTA=v;
+  $$('.nav-i').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('#titulo').textContent={solicitudes:'Solicitudes',historial:'Historial',parametros:'Parámetros',usuarios:'Usuarios'}[v];
+  $('#btn-nueva').classList.toggle('hide',v!=='solicitudes'||!(rol('asesor')||esAdmin()));
+  ({solicitudes:pintarSolicitudes,historial:pintarHistorial,parametros:pintarParametros,usuarios:pintarUsuarios})[v]();
+}
+const abrirSide=()=>{$('#side').classList.remove('hide');if(innerWidth<=820)$('#scrim').classList.add('on');};
+const cerrarSide=()=>{$('#side').classList.add('hide');$('#scrim').classList.remove('on');};
+$('#burger').addEventListener('click',()=>$('#side').classList.contains('hide')?abrirSide():cerrarSide());
+$('#scrim').addEventListener('click',cerrarSide);
+if(innerWidth<=820) cerrarSide();
+
+/* ===== CARGA ===== */
+async function cargar(){
+  const {data,error}=await sb.from('solicitudes').select('*').order('estado_desde',{ascending:true});
+  if(error){toast('No se pudo cargar: '+error.message,'m');return;}
+  SOLS=data||[];
+  const c=$('#cnt-s');
+  if(c) c.textContent=SOLS.filter(s=>!['aprobado','denegado','desembolsado'].includes(s.estado)).length;
+  if(VISTA==='solicitudes') pintarSolicitudes();
+  else if(VISTA==='historial') pintarHistorial();
+}
+function vivo(){
+  sb.channel('sols').on('postgres_changes',{event:'*',schema:'public',table:'solicitudes'},cargar).subscribe();
+  setInterval(()=>{if(!$('#modal').classList.contains('on')&&VISTA==='solicitudes')pintarSolicitudes();},60000);
+}
+function sla(s){
+  const hrs=(Date.now()-new Date(s.estado_desde))/36e5;
+  const lim=(P.sla_horas||{})[s.estado]||24;
+  const cls=hrs>lim?'no':hrs>lim*.66?'md':'ok';
+  const m=Math.floor((Date.now()-new Date(s.estado_desde))/6e4);
+  const t=m<60?m+'m':m<1440?Math.floor(m/60)+'h':Math.floor(m/1440)+'d';
+  return `<span class="sla ${cls}">${t}</span>`;
+}
+const ETQ={pendiente_revision:'Nuevas',en_revision_asesor:'En revisión',en_analisis:'Análisis',
+  por_verificar:'Por verificar',en_verificacion:'Verificando',verificado:'Decidir',
+  aprobado:'Aprobadas',denegado:'Denegadas',desembolsado:'Entregadas'};
+const TIPO_L={nuevo:'Nuevo',reingreso:'Reingreso',refinanciamiento:'Refinanciamiento'};
 function misEstados(){
-  const e = [];
-  if(tengoRol('asesor') || tengoRol('admin')) e.push('pendiente_revision','en_revision_asesor');
-  if(tengoRol('analista') || tengoRol('admin')) e.push('en_analisis','verificado');
+  const e=[];
+  if(rol('asesor')||esAdmin()) e.push('pendiente_revision','en_revision_asesor');
+  if(rol('analista')||esAdmin()) e.push('en_analisis','verificado');
   e.push('por_verificar','en_verificacion');
-  e.push('aprobado','denegado');
   return [...new Set(e)];
 }
 
-function pintarTabs(){
-  const est = misEstados();
-  TAB = TAB || est[0];
-  $('#tabs').innerHTML = est.map(e =>
-    `<button class="tab ${e===TAB?'on':''}" data-e="${e}">${ETIQUETA[e]}<span class="n" id="n-${e}">0</span></button>`
-  ).join('');
-  $$('.tab').forEach(t => t.addEventListener('click', ()=>{
-    TAB = t.dataset.e;
-    $$('.tab').forEach(x => x.classList.toggle('on', x === t));
-    pintarLista();
+/* ===== SOLICITUDES ===== */
+function pintarSolicitudes(){
+  const est=misEstados();
+  if(!FILTRO||!est.includes(FILTRO)) FILTRO=est[0];
+  const lista=SOLS.filter(s=>s.estado===FILTRO);
+  let h=`<div class="chips-row">${est.map(e=>{
+    const n=SOLS.filter(s=>s.estado===e).length;
+    return `<button class="chip ${e===FILTRO?'on':''}" data-e="${e}">${ETQ[e]}<span class="n">${n}</span></button>`;
+  }).join('')}</div>`;
+  h+= lista.length ? lista.map(cardHTML).join('')
+    : `<div class="vacio"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+       <p>No hay solicitudes en <b>${ETQ[FILTRO]}</b>.</p></div>`;
+  $('#cont').innerHTML=h;
+  $$('.chip').forEach(c=>c.addEventListener('click',()=>{FILTRO=c.dataset.e;pintarSolicitudes();}));
+  $$('.card[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
+}
+function cardHTML(s){
+  const d=s.datos_cliente||{},r=s.resultado_analisis||{};
+  const ing=s.analisis_ingresos?.ingreso_promedio;
+  return `<div class="card" data-id="${s.id}">
+    <div class="c-top"><div style="min-width:0">
+      <div class="c-nom">${esc(nombreDe(d))}</div>
+      <div class="c-folio">${esc(s.folio)}</div></div>${sla(s)}</div>
+    <div class="c-meta">
+      <span class="tag ${s.tipo_operacion!=='nuevo'?'y':''}">${TIPO_L[s.tipo_operacion]}</span>
+      ${d.telefono?`<span class="tag">${esc(d.telefono)}</span>`:''}
+      ${d.empresa?`<span class="tag">${esc(d.empresa)}</span>`:''}
+      ${d.monto?`<span class="tag">Pide L${fmt(d.monto)}</span>`:''}
+      ${ing?`<span class="tag b">L${fmt(ing)}/mes</span>`:''}
+      ${r.monto_aprobado?`<span class="tag b">L${fmt(r.monto_aprobado)} · ${r.tasa}%</span>`:''}
+      ${s.origen==='cliente'?'<span class="tag">del formulario</span>':''}
+    </div></div>`;
+}
+
+/* ===== HISTORIAL ===== */
+function pintarHistorial(){
+  const cerr=SOLS.filter(s=>['aprobado','denegado','desembolsado'].includes(s.estado))
+    .sort((a,b)=>new Date(b.cerrado_en||b.actualizado_en)-new Date(a.cerrado_en||a.actualizado_en));
+  $('#cont').innerHTML=`
+  <div class="sec"><div class="sec-h"><h4>Buscar</h4></div>
+    <div class="g2">
+      <div class="fld"><label>Nombre, cédula o folio</label><input id="h-q" placeholder="Escribí para filtrar"></div>
+      <div class="fld"><label>Estado</label><select id="h-e">
+        <option value="">Todos</option><option value="aprobado">Aprobadas</option>
+        <option value="denegado">Denegadas</option><option value="desembolsado">Entregadas</option></select></div>
+    </div>
+    <button class="btn btn-g btn-sm" id="h-csv">Descargar CSV</button></div>
+  <div id="h-list"></div>`;
+  const render=()=>{
+    const q=($('#h-q').value||'').toLowerCase().trim(), e=$('#h-e').value;
+    const f=cerr.filter(s=>{
+      if(e&&s.estado!==e) return false;
+      if(!q) return true;
+      const d=s.datos_cliente||{};
+      return [nombreDe(d),cedulaDe(d),s.folio].join(' ').toLowerCase().includes(q);
+    });
+    $('#h-list').innerHTML=f.length?f.map(s=>{
+      const d=s.datos_cliente||{},r=s.resultado_analisis||{};
+      const cl={aprobado:'k',denegado:'m',desembolsado:'k'}[s.estado];
+      return `<div class="card" data-id="${s.id}">
+        <div class="c-top"><div style="min-width:0">
+          <div class="c-nom">${esc(nombreDe(d))}</div>
+          <div class="c-folio">${esc(s.folio)} · ${new Date(s.cerrado_en||s.actualizado_en).toLocaleDateString('es-HN')}</div>
+        </div><span class="badge ${cl}" style="margin:0">${ETQ[s.estado]}</span></div>
+        <div class="c-meta"><span class="tag">${TIPO_L[s.tipo_operacion]}</span>
+          ${r.monto_aprobado?`<span class="tag b">L${fmt(r.monto_aprobado)} · ${r.tasa}%</span>`:''}
+          ${r.motivo_denegacion?`<span class="tag" style="color:var(--error)">${esc(r.motivo_denegacion)}</span>`:''}
+        </div></div>`;
+    }).join(''):'<div class="vacio"><p>Sin resultados.</p></div>';
+    $$('#h-list .card[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
+  };
+  $('#h-q').addEventListener('input',render);
+  $('#h-e').addEventListener('change',render);
+  $('#h-csv').addEventListener('click',()=>{
+    const rows=[['Folio','Fecha','Nombre','Cedula','Tipo','Estado','Monto','Tasa','Motivo']];
+    cerr.forEach(s=>{
+      const d=s.datos_cliente||{},r=s.resultado_analisis||{};
+      rows.push([s.folio,new Date(s.cerrado_en||s.actualizado_en).toLocaleDateString('es-HN'),
+        nombreDe(d),cedulaDe(d),TIPO_L[s.tipo_operacion],s.estado,r.monto_aprobado||'',r.tasa||'',r.motivo_denegacion||'']);
+    });
+    const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+    a.download=`historial_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  });
+  render();
+}
+
+/* ===== PARÁMETROS ===== */
+function pintarParametros(){
+  if(!esAdmin()){$('#cont').innerHTML='<div class="vacio"><p>Solo el administrador.</p></div>';return;}
+  const n=(id,l,v,s)=>`<div class="fld"><label>${l}${s?`<small>${s}</small>`:''}</label>
+    <input type="number" id="${id}" value="${v}" step="any"></div>`;
+  $('#cont').innerHTML=`
+  <div class="sec"><div class="sec-h"><h4>Ingresos y límites</h4></div><div class="g2">
+    ${n('p-min','Ingreso mínimo (L)',P.minIngreso,'Debajo de esto se deniega')}
+    ${n('p-pref','Ingreso para preferencial (L)',P.ingresoPref,'Con perfil ideal baja la tasa')}
+    ${n('p-lmin','Límite mínimo (L)',P.limiteMin)}
+    ${n('p-lmax','Límite máximo (L)',P.limiteMax)}
+    ${n('p-red','Redondeo (L)',P.redondeo,'Siempre hacia arriba')}
+  </div></div>
+  <div class="sec"><div class="sec-h"><h4>Porcentaje del ingreso</h4></div>
+    <div class="callout">El <b>nuevo ingreso</b> siempre usa el porcentaje base, sin importar antigüedad.
+      Los tramos aplican solo a reingreso y refinanciamiento, según la <b>antigüedad como cliente</b>.</div>
+    <div class="g3">
+      ${n('p-pn','% nuevo / tramo bajo',P.pctNuevo)}
+      ${n('p-mm','Meses tramo medio (>)',P.mesMedio)}
+      ${n('p-pm','% tramo medio',P.pctMedio)}
+      ${n('p-ma','Meses tramo alto (≥)',P.mesAlto)}
+      ${n('p-pa','% tramo alto',P.pctAlto)}
+  </div></div>
+  <div class="sec"><div class="sec-h"><h4>Tasas</h4></div><div class="g3">
+    ${n('p-ts','Estándar (%)',P.tasaStd)}
+    ${n('p-tp','Preferencial (%)',P.tasaPref)}
+    ${n('p-tsu','Súper preferencial (%)',P.tasaSuper)}
+  </div></div>
+  <div class="sec"><div class="sec-h"><h4>Súper preferencial</h4></div>
+    <div class="callout">Los atrasos afectan <b>solo la tasa</b>. Nunca deniegan por sí solos.</div>
+    <div class="g2">
+      ${n('p-sa','Antigüedad mínima (meses)',P.spAntig)}
+      ${n('p-sc','Pagos buenos mínimos',P.spCuotas)}
+      ${n('p-sl','Máx. tardíos leves',P.spMaxLeves,`Entre ${P.diasTarde+1} y ${P.spDiasGrave-1} días`)}
+      ${n('p-sg','Días de tardío grave (≥)',P.spDiasGrave,'Uno solo bloquea la súper')}
+      ${n('p-dt','Días de tolerancia',P.diasTarde,'Hasta aquí cuenta como pago bueno')}
+  </div></div>
+  <div class="sec"><div class="sec-h"><h4>Rubros</h4></div>
+    <div class="callout">El perfil <b>ideal</b> permite tasa preferencial. El de <b>riesgo</b> bloquea toda mejora.</div>
+    <div id="rub-list"></div>
+    <div style="display:flex;gap:9px;margin-top:10px">
+      <input id="rub-new" placeholder="Nombre del rubro nuevo">
+      <button class="add" id="rub-add" style="flex:none">+ Agregar</button>
+    </div></div>
+  <button class="btn btn-b btn-full" id="p-save" style="margin-bottom:20px">Guardar parámetros</button>`;
+  renderRubros();
+  $('#rub-add').addEventListener('click',()=>{
+    const v=$('#rub-new').value.trim();if(!v)return;
+    if(P.rubros.some(r=>r.nombre.toLowerCase()===v.toLowerCase())){toast('Ese rubro ya existe','m');return;}
+    P.rubros.push({id:Date.now(),nombre:v,ideal:false,riesgo:false});
+    $('#rub-new').value='';renderRubros();
+  });
+  $('#p-save').addEventListener('click',guardarParams);
+}
+function renderRubros(){
+  $('#rub-list').innerHTML=P.rubros.map((r,i)=>`
+    <div class="u-row" style="padding:9px 11px">
+      <div class="u-i"><div class="u-n" style="font-size:13.5px">${esc(r.nombre)}</div></div>
+      <select data-rp="${i}" style="width:auto;padding:6px 9px;font-size:12.5px">
+        <option value="normal" ${!r.ideal&&!r.riesgo?'selected':''}>Normal</option>
+        <option value="ideal" ${r.ideal?'selected':''}>Ideal</option>
+        <option value="riesgo" ${r.riesgo?'selected':''}>Riesgo</option>
+      </select>
+      <button class="del" data-rd="${i}" style="height:32px;width:32px;font-size:16px">×</button>
+    </div>`).join('');
+  $$('[data-rp]').forEach(s=>s.addEventListener('change',e=>{
+    const r=P.rubros[+e.target.dataset.rp];
+    r.ideal=e.target.value==='ideal';r.riesgo=e.target.value==='riesgo';
+  }));
+  $$('[data-rd]').forEach(b=>b.addEventListener('click',()=>{P.rubros.splice(+b.dataset.rd,1);renderRubros();}));
+}
+async function guardarParams(){
+  const g=id=>parseFloat($('#'+id).value)||0;
+  const v={...P,minIngreso:g('p-min'),ingresoPref:g('p-pref'),limiteMin:g('p-lmin'),limiteMax:g('p-lmax'),
+    redondeo:g('p-red')||1000,pctNuevo:g('p-pn'),mesMedio:g('p-mm'),pctMedio:g('p-pm'),mesAlto:g('p-ma'),
+    pctAlto:g('p-pa'),tasaStd:g('p-ts'),tasaPref:g('p-tp'),tasaSuper:g('p-tsu'),spAntig:g('p-sa'),
+    spCuotas:g('p-sc'),spMaxLeves:g('p-sl'),spDiasGrave:g('p-sg'),diasTarde:g('p-dt'),rubros:P.rubros};
+  const b=$('#p-save');b.disabled=true;b.innerHTML='<span class="sp"></span>Guardando';
+  const {error}=await sb.from('parametros_sistema').update({valores:v,actualizado_por:YO.id}).eq('id',1);
+  b.disabled=false;b.textContent='Guardar parámetros';
+  if(error){toast(traducir(error.message),'m');return;}
+  P=v;toast('Parámetros guardados','k');
+}
+
+/* ===== USUARIOS ===== */
+async function pintarUsuarios(){
+  if(!esAdmin()){$('#cont').innerHTML='<div class="vacio"><p>Solo el administrador.</p></div>';return;}
+  $('#cont').innerHTML='<div class="vacio"><p>Cargando…</p></div>';
+  const {data,error}=await sb.rpc('listar_usuarios');
+  if(error){$('#cont').innerHTML=`<div class="vacio"><p>${esc(error.message)}</p></div>`;return;}
+  $('#cont').innerHTML=`
+    <button class="btn btn-b btn-full" id="u-new" style="margin-bottom:14px">+ Crear usuario</button>
+    <div id="u-list">${(data||[]).map(u=>`
+      <div class="u-row ${u.activo?'':'u-off'}">
+        <div class="u-av">${esc((u.nombre||'?').charAt(0).toUpperCase())}</div>
+        <div class="u-i">
+          <div class="u-n">${esc(u.nombre)}${u.id===YO.id?' <span class="tag b" style="font-size:10px">vos</span>':''}</div>
+          <div class="u-m">${esc(u.email)} · ${esc([u.rol,...(u.roles_extra||[])].join(', '))}</div>
+        </div>
+        <button class="btn btn-g btn-sm" data-pw="${u.id}">Clave</button>
+        <button class="btn btn-g btn-sm" data-act="${u.id}" data-a="${u.activo}">${u.activo?'Desactivar':'Activar'}</button>
+      </div>`).join('')}</div>`;
+  $('#u-new').addEventListener('click',modalUsuario);
+  $$('[data-pw]').forEach(b=>b.addEventListener('click',async()=>{
+    const p=prompt('Nueva contraseña (mínimo 8 caracteres):');
+    if(!p) return;
+    const {data:r}=await sb.rpc('cambiar_password',{p_user_id:b.dataset.pw,p_password:p});
+    if(!r?.ok){toast(r?.error||'Error','m');return;}
+    toast('Contraseña actualizada','k');
+  }));
+  $$('[data-act]').forEach(b=>b.addEventListener('click',async()=>{
+    const on=b.dataset.a!=='true';
+    const {data:r}=await sb.rpc('set_usuario_activo',{p_user_id:b.dataset.act,p_activo:on});
+    if(!r?.ok){toast(r?.error||'Error','m');return;}
+    toast(on?'Usuario activado':'Usuario desactivado','k');pintarUsuarios();
   }));
 }
-
-/* ==================================================================
-   CARGAR
-   ================================================================== */
-async function cargar(){
-  const { data, error } = await sb.from('solicitudes')
-    .select('*').order('estado_desde', {ascending:true});
-  if(error){ toast('No se pudo cargar: ' + error.message, true); return; }
-  SOLS = data || [];
-  pintarLista();
-}
-
-function vivo(){
-  sb.channel('sols')
-    .on('postgres_changes', {event:'*', schema:'public', table:'solicitudes'}, cargar)
-    .subscribe();
-  setInterval(()=>{ if(!$('#sheet').classList.contains('ver')) pintarLista(); }, 60000);
-}
-
-function pintarLista(){
-  misEstados().forEach(e=>{
-    const n = $('#n-'+e);
-    if(n) n.textContent = SOLS.filter(s => s.estado === e).length;
+function modalUsuario(){
+  ACT=null;
+  $('#m-t').textContent='Crear usuario';$('#m-f').textContent='Acceso al panel';
+  $('#m-body').innerHTML=`<div class="sec">
+    <div class="fld"><label>Nombre completo</label><input id="nu-nom" placeholder="María Fernández"></div>
+    <div class="g2">
+      <div class="fld"><label>Usuario</label><input id="nu-usr" placeholder="mfernandez"></div>
+      <div class="fld"><label>Teléfono</label><input id="nu-tel" placeholder="9999-8888"></div>
+    </div>
+    <div class="fld"><label>Correo<small>Con este entra al panel</small></label>
+      <input id="nu-mail" type="email" placeholder="maria@maspisto.hn"></div>
+    <div class="fld"><label>Contraseña<small>Mínimo 8 caracteres</small></label>
+      <input id="nu-pass" type="text" placeholder="Clave temporal"></div>
+    <div class="fld"><label>Rol principal</label><select id="nu-rol">
+      <option value="asesor">Asesor</option><option value="analista">Analista</option>
+      <option value="verificador">Verificador</option><option value="admin">Administrador</option>
+    </select></div>
+    <div class="fld"><label>Roles adicionales<small>Un asesor puede además ser analista</small></label>
+      <div class="tipo-g" id="nu-extra">
+        <button type="button" data-x="asesor">Asesor</button>
+        <button type="button" data-x="analista">Analista</button>
+        <button type="button" data-x="verificador">Verificador</button>
+      </div></div>
+    <div class="callout r hide" id="nu-err"></div></div>`;
+  $('#m-pie').innerHTML=`<button class="btn btn-g" id="nu-x">Cancelar</button>
+    <button class="btn btn-b" id="nu-ok">Crear usuario</button>`;
+  $('#modal').classList.add('on');
+  $$('#nu-extra button').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
+  $('#nu-x').addEventListener('click',cerrarModal);
+  $('#nu-ok').addEventListener('click',async()=>{
+    const err=m=>{$('#nu-err').textContent=m;$('#nu-err').classList.remove('hide');};
+    $('#nu-err').classList.add('hide');
+    const nom=$('#nu-nom').value.trim(),usr=$('#nu-usr').value.trim();
+    const mail=$('#nu-mail').value.trim(),pass=$('#nu-pass').value;
+    if(!nom||!usr||!mail||!pass) return err('Completá todos los campos.');
+    if(pass.length<8) return err('La contraseña debe tener al menos 8 caracteres.');
+    const principal=$('#nu-rol').value;
+    const extra=$$('#nu-extra button.on').map(b=>b.dataset.x).filter(x=>x!==principal);
+    const b=$('#nu-ok');b.disabled=true;b.innerHTML='<span class="sp"></span>Creando';
+    const {data:r,error}=await sb.rpc('crear_usuario_panel',{
+      p_email:mail,p_password:pass,p_usuario:usr,p_nombre:nom,
+      p_rol:principal,p_roles_extra:extra,p_telefono:$('#nu-tel').value.trim()||null});
+    b.disabled=false;b.textContent='Crear usuario';
+    if(error) return err(error.message);
+    if(!r?.ok) return err(r?.error||'No se pudo crear.');
+    toast('Usuario creado','k');cerrarModal();pintarUsuarios();
   });
-
-  const lista = SOLS.filter(s => s.estado === TAB);
-  const m = $('#main');
-
-  if(!lista.length){
-    m.innerHTML = `<div class="vacio"><div class="em">◍</div>
-      <p>No hay solicitudes en <strong>${ETIQUETA[TAB]}</strong>.</p></div>`;
-    return;
-  }
-
-  m.innerHTML = lista.map(s=>{
-    const d = s.datos_cliente || {};
-    const r = s.resultado_analisis || {};
-    const nom = `${d.nombres||''} ${d.apellidos||''}`.trim() || 'Sin nombre';
-    const ing = s.analisis_ingresos?.ingreso_promedio;
-
-    return `<div class="sol" data-id="${s.id}">
-      <div class="sol-top">
-        <div>
-          <div class="sol-nom">${nom}</div>
-          <div class="sol-folio">${s.folio}</div>
-        </div>
-        <span class="sla ${slaClase(s.estado_desde, s.estado)}">${slaTexto(s.estado_desde)}</span>
-      </div>
-      <div class="sol-meta">
-        ${d.telefono ? `<span class="pill">${d.telefono}</span>` : ''}
-        ${d.empresa ? `<span class="pill">${d.empresa}</span>` : ''}
-        ${ing ? `<span class="pill dato">L${fmt(ing)}/mes</span>` : ''}
-        ${r.monto_aprobado ? `<span class="pill dato">L${fmt(r.monto_aprobado)} · ${Math.round(r.tasa*100)}%</span>` : ''}
-        ${s.origen==='cliente' ? '<span class="pill">del cliente</span>' : ''}
-      </div>
-    </div>`;
-  }).join('');
-
-  $$('.sol').forEach(el => el.addEventListener('click', ()=> abrir(el.dataset.id)));
 }
 
-/* ==================================================================
-   DETALLE
-   ================================================================== */
+/* ===== NUEVA SOLICITUD ===== */
+$('#btn-nueva').addEventListener('click',()=>{
+  ACT=null;
+  $('#m-t').textContent='Nueva solicitud';$('#m-f').textContent='Registrada por vos';
+  $('#m-body').innerHTML=`
+  <div class="sec"><div class="sec-h"><h4>Tipo de operación</h4></div>
+    <div class="tipo-g" id="ns-tipo">
+      <button type="button" class="on" data-t="nuevo">Nuevo</button>
+      <button type="button" data-t="reingreso">Reingreso</button>
+      <button type="button" data-t="refinanciamiento">Refinanciamiento</button>
+    </div>
+    <div class="fld hide" id="ns-fi-wrap" style="margin-top:13px">
+      <label>Fecha de ingreso como cliente<small>Define la antigüedad para el límite</small></label>
+      <input type="date" id="ns-fi"></div>
+    <div class="callout" id="ns-nota" style="margin-top:13px;margin-bottom:0">
+      Un <b>nuevo ingreso</b> aplica al ${P.pctNuevo}% del ingreso mensual, sin importar antigüedad.</div>
+  </div>
+  <div class="sec"><div class="sec-h"><h4>Datos del cliente</h4></div>
+    <div class="fld"><label>Nombre completo</label><input id="ns-nom"></div>
+    <div class="g2">
+      <div class="fld"><label>Cédula</label><input id="ns-ced" placeholder="0000-0000-00000"></div>
+      <div class="fld"><label>Teléfono</label><input id="ns-tel" placeholder="0000-0000"></div>
+    </div>
+    <div class="g2">
+      <div class="fld"><label>Monto que solicita (L)</label><input id="ns-monto" inputmode="numeric"></div>
+      <div class="fld"><label>Rubro de la empresa</label><select id="ns-rubro">
+        <option value="">Selecciona…</option>
+        ${(P.rubros||[]).map(r=>`<option>${esc(r.nombre)}</option>`).join('')}</select></div>
+    </div>
+    <div class="fld"><label>Empresa</label><input id="ns-emp"></div>
+    <div class="fld"><label>Dirección de la casa</label><textarea id="ns-dcasa"></textarea></div>
+    <div class="fld"><label>Dirección del trabajo</label><textarea id="ns-dtrab"></textarea></div>
+    <div class="callout r hide" id="ns-err" style="margin-bottom:0"></div>
+  </div>
+  <div class="sec"><div class="sec-h"><h4>Referencias familiares</h4></div>
+    <div class="g2">
+      <div class="fld"><label>Referencia 1</label><input id="ns-r1n" placeholder="Nombre"></div>
+      <div class="fld"><label>Teléfono</label><input id="ns-r1t" placeholder="0000-0000"></div>
+    </div>
+    <div class="g2">
+      <div class="fld"><label>Referencia 2</label><input id="ns-r2n" placeholder="Nombre"></div>
+      <div class="fld"><label>Teléfono</label><input id="ns-r2t" placeholder="0000-0000"></div>
+    </div>
+  </div>`;
+  $('#m-pie').innerHTML=`<button class="btn btn-g" id="ns-x">Cancelar</button>
+    <button class="btn btn-b" id="ns-ok">Crear solicitud</button>`;
+  $('#modal').classList.add('on');
+
+  let tipo='nuevo';
+  $$('#ns-tipo button').forEach(b=>b.addEventListener('click',()=>{
+    $$('#ns-tipo button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');tipo=b.dataset.t;
+    $('#ns-fi-wrap').classList.toggle('hide',tipo==='nuevo');
+    $('#ns-nota').innerHTML = tipo==='nuevo'
+      ? `Un <b>nuevo ingreso</b> aplica al ${P.pctNuevo}% del ingreso mensual, sin importar antigüedad.`
+      : `El límite sale de la <b>antigüedad como cliente</b>: ≤${P.mesMedio}m → ${P.pctNuevo}%, >${P.mesMedio}m → ${P.pctMedio}%, ≥${P.mesAlto}m → ${P.pctAlto}%.`;
+  }));
+  $('#ns-x').addEventListener('click',cerrarModal);
+  $('#ns-ok').addEventListener('click',async()=>{
+    const err=m=>{$('#ns-err').textContent=m;$('#ns-err').classList.remove('hide');};
+    $('#ns-err').classList.add('hide');
+    const nom=$('#ns-nom').value.trim();
+    if(!nom) return err('Escribí el nombre del cliente.');
+    if(tipo!=='nuevo'&&!$('#ns-fi').value) return err(`Un ${tipo} necesita la fecha de ingreso del cliente.`);
+    const refs=[
+      {nombre:$('#ns-r1n').value.trim(),telefono:$('#ns-r1t').value.trim(),parentesco:''},
+      {nombre:$('#ns-r2n').value.trim(),telefono:$('#ns-r2t').value.trim(),parentesco:''}
+    ].filter(r=>r.nombre&&r.telefono);
+    const b=$('#ns-ok');b.disabled=true;b.innerHTML='<span class="sp"></span>Creando';
+    const {error}=await sb.from('solicitudes').insert({
+      origen:'asesor',estado:'en_revision_asesor',asesor_id:YO.id,
+      tipo_operacion:tipo,tipo_credito:'general',
+      fecha_ingreso_cliente:tipo==='nuevo'?null:$('#ns-fi').value,
+      datos_cliente:{nombre:nom,cedula:$('#ns-ced').value.trim(),telefono:$('#ns-tel').value.trim(),
+        monto:parseFloat($('#ns-monto').value)||0,empresa:$('#ns-emp').value.trim(),
+        rubro:$('#ns-rubro').value,direccion:$('#ns-dcasa').value.trim(),
+        direccion_casa:$('#ns-dcasa').value.trim(),dir_empresa:$('#ns-dtrab').value.trim(),
+        direccion_trabajo:$('#ns-dtrab').value.trim(),consentimiento:true,referencias:refs}
+    });
+    b.disabled=false;b.textContent='Crear solicitud';
+    if(error) return err(traducir(error.message));
+    toast('Solicitud creada','k');cerrarModal();cargar();
+  });
+});
+
+/* ===== DETALLE ===== */
 function abrir(id){
-  ACTUAL = SOLS.find(s => s.id === id);
-  if(!ACTUAL) return;
-  const d = ACTUAL.datos_cliente || {};
-  $('#d-nom').textContent = `${d.nombres||''} ${d.apellidos||''}`.trim() || 'Sin nombre';
-  $('#d-folio').textContent = ACTUAL.folio;
-  $('#sheet').classList.add('ver');
-  document.body.style.overflow = 'hidden';
-  pintarDetalle();
+  ACT=SOLS.find(s=>s.id===id);if(!ACT)return;
+  CUOTAS=(ACT.comportamiento_pago?.cuotas)||[];
+  const d=ACT.datos_cliente||{};
+  $('#m-t').textContent=nombreDe(d);
+  $('#m-f').textContent=`${ACT.folio} · ${TIPO_L[ACT.tipo_operacion]}`;
+  $('#modal').classList.add('on');
+  detalle();
 }
-function cerrar(){
-  $('#sheet').classList.remove('ver');
-  ACTUAL = null;
-}
-$('#cerrar').addEventListener('click', cerrar);
-$('#sheet-bg').addEventListener('click', cerrar);
-document.addEventListener('keydown', e => { if(e.key==='Escape' && ACTUAL) cerrar(); });
+function cerrarModal(){$('#modal').classList.remove('on');ACT=null;}
+$('#m-cerrar').addEventListener('click',cerrarModal);
+$('#modal-bg').addEventListener('click',cerrarModal);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classList.contains('on'))cerrarModal();});
 
-function pintarDetalle(){
-  const s = ACTUAL, d = s.datos_cliente || {};
-  const esAsesor = ['pendiente_revision','en_revision_asesor'].includes(s.estado);
-  const esAnalista = ['en_analisis'].includes(s.estado);
-  const b = $('#d-body');
-  let h = '';
+function detalle(){
+  const s=ACT,d=s.datos_cliente||{};
+  const esAse=['pendiente_revision','en_revision_asesor'].includes(s.estado)&&(rol('asesor')||esAdmin());
+  const esAna=s.estado==='en_analisis'&&(rol('analista')||esAdmin());
+  let h='';
 
-  /* ---- Datos del cliente ---- */
-  const mAnt = mesesAntiguedad(d);
-  h += `<div class="sec"><h3>Cliente</h3><dl class="dl">
-    <dt>Cédula</dt><dd>${d.cedula||d.identidad||'—'}</dd>
-    <dt>Teléfono</dt><dd>${d.telefono||'—'}</dd>
-    ${d.nacimiento ? `<dt>Nacimiento</dt><dd>${d.nacimiento}</dd>` : ''}
-    ${d.monto ? `<dt>Monto que pide</dt><dd style="color:var(--lima);font-weight:600">L${fmt(d.monto)}</dd>` : ''}
-    ${d.destino ? `<dt>Destino</dt><dd>${d.destino}</dd>` : ''}
-    ${d.refiere ? `<dt>Referido por</dt><dd>${d.refiere} ${d.refiere_tel||''}</dd>` : ''}
-  </dl></div>`;
-
-  /* ---- Trabajo ---- */
-  h += `<div class="sec"><h3>Trabajo</h3><dl class="dl">
-    <dt>Empresa</dt><dd>${d.empresa||'—'}</dd>
-    ${d.rubro ? `<dt>Rubro</dt><dd>${d.rubro}</dd>` : ''}
-    <dt>Puesto</dt><dd>${d.puesto||d.cargo||'—'}</dd>
-    <dt>Antigüedad</dt><dd>${d.antiguedad || (mAnt+' meses')} <span style="color:var(--gris)">(${mAnt}m)</span></dd>
-    ${d.salario ? `<dt>Salario declarado</dt><dd>${fmtL(d.salario)}</dd>` : ''}
-    ${d.prestaciones ? `<dt>Prestaciones</dt><dd>${d.prestaciones}</dd>` : ''}
-    ${d.dias_pago ? `<dt>Recibe pago</dt><dd>${d.dias_pago}</dd>` : ''}
-    ${d.otros_ingresos && d.otros_ingresos!=='No' ? `<dt>Otros ingresos</dt><dd>${d.otros_ingresos}</dd>` : ''}
-    ${d.ciudad_empresa ? `<dt>Ciudad</dt><dd>${d.ciudad_empresa}</dd>` : ''}
-    <dt>Dirección</dt><dd>${d.dir_empresa||d.direccion_trabajo||'—'}</dd>
-  </dl></div>`;
-
-  /* ---- Vivienda ---- */
-  h += `<div class="sec"><h3>Vivienda</h3><dl class="dl">
-    ${d.ciudad_vivienda ? `<dt>Ciudad</dt><dd>${d.ciudad_vivienda}</dd>` : ''}
-    <dt>Dirección</dt><dd>${d.direccion||d.direccion_casa||'—'}</dd>
-    ${d.tiempo_vivienda ? `<dt>Tiempo ahí</dt><dd>${d.tiempo_vivienda}</dd>` : ''}
-    ${d.tipo_vivienda ? `<dt>Tipo</dt><dd>${d.tipo_vivienda}${d.tipo_alquiler?' · '+d.tipo_alquiler:''}</dd>` : ''}
-  </dl></div>`;
-
-  /* ---- Comprobantes ---- */
-  if(d.comprobantes){
-    const tiene = !String(d.comprobantes).startsWith('No');
-    h += `<div class="sec"><h3>Comprobantes
-      <span class="badge ${tiene?'hecho':'pend'}">${tiene?'los tiene':'pendientes'}</span></h3>
-      <p style="font-size:13.5px">${d.comprobantes}</p>
-      ${d.telefono?`<a href="https://wa.me/504${String(d.telefono).replace(/\D/g,'')}" target="_blank" rel="noopener"
-        class="btn btn-2 btn-sm" style="display:inline-block;margin-top:10px;text-decoration:none">Pedir por WhatsApp</a>`:''}
-    </div>`;
+  h+=`<div class="sec"><div class="sec-h"><h4>Operación</h4>
+      <span class="badge ${s.tipo_operacion==='nuevo'?'p':'a'}">${TIPO_L[s.tipo_operacion]}</span></div>`;
+  if(esAse&&s.origen==='asesor'){
+    h+=`<div class="tipo-g" id="d-tipo">${Object.entries(TIPO_L).map(([k,v])=>
+        `<button type="button" class="${s.tipo_operacion===k?'on':''}" data-t="${k}">${v}</button>`).join('')}</div>
+      <div class="fld ${s.tipo_operacion==='nuevo'?'hide':''}" id="d-fi-wrap" style="margin-top:12px">
+        <label>Fecha de ingreso como cliente</label>
+        <input type="date" id="d-fi" value="${s.fecha_ingreso_cliente||''}"></div>`;
+  } else if(s.origen==='cliente'){
+    h+=`<div class="callout" style="margin-bottom:0">Vino del formulario público, así que es <b>nuevo ingreso</b>:
+        aplica al ${P.pctNuevo}% del ingreso, sin importar antigüedad.</div>`;
   }
+  if(s.fecha_ingreso_cliente)
+    h+=`<dl class="dl" style="margin-top:11px"><dt>Cliente desde</dt>
+        <dd>${new Date(s.fecha_ingreso_cliente+'T12:00:00').toLocaleDateString('es-HN')} · ${labelMeses(mesesCliente(s))}</dd></dl>`;
+  h+='</div>';
 
-  /* ---- Ingresos (asesor) ---- */
-  if(esAsesor){
-    const ai = s.analisis_ingresos || {};
-    const comps = ai.comprobantes || [{monto:'',desc:''}];
-    h += `<div class="sec"><h3>Ingresos
-      <span class="badge ${ai.ingreso_promedio ? 'hecho':'pend'}">${ai.ingreso_promedio ? 'listo':'pendiente'}</span></h3>
-      <label>Comprobantes de salario</label>
-      <div id="comps">${comps.map((c,i)=>compHTML(c,i)).join('')}</div>
-      <button class="btn btn-2 btn-sm" id="add-comp" style="width:100%;margin:4px 0 13px">+ Agregar comprobante</button>
-      <div class="f2">
-        <div class="campo">
-          <label>Ingreso promedio mensual</label>
-          <input id="i-prom" inputmode="decimal" value="${ai.ingreso_promedio||''}" placeholder="0.00">
-        </div>
-        <div class="campo">
-          <label>Deducciones</label>
-          <input id="i-ded" inputmode="decimal" value="${ai.deducciones||''}" placeholder="0.00">
-        </div>
-      </div>
-      <div class="campo"><label>Notas</label>
-        <textarea id="i-notas" placeholder="Observaciones sobre los ingresos">${ai.notas||''}</textarea></div>
-      <div id="prev-limite"></div>
-    </div>`;
-  } else if(s.analisis_ingresos?.ingreso_promedio){
-    const ai = s.analisis_ingresos;
-    h += `<div class="sec"><h3>Ingresos<span class="badge hecho">listo</span></h3><dl class="dl">
-      <dt>Promedio mensual</dt><dd>${fmtL(ai.ingreso_promedio)}</dd>
-      ${ai.deducciones ? `<dt>Deducciones</dt><dd>${fmtL(ai.deducciones)}</dd>` : ''}
-      ${ai.notas ? `<dt>Notas</dt><dd>${ai.notas}</dd>` : ''}
+  h+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4></div><dl class="dl">
+    <dt>Cédula</dt><dd>${esc(cedulaDe(d))}</dd>
+    <dt>Teléfono</dt><dd>${esc(d.telefono||'—')}</dd>
+    ${d.nacimiento?`<dt>Nacimiento</dt><dd>${esc(d.nacimiento)}</dd>`:''}
+    ${d.monto?`<dt>Monto que pide</dt><dd style="color:var(--azul)">L${fmt(d.monto)}</dd>`:''}
+    ${d.destino?`<dt>Destino</dt><dd>${esc(d.destino)}</dd>`:''}
+    ${d.refiere?`<dt>Referido por</dt><dd>${esc(d.refiere)} ${esc(d.refiere_tel||'')}</dd>`:''}
+  </dl></div>`;
+
+  const pr=perfilRubro(d.rubro);
+  h+=`<div class="sec"><div class="sec-h"><h4>Trabajo</h4>
+      ${d.rubro?`<span class="badge ${pr==='ideal'?'k':pr==='riesgo'?'m':'p'}">Perfil ${pr}</span>`:''}</div><dl class="dl">
+    <dt>Empresa</dt><dd>${esc(d.empresa||'—')}</dd>
+    ${d.rubro?`<dt>Rubro</dt><dd>${esc(d.rubro)}</dd>`:''}
+    ${d.puesto||d.cargo?`<dt>Puesto</dt><dd>${esc(d.puesto||d.cargo)}</dd>`:''}
+    ${d.antiguedad?`<dt>Antigüedad laboral</dt><dd>${esc(d.antiguedad)}</dd>`:''}
+    ${d.salario?`<dt>Salario declarado</dt><dd>${fmtL(d.salario)}</dd>`:''}
+    ${d.prestaciones?`<dt>Prestaciones</dt><dd>${esc(d.prestaciones)}</dd>`:''}
+    ${d.dias_pago?`<dt>Recibe pago</dt><dd>${esc(d.dias_pago)}</dd>`:''}
+    ${d.otros_ingresos&&d.otros_ingresos!=='No'?`<dt>Otros ingresos</dt><dd>${esc(d.otros_ingresos)}</dd>`:''}
+    <dt>Dirección</dt><dd>${esc(d.dir_empresa||d.direccion_trabajo||'—')}</dd>
+  </dl></div>`;
+
+  if(d.direccion||d.direccion_casa){
+    h+=`<div class="sec"><div class="sec-h"><h4>Vivienda</h4></div><dl class="dl">
+      ${d.ciudad_vivienda?`<dt>Ciudad</dt><dd>${esc(d.ciudad_vivienda)}</dd>`:''}
+      <dt>Dirección</dt><dd>${esc(d.direccion||d.direccion_casa)}</dd>
+      ${d.tiempo_vivienda?`<dt>Tiempo ahí</dt><dd>${esc(d.tiempo_vivienda)}</dd>`:''}
+      ${d.tipo_vivienda?`<dt>Tipo</dt><dd>${esc(d.tipo_vivienda)}${d.tipo_alquiler?' · '+esc(d.tipo_alquiler):''}</dd>`:''}
     </dl></div>`;
   }
 
-  /* ---- Análisis (analista) ---- */
-  if(esAnalista){
-    const ck = s.checklist_analista || {};
-    const cp = s.comportamiento_pago || {};
-    const pagos = cp.pagos || [{cuota:1,dias:''}];
-
-    h += `<div class="sec"><h3>Comportamiento de pago
-      <span class="badge ${ck.comportamiento_pago?.estado==='realizado'?'hecho':'pend'}"
-        >${ck.comportamiento_pago?.estado==='realizado'?'listo':'pendiente'}</span></h3>
-      <div class="pagos-head"><span>#</span><span>Fecha pactada</span><span>Fecha pagada</span><span>Días</span></div>
-      <div id="pagos">${pagos.map((p,i)=>pagoHTML(p,i)).join('')}</div>
-      <button class="btn btn-2 btn-sm" id="add-pago" style="width:100%;margin-top:6px">+ Agregar cuota</button>
-      <div id="resumen-pagos" style="margin-top:12px"></div>
+  if(d.comprobantes){
+    const tiene=!String(d.comprobantes).startsWith('No');
+    h+=`<div class="sec"><div class="sec-h"><h4>Comprobantes</h4>
+        <span class="badge ${tiene?'k':'p'}">${tiene?'los tiene':'pendientes'}</span></div>
+      <p style="font-size:13.5px">${esc(d.comprobantes)}</p>
+      ${d.telefono?`<a href="https://wa.me/504${String(d.telefono).replace(/\D/g,'')}" target="_blank" rel="noopener"
+        class="btn btn-g btn-sm" style="display:inline-block;margin-top:10px;text-decoration:none">Pedir por WhatsApp</a>`:''}
     </div>`;
+  }
 
-    const cr = s.central_riesgo || {};
-    h += `<div class="sec"><h3>Central de riesgo
-      <span class="badge ${cr.score?'hecho':'pend'}">${cr.score?'consultada':'opcional'}</span></h3>
-      <div class="f2">
-        <div class="campo"><label>Score Equifax</label>
-          <input id="cr-score" inputmode="numeric" value="${cr.score||''}" placeholder="300-850"></div>
-        <div class="campo"><label>Categoría</label>
-          <input id="cr-cat" value="${cr.categoria||''}" readonly style="opacity:.7"></div>
+  if(esAse){
+    const ai=s.analisis_ingresos||{};
+    const cs=ai.comprobantes?.length?ai.comprobantes:[{monto:'',desc:''}];
+    h+=`<div class="sec"><div class="sec-h"><h4>Ingresos</h4>
+        <span class="badge ${ai.ingreso_promedio?'k':'p'}">${ai.ingreso_promedio?'listo':'pendiente'}</span></div>
+      ${d.salario?`<div class="callout">El cliente declaró <b>${fmtL(d.salario)}</b> al mes. Verificalo contra los comprobantes.</div>`:''}
+      <label>Comprobantes de salario</label>
+      <div id="cmp">${cs.map((c,i)=>cmpHTML(c,i)).join('')}</div>
+      <button class="add" id="add-cmp" style="margin:4px 0 13px">+ Agregar comprobante</button>
+      <div class="g2">
+        <div class="fld"><label>Ingreso promedio mensual (L)</label>
+          <input id="i-prom" inputmode="decimal" value="${ai.ingreso_promedio||''}"></div>
+        <div class="fld"><label>Deducciones (L)</label>
+          <input id="i-ded" inputmode="decimal" value="${ai.deducciones||''}"></div>
       </div>
-      <div class="campo"><label>Observaciones</label>
-        <textarea id="cr-obs" placeholder="Moras, saldos, consultas recientes">${cr.observaciones||''}</textarea></div>
-      <div class="aviso info ver" style="margin:12px 0 0">
-        La central no deniega por sí sola. Solo informa la decisión.</div>
-    </div>`;
-
-    const items = ck.referencias?.items || [];
-    h += `<div class="sec"><h3>Referencias
-      <span class="badge ${ck.referencias?.estado==='realizado'?'hecho':(ck.referencias?.estado==='rechazado'?'malo':'pend')}"
-        >${items.filter(r=>r.resultado).length}/${items.length}</span></h3>
-      ${items.length ? items.map((r,i)=>refHTML(r,i)).join('') :
-        '<p style="color:var(--gris);font-size:13px">Este cliente no dio referencias.</p>'}
-      <div class="aviso mal ver" style="margin-top:10px">
-        Marcar una referencia como <strong>falsa</strong> deniega la solicitud de inmediato.</div>
-    </div>`;
-
-    h += `<div class="sec"><h3>Resultado</h3><div id="resultado"></div></div>`;
+      <div class="fld"><label>Notas</label><textarea id="i-notas">${esc(ai.notas||'')}</textarea></div>
+      <div id="prev"></div></div>`;
+  } else if(s.analisis_ingresos?.ingreso_promedio){
+    const ai=s.analisis_ingresos;
+    h+=`<div class="sec"><div class="sec-h"><h4>Ingresos</h4><span class="badge k">listo</span></div><dl class="dl">
+      <dt>Promedio mensual</dt><dd>${fmtL(ai.ingreso_promedio)}</dd>
+      ${ai.deducciones?`<dt>Deducciones</dt><dd>${fmtL(ai.deducciones)}</dd>`:''}
+      ${ai.notas?`<dt>Notas</dt><dd>${esc(ai.notas)}</dd>`:''}</dl></div>`;
   }
 
-  /* ---- Resultado (ya calculado) ---- */
-  else if(s.resultado_analisis?.monto_aprobado || s.resultado_analisis?.motivo_denegacion){
-    h += `<div class="sec"><h3>Resultado del análisis</h3>${resultadoHTML(s.resultado_analisis)}</div>`;
+  if(esAna){
+    const ck=s.checklist_analista||{};
+    if(s.tipo_operacion==='nuevo'){
+      h+=`<div class="sec"><div class="sec-h"><h4>Comportamiento de pago</h4>
+          <span class="badge p">no aplica</span></div>
+        <div class="callout" style="margin-bottom:0">Es un <b>nuevo ingreso</b>: el cliente no tiene historial con nosotros.</div></div>`;
+    } else {
+      h+=`<div class="sec"><div class="sec-h"><h4>Comportamiento de pago</h4>
+          <span class="badge ${ck.comportamiento_pago?.estado==='realizado'?'k':'p'}"
+            >${ck.comportamiento_pago?.estado==='realizado'?'listo':'pendiente'}</span></div>
+        <label>Pegar historial del sistema</label>
+        <textarea class="paste" id="paste" placeholder="Pegá la tabla copiada del sistema (Documento, Fecha, Valor, Acción)"></textarea>
+        <div class="paste-h">Se detectan las columnas solas. La fecha es la del pago real; completá la fecha pactada de cada cuota.</div>
+        <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">
+          <button class="btn btn-b btn-sm" id="p-proc" style="flex:none">Procesar pegado</button>
+          <button class="btn btn-g btn-sm" id="p-add" style="flex:none">+ Cuota manual</button>
+          <button class="btn btn-g btn-sm" id="p-clr" style="flex:none">Limpiar</button>
+        </div>
+        <div id="cuotas-box" style="margin-top:14px"></div>
+        <div id="kpis-box" style="margin-top:12px"></div></div>`;
+    }
+    const cr=s.central_riesgo||{};
+    h+=`<div class="sec"><div class="sec-h"><h4>Central de riesgo</h4>
+        <span class="badge ${cr.score?'k':'p'}">${cr.score?'consultada':'opcional'}</span></div>
+      <div class="g2">
+        <div class="fld"><label>Score Equifax</label><input id="cr-s" inputmode="numeric" value="${cr.score||''}" placeholder="300-850"></div>
+        <div class="fld"><label>Categoría</label><input id="cr-c" value="${esc(cr.categoria||'')}" readonly></div>
+      </div>
+      <div class="fld"><label>Observaciones</label><textarea id="cr-o">${esc(cr.observaciones||'')}</textarea></div>
+      <div class="callout w" style="margin:12px 0 0">La central <b>no deniega por sí sola</b>. Solo informa la decisión.</div></div>`;
+
+    const its=ck.referencias?.items||[];
+    h+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4>
+        <span class="badge ${ck.referencias?.estado==='realizado'?'k':ck.referencias?.estado==='rechazado'?'m':'p'}"
+          >${its.filter(r=>r.resultado).length}/${its.length}</span></div>
+      ${its.length?its.map(refHTML).join(''):'<p style="font-size:13.5px;color:var(--gris)">Este cliente no dio referencias.</p>'}
+      <div class="callout r" style="margin:10px 0 0">Marcar una referencia como <b>falsa</b> deniega la solicitud de inmediato.</div></div>`;
+    h+=`<div class="sec"><div class="sec-h"><h4>Resultado</h4></div><div id="res"></div></div>`;
+  }
+  else if(s.resultado_analisis?.monto_aprobado||s.resultado_analisis?.motivo_denegacion){
+    h+=`<div class="sec"><div class="sec-h"><h4>Resultado del análisis</h4></div>${resHTML(s.resultado_analisis)}</div>`;
   }
 
-  /* ---- Referencias (solo lectura) ---- */
-  if(!esAnalista && s.checklist_analista?.referencias?.items?.length){
-    const items = s.checklist_analista.referencias.items;
-    h += `<div class="sec"><h3>Referencias</h3>${items.map(r=>`
+  if(!esAna&&s.checklist_analista?.referencias?.items?.length){
+    h+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4></div>
+      ${s.checklist_analista.referencias.items.map(r=>`
       <div class="ref"><div class="ref-t">
-        <div><div class="ref-n">${r.nombre||'—'}</div>
-             <div class="ref-tel">${r.telefono||''} ${r.parentesco?`· <span class="ref-par">${r.parentesco}</span>`:''}</div></div>
-        <span class="pill ${r.resultado==='ok'?'dato':''}">${textoRes(r.resultado)}</span>
-      </div>${r.comentario?`<div style="font-size:12.5px;color:var(--gris)">${r.comentario}</div>`:''}</div>
-    `).join('')}</div>`;
+        <div><div class="ref-n">${esc(r.nombre||'—')}</div>
+          <div class="ref-d">${esc(r.telefono||'')}${r.parentesco?' · '+esc(r.parentesco):''}</div></div>
+        <span class="tag ${r.resultado==='ok'?'b':''}">${txtRes(r.resultado)}</span></div>
+        ${r.comentario?`<div style="font-size:12.5px;color:var(--gris)">${esc(r.comentario)}</div>`:''}</div>`).join('')}</div>`;
   }
 
-  b.innerHTML = h;
-  pintarPie();
-  conectarDetalle(esAsesor, esAnalista);
+  $('#m-body').innerHTML=h;
+  pie(); conectar(esAse,esAna);
 }
 
-function compHTML(c,i){
-  return `<div class="comp" data-c="${i}">
-    <div><input class="c-monto" inputmode="decimal" value="${c.monto||''}" placeholder="Monto"></div>
-    <div><input class="c-desc" value="${c.desc||''}" placeholder="Periodo / concepto"></div>
-    <button class="del" data-del-c="${i}">✕</button>
-  </div>`;
-}
-function pagoHTML(p,i){
-  const d = p.dias;
-  const cls = d==='' || d===null || isNaN(Number(d)) ? '' : (Number(d)<=3?'p':(Number(d)<=6?'m':'g'));
-  return `<div class="pago" data-p="${i}">
-    <span class="n">${i+1}</span>
-    <input class="p-pact" type="date" value="${p.pactada||''}">
-    <input class="p-real" type="date" value="${p.pagada||''}">
-    <span class="dias ${cls}" data-dias="${i}">${d===''||d===null||isNaN(Number(d))?'—':(Number(d)>0?'+'+d:d)}</span>
-  </div>`;
-}
-function textoRes(r){
-  return {ok:'Confirmó', no_respondio:'No respondió', falsa:'FALSA', negativa:'Negativa'}[r] || 'Sin llamar';
-}
+const cmpHTML=(c,i)=>`<div class="row-d" data-c="${i}">
+  <input class="c-d" value="${esc(c.desc||'')}" placeholder="Periodo / concepto">
+  <input class="c-m" inputmode="decimal" value="${c.monto||''}" placeholder="Monto (L)">
+  <button class="del" data-dc="${i}">×</button></div>`;
+const txtRes=r=>({ok:'Confirmó',no_respondio:'No respondió',falsa:'FALSA',negativa:'Negativa'})[r]||'Sin llamar';
 function refHTML(r,i){
-  const ops = [['ok','Confirmó'],['no_respondio','No respondió'],['negativa','Negativa'],['falsa','Falsa']];
-  return `<div class="ref" data-ref="${i}">
-    <div class="ref-t">
-      <div><div class="ref-n">${r.nombre||'—'}</div>
-        <div class="ref-tel">${r.telefono||''}</div>
-        ${r.parentesco?`<div class="ref-par">${r.parentesco}</div>`:''}</div>
-      ${r.telefono?`<a href="tel:${r.telefono.replace(/\D/g,'')}" class="btn btn-2 btn-sm" style="text-decoration:none">Llamar</a>`:''}
+  const ops=[['ok','Confirmó'],['no_respondio','No respondió'],['negativa','Negativa'],['falsa','Falsa']];
+  return `<div class="ref">
+    <div class="ref-t"><div>
+      <div class="ref-n">${esc(r.nombre||'—')}</div>
+      <div class="ref-d">${esc(r.telefono||'')}${r.parentesco?' · '+esc(r.parentesco):''}</div></div>
+      ${r.telefono?`<a href="tel:${String(r.telefono).replace(/\D/g,'')}" class="btn btn-g btn-sm" style="text-decoration:none">Llamar</a>`:''}
     </div>
-    <div class="res-ops">${ops.map(([v,t])=>
-      `<button class="res ${r.resultado===v?'on':''}" data-r="${v}" data-ri="${i}">${t}</button>`).join('')}</div>
-    <textarea class="r-com" data-ci="${i}" placeholder="Qué dijo la referencia">${r.comentario||''}</textarea>
-  </div>`;
+    <div class="res-g">${ops.map(([v,t])=>`<button class="res ${r.resultado===v?'on':''}" data-r="${v}" data-ri="${i}">${t}</button>`).join('')}</div>
+    <textarea class="r-c" data-ci="${i}" placeholder="Qué dijo la referencia">${esc(r.comentario||'')}</textarea></div>`;
 }
-function resultadoHTML(r){
-  if(r.motivo_denegacion){
-    return `<div class="resu mal">
-      <div class="resu-lbl">Denegado${r.denegado_automaticamente?' automáticamente':''}</div>
-      <div class="resu-monto">${r.motivo_denegacion}</div></div>`;
-  }
-  if(!r.monto_aprobado) return '<p style="color:var(--gris);font-size:13px">Sin calcular.</p>';
-  return `<div class="resu">
-    <div class="resu-lbl">Monto aprobado</div>
-    <div class="resu-monto">L${fmt(r.monto_aprobado)}</div>
-    <div class="resu-row">
-      <div class="resu-it"><div class="resu-lbl">Tasa</div>
-        <div class="resu-v">${Math.round(r.tasa*100)}%</div></div>
-      <div class="resu-it"><div class="resu-lbl">Categoría</div>
-        <div class="resu-v" style="font-size:14px">${r.categoria_tasa||'—'}</div></div>
-    </div>
-    ${r.razon?`<div class="resu-razon">${r.razon}</div>`:''}</div>`;
+function resHTML(r){
+  if(r.motivo_denegacion)
+    return `<div class="veredicto m" style="margin:0"><div class="v-t">Solicitud denegada</div>
+      <div class="v-d">${esc(r.motivo_denegacion)}${r.denegado_automaticamente?' <b>(automático)</b>':''}</div></div>`;
+  if(!r.monto_aprobado) return '<p style="font-size:13.5px;color:var(--gris)">Sin calcular.</p>';
+  return `<div class="veredicto k" style="margin:0"><div class="v-t">Solicitud aprobada</div>
+    <div class="v-d">${esc(r.razon||'Proceder con las condiciones indicadas.')}</div>
+    <div class="v-row">
+      <div class="v-i"><div class="v-l">Límite</div><div class="v-v">L${fmt(r.monto_aprobado)}</div></div>
+      <div class="v-i"><div class="v-l">Tasa</div><div class="v-v">${r.tasa}%</div>
+        <div style="font-size:11.5px;color:var(--gris)">${esc(r.categoria_tasa||'')}</div></div>
+    </div></div>`;
 }
 
-/* ==================================================================
-   INTERACCIÓN DEL DETALLE
-   ================================================================== */
-function conectarDetalle(esAsesor, esAnalista){
-  if(esAsesor){
-    $('#add-comp')?.addEventListener('click', ()=>{
-      const n = $$('#comps .comp').length;
-      $('#comps').insertAdjacentHTML('beforeend', compHTML({},n));
-      conectarComps();
-      recalcularIngreso();
+function conectar(esAse,esAna){
+  if(esAse){
+    $$('#d-tipo button').forEach(b=>b.addEventListener('click',()=>{
+      $$('#d-tipo button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');ACT.tipo_operacion=b.dataset.t;
+      $('#d-fi-wrap')?.classList.toggle('hide',b.dataset.t==='nuevo');
+      preview();
+    }));
+    $('#d-fi')?.addEventListener('change',e=>{ACT.fecha_ingreso_cliente=e.target.value||null;preview();});
+    $('#add-cmp')?.addEventListener('click',()=>{
+      $('#cmp').insertAdjacentHTML('beforeend',cmpHTML({},$$('#cmp .row-d').length));
+      conectarCmp();recalcIngreso();
     });
-    conectarComps();
-    ['#i-prom','#i-ded'].forEach(s => $(s)?.addEventListener('input', previewLimite));
-    previewLimite();
+    conectarCmp();
+    ['#i-prom','#i-ded'].forEach(x=>$(x)?.addEventListener('input',preview));
+    preview();
   }
-
-  if(esAnalista){
-    $('#add-pago')?.addEventListener('click', ()=>{
-      const n = $$('#pagos .pago').length;
-      $('#pagos').insertAdjacentHTML('beforeend', pagoHTML({},n));
-      conectarPagos();
+  if(esAna){
+    $('#p-proc')?.addEventListener('click',procesarPegado);
+    $('#p-add')?.addEventListener('click',()=>{CUOTAS.push({num:CUOTAS.length+1,pactada:'',pagada:''});pintarCuotas();});
+    $('#p-clr')?.addEventListener('click',()=>{CUOTAS=[];pintarCuotas();resultado();});
+    pintarCuotas();
+    $('#cr-s')?.addEventListener('input',e=>{
+      const v=parseInt(e.target.value);
+      $('#cr-c').value=v?(catEquifax(v)||''):'';resultado();
     });
-    conectarPagos();
-
-    $('#cr-score')?.addEventListener('input', e=>{
-      const v = parseInt(e.target.value);
-      $('#cr-cat').value = v ? (catEquifax(v) || '') : '';
-      recalcularResultado();
-    });
-
-    $$('.res').forEach(b => b.addEventListener('click', ()=>{
-      const i = +b.dataset.ri, v = b.dataset.r;
-      const items = ACTUAL.checklist_analista.referencias.items;
-
-      if(v === 'falsa'){
-        if(!confirm(`¿Marcar a ${items[i].nombre} como referencia FALSA?\n\nEsto DENIEGA la solicitud de inmediato y no se puede deshacer.`))
-          return;
+    $$('.res').forEach(b=>b.addEventListener('click',()=>{
+      const i=+b.dataset.ri,v=b.dataset.r;
+      const its=ACT.checklist_analista.referencias.items;
+      if(v==='falsa'&&its[i].resultado!=='falsa'){
+        if(!confirm(`¿Marcar a ${its[i].nombre} como referencia FALSA?\n\nEsto DENIEGA la solicitud de inmediato y no se puede deshacer.`)) return;
       }
-      items[i].resultado = items[i].resultado === v ? null : v;
-      $$(`.res[data-ri="${i}"]`).forEach(x => x.classList.toggle('on', x.dataset.r === items[i].resultado));
-      recalcularResultado();
-      pintarPie();
+      its[i].resultado=its[i].resultado===v?null:v;
+      $$(`.res[data-ri="${i}"]`).forEach(x=>x.classList.toggle('on',x.dataset.r===its[i].resultado));
+      resultado();pie();
     }));
-
-    $$('.r-com').forEach(t => t.addEventListener('input', e=>{
-      ACTUAL.checklist_analista.referencias.items[+e.target.dataset.ci].comentario = e.target.value;
+    $$('.r-c').forEach(t=>t.addEventListener('input',e=>{
+      ACT.checklist_analista.referencias.items[+e.target.dataset.ci].comentario=e.target.value;
     }));
-
-    recalcularResultado();
+    resultado();
   }
 }
-
-function conectarComps(){
-  $$('.c-monto').forEach(i => i.addEventListener('input', recalcularIngreso));
-  $$('[data-del-c]').forEach(b => b.addEventListener('click', ()=>{
-    if($$('#comps .comp').length <= 1) return;
-    b.closest('.comp').remove();
-    recalcularIngreso();
+function conectarCmp(){
+  $$('.c-m').forEach(i=>i.addEventListener('input',recalcIngreso));
+  $$('[data-dc]').forEach(b=>b.addEventListener('click',()=>{
+    if($$('#cmp .row-d').length<=1) return;
+    b.closest('.row-d').remove();recalcIngreso();
   }));
 }
-function recalcularIngreso(){
-  const montos = $$('.c-monto').map(i => parseFloat(i.value)).filter(n => !isNaN(n) && n > 0);
-  if(montos.length){
-    const prom = montos.reduce((a,b)=>a+b,0) / montos.length;
-    $('#i-prom').value = prom.toFixed(2);
+function recalcIngreso(){
+  const ms=$$('.c-m').map(i=>parseFloat(i.value)).filter(n=>!isNaN(n)&&n>0);
+  if(ms.length) $('#i-prom').value=(ms.reduce((a,b)=>a+b,0)/ms.length).toFixed(2);
+  preview();
+}
+function preview(){
+  const el=$('#prev');if(!el)return;
+  const ing=parseFloat($('#i-prom')?.value);
+  if(!ing){el.innerHTML='';return;}
+  const r=calcLimite(ing,ACT.tipo_operacion,mesesCliente(ACT));
+  el.innerHTML=r.ok
+    ? `<div class="veredicto k" style="margin:0"><div class="v-l">${esc(r.regla)}</div>
+       <div class="v-v" style="font-size:28px;margin-top:4px">L${fmt(r.monto)}</div>
+       ${r.clamped?'<div class="v-d" style="margin-top:6px">Ajustado al rango permitido.</div>':''}</div>`
+    : `<div class="veredicto m" style="margin:0"><div class="v-t" style="font-size:15px">No califica</div>
+       <div class="v-d">${esc(r.motivo)}</div></div>`;
+}
+
+/* ===== PEGADO DEL HISTORIAL (portado de analisis-credito.html) ===== */
+function procesarPegado(){
+  const raw=$('#paste').value.trim();
+  if(!raw){toast('Pegá los datos primero','m');return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!lines.length) return;
+  const sep=lines[0].includes('\t')?'\t':',';
+  const pd=s=>{
+    if(!s) return '';
+    s=String(s).trim().replace(/["']/g,'');
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+    if(m){let[,d,mo,y]=m;if(y.length===2)y='20'+y;return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;}
+    return '';
+  };
+  const pn=s=>s?String(s).replace(/[L,\s"']/g,''):'';
+  const isD=s=>/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(String(s||'').trim())||/^\d{4}-\d{2}-\d{2}$/.test(String(s||'').trim());
+  const kw={doc:['documento','doc','referencia','ref'],fecha:['fecha','date','pago'],
+            valor:['valor','monto','importe','capital'],accion:['accion','acción','tipo','concepto']};
+  let map=null,start=0;
+  for(let i=0;i<Math.min(lines.length,3);i++){
+    const cols=lines[i].split(sep).map(c=>c.trim().toLowerCase().replace(/["']/g,''));
+    if(cols.some(isD)) continue;
+    const m={};let n=0;
+    cols.forEach((c,ci)=>{for(const[k,ks] of Object.entries(kw)){
+      if(m[k]!==undefined) continue;
+      if(ks.some(x=>c.includes(x))){m[k]=ci;n++;}}});
+    if(n>=2){map=m;start=i+1;break;}
   }
-  previewLimite();
-}
-function previewLimite(){
-  const el = $('#prev-limite');
-  if(!el) return;
-  const ing = parseFloat($('#i-prom')?.value);
-  const meses = mesesAntiguedad(ACTUAL.datos_cliente);
-  if(!ing){ el.innerHTML = ''; return; }
-  const r = calcularLimite(ing, meses);
-  el.innerHTML = r.ok
-    ? `<div class="resu" style="margin:0"><div class="resu-lbl">Límite estimado · ${r.tramo} · ${Math.round(r.factor*100)}%</div>
-       <div class="resu-monto">L${fmt(r.monto)}</div>
-       ${r.topado?'<div class="resu-razon">Topado al máximo permitido.</div>':''}</div>`
-    : `<div class="resu mal" style="margin:0"><div class="resu-lbl">No califica</div>
-       <div class="resu-monto">${r.motivo}</div></div>`;
-}
-
-function conectarPagos(){
-  $$('.pago').forEach(row=>{
-    const i = +row.dataset.p;
-    const calc = ()=>{
-      const pa = row.querySelector('.p-pact').value;
-      const re = row.querySelector('.p-real').value;
-      const span = row.querySelector('.dias');
-      if(!pa || !re){ span.textContent = '—'; span.className = 'dias'; return; }
-      // dias = pagada - pactada. Positivo = tarde.
-      const d = Math.round((new Date(re) - new Date(pa)) / 864e5);
-      span.textContent = d > 0 ? '+' + d : String(d);
-      span.className = 'dias ' + (d <= 3 ? 'p' : (d <= 6 ? 'm' : 'g'));
-      span.dataset.v = d;
-      resumenPagos();
-      recalcularResultado();
-    };
-    row.querySelector('.p-pact').addEventListener('change', calc);
-    row.querySelector('.p-real').addEventListener('change', calc);
-    calc();
-  });
-  resumenPagos();
-}
-function leerPagos(){
-  return $$('.pago').map((row,i)=>{
-    const pa = row.querySelector('.p-pact').value;
-    const re = row.querySelector('.p-real').value;
-    if(!pa || !re) return null;
-    return { cuota:i+1, pactada:pa, pagada:re,
-             dias: Math.round((new Date(re) - new Date(pa)) / 864e5) };
-  }).filter(Boolean);
-}
-function resumenPagos(){
-  const el = $('#resumen-pagos');
-  if(!el) return;
-  const pagos = leerPagos();
-  if(!pagos.length){ el.innerHTML = ''; return; }
-  const a = analizarPagos(pagos);
-  el.innerHTML = `<div class="dl" style="font-size:13px">
-    <dt>Puntuales</dt><dd style="color:var(--lima)">${a.pagos_puntuales}</dd>
-    <dt>Atrasos 4-6 días</dt><dd style="color:${a.atrasos_4_6?'var(--ambar)':'inherit'}">${a.atrasos_4_6}</dd>
-    <dt>Atrasos 7+ días</dt><dd style="color:${a.atrasos_7_mas?'var(--sello)':'inherit'}">${a.atrasos_7_mas}</dd>
-  </div>`;
-}
-
-function recalcularResultado(){
-  const el = $('#resultado');
-  if(!el) return;
-
-  const items = ACTUAL.checklist_analista?.referencias?.items || [];
-  const falsa = items.find(r => r.resultado === 'falsa');
-  if(falsa){
-    el.innerHTML = resultadoHTML({
-      motivo_denegacion:`Referencia falsa: ${falsa.nombre}`,
-      denegado_automaticamente:true
+  if(!map){
+    const first=lines[0].split(sep).map(c=>c.trim().replace(/["']/g,''));
+    map={};
+    let dc=-1;first.forEach((v,i)=>{if(dc<0&&isD(v))dc=i;});
+    let doc=-1;first.forEach((v,i)=>{if(doc<0&&/^[A-Za-z]{1,4}[-\s]?\d+$/.test(v))doc=i;});
+    let vc=-1,best=-1;
+    first.forEach((v,i)=>{
+      if(i===dc||i===doc||isD(v)) return;
+      const nv=parseFloat(pn(v));
+      if(nv&&(v.includes('.')||nv>=100)&&nv>best){best=nv;vc=i;}
     });
-    return;
+    if(dc>=0)map.fecha=dc; if(doc>=0)map.doc=doc; if(vc>=0)map.valor=vc;
+    if(map.fecha===undefined||map.valor===undefined) map={doc:1,fecha:2,valor:3,accion:4};
+    start=0;
   }
+  const rows=[];
+  for(let i=start;i<lines.length;i++){
+    const cols=lines[i].split(sep).map(c=>c.trim().replace(/^["']|["']$/g,''));
+    if(cols.length<2) continue;
+    const get=k=>map[k]!==undefined?(cols[map[k]]||''):'';
+    let fecha=pd(get('fecha'));
+    if(!fecha) for(const c of cols){const x=pd(c);if(x){fecha=x;break;}}
+    let valor=parseFloat(pn(get('valor')))||0;
+    if(!valor) for(const c of cols){if(isD(c))continue;const nv=parseFloat(pn(c));if(nv&&nv>valor)valor=nv;}
+    if(!fecha&&!valor) continue;
+    rows.push({doc:get('doc')||'',fecha,valor:valor||0});
+  }
+  if(!rows.length){toast('No se reconoció ningún pago','m');return;}
+  rows.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
+  // El N-ésimo pago corresponde a la N-ésima cuota, sin importar fechas.
+  CUOTAS=rows.map((r,i)=>({num:i+1,doc:r.doc,valor:r.valor,pagada:r.fecha,pactada:CUOTAS[i]?.pactada||''}));
+  $('#paste').value='';
+  pintarCuotas();resultado();
+  toast(`${rows.length} pago(s) cargados`,'k');
+}
 
-  const ing = ACTUAL.analisis_ingresos?.ingreso_promedio;
-  const meses = mesesAntiguedad(ACTUAL.datos_cliente);
-  const lim = calcularLimite(ing, meses);
-
-  if(!lim.ok){ el.innerHTML = resultadoHTML({motivo_denegacion: lim.motivo}); return; }
-
-  const pagos = leerPagos();
-  const comp = pagos.length ? {...analizarPagos(pagos), pagos} : null;
-  const t = calcularTasa(comp, meses);
-  const score = parseInt($('#cr-score')?.value);
-
-  el.innerHTML = resultadoHTML({
-    monto_aprobado: lim.monto, tasa: t.tasa, categoria_tasa: t.categoria,
-    razon: t.razon + (score ? ` · Equifax ${score} (${catEquifax(score)})` : '')
+function pintarCuotas(){
+  const box=$('#cuotas-box');if(!box)return;
+  if(!CUOTAS.length){box.innerHTML='<p style="font-size:13px;color:var(--gris)">Sin pagos cargados.</p>';kpis();return;}
+  box.innerHTML=`<div class="tw"><table>
+    <thead><tr><th>#</th><th>Documento</th><th>Fecha pactada</th><th>Fecha pagada</th><th>Valor</th><th>Días</th><th></th></tr></thead>
+    <tbody>${CUOTAS.map((c,i)=>`<tr>
+      <td>${c.num}</td>
+      <td style="font-size:12px;color:var(--gris)">${esc(c.doc||'—')}</td>
+      <td><input type="date" class="q-p" data-i="${i}" value="${c.pactada||''}"></td>
+      <td><input type="date" class="q-r" data-i="${i}" value="${c.pagada||''}"></td>
+      <td>${c.valor?fmtL(c.valor):'—'}</td>
+      <td id="dd-${i}">—</td>
+      <td><button class="del" data-dq="${i}" style="height:30px;width:30px;font-size:15px">×</button></td>
+    </tr>`).join('')}</tbody></table></div>`;
+  $$('.q-p').forEach(x=>x.addEventListener('change',e=>{CUOTAS[+e.target.dataset.i].pactada=e.target.value;kpis();resultado();}));
+  $$('.q-r').forEach(x=>x.addEventListener('change',e=>{CUOTAS[+e.target.dataset.i].pagada=e.target.value;kpis();resultado();}));
+  $$('[data-dq]').forEach(b=>b.addEventListener('click',()=>{
+    CUOTAS.splice(+b.dataset.dq,1);CUOTAS.forEach((c,i)=>c.num=i+1);pintarCuotas();resultado();
+  }));
+  kpis();
+}
+function kpis(){
+  const box=$('#kpis-box');if(!box)return;
+  const h=analizarCuotas(CUOTAS);
+  CUOTAS.forEach((c,i)=>{
+    const el=$('#dd-'+i);if(!el)return;
+    if(c._dias===null||c._dias===undefined){el.innerHTML='—';return;}
+    const d=c._dias;
+    el.innerHTML=`<span class="dd ${d>P.diasTarde?(d>=P.spDiasGrave?'m':'a'):'k'}">${d>0?'+'+d:d}</span>`;
   });
+  box.innerHTML=h.total?`<div class="kpis">
+    <div class="kpi k"><div class="kpi-v">${h.ok}</div><div class="kpi-l">Buenos</div></div>
+    <div class="kpi ${h.late?'a':''}"><div class="kpi-v">${h.late}</div><div class="kpi-l">Tardíos</div></div>
+    <div class="kpi ${h.maxDias>=P.spDiasGrave?'m':''}"><div class="kpi-v">${h.maxDias}</div><div class="kpi-l">Peor atraso</div></div>
+    <div class="kpi"><div class="kpi-v">${h.total}</div><div class="kpi-l">Cuotas</div></div></div>`:'';
+}
+function resultado(){
+  const el=$('#res');if(!el)return;
+  const its=ACT.checklist_analista?.referencias?.items||[];
+  const falsa=its.find(r=>r.resultado==='falsa');
+  if(falsa){el.innerHTML=resHTML({motivo_denegacion:`Referencia falsa: ${falsa.nombre}`,denegado_automaticamente:true});return;}
+  const ing=ACT.analisis_ingresos?.ingreso_promedio;
+  const lim=calcLimite(ing,ACT.tipo_operacion,mesesCliente(ACT));
+  if(!lim.ok){el.innerHTML=resHTML({motivo_denegacion:lim.motivo});return;}
+  const h=ACT.tipo_operacion==='nuevo'?null:analizarCuotas(CUOTAS);
+  const t=calcTasa(ACT.tipo_operacion,ing,perfilRubro(ACT.datos_cliente?.rubro),mesesCliente(ACT),h);
+  const sc=parseInt($('#cr-s')?.value);
+  el.innerHTML=resHTML({monto_aprobado:lim.monto,tasa:t.tasa,categoria_tasa:t.tipoTasa,
+    razon:`${lim.regla} · ${t.regla}${sc?` · Equifax ${sc} (${catEquifax(sc)})`:''}`});
 }
 
-/* ==================================================================
-   ACCIONES
-   ================================================================== */
-function pintarPie(){
-  const s = ACTUAL, p = $('#d-pie');
-  let h = '';
-
-  if(s.estado === 'pendiente_revision' && (tengoRol('asesor')||tengoRol('admin')))
-    h = `<button class="btn btn-1" id="a-tomar">Tomar solicitud</button>`;
-
-  else if(s.estado === 'en_revision_asesor' && (tengoRol('asesor')||tengoRol('admin')))
-    h = `<button class="btn btn-2" id="a-guardar">Guardar</button>
-         <button class="btn btn-1" id="a-analisis">Enviar a análisis</button>`;
-
-  else if(s.estado === 'en_analisis' && (tengoRol('analista')||tengoRol('admin'))){
-    const items = s.checklist_analista?.referencias?.items || [];
-    const falsa = items.some(r => r.resultado === 'falsa');
-    if(falsa)
-      h = `<button class="btn btn-mal" id="a-denegar-ref" style="flex:1">Denegar por referencia falsa</button>`;
-    else
-      h = `<button class="btn btn-2" id="a-guardar-an">Guardar</button>
-           <button class="btn btn-1" id="a-verificar">Enviar a verificar</button>`;
+/* ===== ACCIONES ===== */
+function pie(){
+  const s=ACT;let h='';
+  if(s.estado==='pendiente_revision'&&(rol('asesor')||esAdmin()))
+    h=`<button class="btn btn-b" id="a1">Tomar solicitud</button>`;
+  else if(s.estado==='en_revision_asesor'&&(rol('asesor')||esAdmin()))
+    h=`<button class="btn btn-g" id="a2">Guardar</button><button class="btn btn-y" id="a3">Enviar a análisis</button>`;
+  else if(s.estado==='en_analisis'&&(rol('analista')||esAdmin())){
+    const falsa=(s.checklist_analista?.referencias?.items||[]).some(r=>r.resultado==='falsa');
+    h=falsa?`<button class="btn btn-r" id="a6">Denegar por referencia falsa</button>`
+           :`<button class="btn btn-g" id="a4">Guardar</button><button class="btn btn-y" id="a5">Enviar a verificar</button>`;
   }
-
-  else if(s.estado === 'verificado' && (tengoRol('analista')||tengoRol('admin')))
-    h = `<button class="btn btn-mal" id="a-rechazar">Denegar</button>
-         <button class="btn btn-1" id="a-aprobar">Aprobar</button>`;
-
-  p.innerHTML = h;
-
-  $('#a-tomar')?.addEventListener('click', ()=> guardar({estado:'en_revision_asesor', asesor_id:YO.id}));
-  $('#a-guardar')?.addEventListener('click', ()=> guardar(datosAsesor()));
-  $('#a-analisis')?.addEventListener('click', ()=> guardar({...datosAsesor(), estado:'en_analisis'}));
-  $('#a-guardar-an')?.addEventListener('click', ()=> guardar(datosAnalista()));
-  $('#a-verificar')?.addEventListener('click', ()=> guardar({...datosAnalista(), estado:'por_verificar'}));
-  $('#a-denegar-ref')?.addEventListener('click', ()=> guardar(datosAnalista()));
-  $('#a-aprobar')?.addEventListener('click', aprobar);
-  $('#a-rechazar')?.addEventListener('click', denegarManual);
+  else if(s.estado==='verificado'&&(rol('analista')||esAdmin()))
+    h=`<button class="btn btn-r" id="a8">Denegar</button><button class="btn btn-b" id="a7">Aprobar</button>`;
+  $('#m-pie').innerHTML=h;
+  $('#a1')?.addEventListener('click',()=>guardar({estado:'en_revision_asesor',asesor_id:YO.id}));
+  $('#a2')?.addEventListener('click',()=>guardar(datosAsesor()));
+  $('#a3')?.addEventListener('click',()=>guardar({...datosAsesor(),estado:'en_analisis'}));
+  $('#a4')?.addEventListener('click',()=>guardar(datosAnalista()));
+  $('#a5')?.addEventListener('click',()=>guardar({...datosAnalista(),estado:'por_verificar'}));
+  $('#a6')?.addEventListener('click',()=>guardar(datosAnalista()));
+  $('#a7')?.addEventListener('click',aprobar);
+  $('#a8')?.addEventListener('click',denegar);
 }
-
 function datosAsesor(){
-  const comps = $$('#comps .comp').map(c => ({
-    monto: parseFloat(c.querySelector('.c-monto').value) || 0,
-    desc: c.querySelector('.c-desc').value.trim()
-  })).filter(c => c.monto > 0);
-
-  return {
-    analisis_ingresos: {
-      comprobantes: comps,
-      ingreso_promedio: parseFloat($('#i-prom')?.value) || 0,
-      deducciones: parseFloat($('#i-ded')?.value) || 0,
-      notas: $('#i-notas')?.value.trim() || '',
-      es_asalariado: ['asalariado','ambos'].includes(ACTUAL.datos_cliente?.tipo_empleo),
-      es_comerciante: ['comerciante','ambos'].includes(ACTUAL.datos_cliente?.tipo_empleo)
-    },
-    asesor_id: ACTUAL.asesor_id || YO.id
-  };
+  const cs=$$('#cmp .row-d').map(r=>({
+    desc:r.querySelector('.c-d').value.trim(),
+    monto:parseFloat(r.querySelector('.c-m').value)||0})).filter(c=>c.monto>0);
+  const out={
+    analisis_ingresos:{comprobantes:cs,
+      ingreso_promedio:parseFloat($('#i-prom')?.value)||0,
+      deducciones:parseFloat($('#i-ded')?.value)||0,
+      notas:$('#i-notas')?.value.trim()||''},
+    asesor_id:ACT.asesor_id||YO.id,
+    tipo_operacion:ACT.tipo_operacion};
+  if(ACT.origen==='asesor') out.fecha_ingreso_cliente=ACT.fecha_ingreso_cliente||null;
+  return out;
 }
-
 function datosAnalista(){
-  const pagos = leerPagos();
-  const comp = pagos.length ? {...analizarPagos(pagos), pagos} : {};
-  const score = parseInt($('#cr-score')?.value) || null;
-  const ck = JSON.parse(JSON.stringify(ACTUAL.checklist_analista));
+  const ck=JSON.parse(JSON.stringify(ACT.checklist_analista));
+  const its=ck.referencias?.items||[];
+  if(its.length&&its.every(r=>r.resultado)) ck.referencias.estado='realizado';
+  const out={checklist_analista:ck,analista_id:YO.id};
 
-  // Referencias: listas si todas tienen resultado
-  const items = ck.referencias?.items || [];
-  const todas = items.length > 0 && items.every(r => r.resultado);
-  if(todas) ck.referencias.estado = 'realizado';
-
-  const out = {
-    comportamiento_pago: comp,
-    checklist_analista: ck,
-    analista_id: YO.id
-  };
-
-  if(score){
-    out.central_riesgo = {
-      score, categoria: catEquifax(score),
-      observaciones: $('#cr-obs')?.value.trim() || '',
-      consultado_en: new Date().toISOString()
-    };
+  if(ACT.tipo_operacion==='nuevo'){
+    out.comportamiento_pago={sin_historial:true,motivo:'Nuevo ingreso: sin historial previo'};
+    out.checklist_analista.comportamiento_pago.estado='realizado';
+  } else {
+    const h=analizarCuotas(CUOTAS);
+    out.comportamiento_pago={cuotas:CUOTAS,
+      pagos:CUOTAS.filter(c=>c.pactada&&c.pagada),
+      pagos_puntuales:h.ok,atrasos_leves:h.late,peor_atraso:h.maxDias,
+      resultado:h.maxDias>=P.spDiasGrave?'con atrasos graves':(h.late?'con atrasos leves':'favorable')};
   }
+  const sc=parseInt($('#cr-s')?.value)||null;
+  if(sc) out.central_riesgo={score:sc,categoria:catEquifax(sc),
+    observaciones:$('#cr-o')?.value.trim()||'',consultado_en:new Date().toISOString()};
 
-  // Resultado calculado (visible para asesor y analista)
-  const ing = ACTUAL.analisis_ingresos?.ingreso_promedio;
-  const meses = mesesAntiguedad(ACTUAL.datos_cliente);
-  const lim = calcularLimite(ing, meses);
+  const ing=ACT.analisis_ingresos?.ingreso_promedio;
+  const lim=calcLimite(ing,ACT.tipo_operacion,mesesCliente(ACT));
   if(lim.ok){
-    const t = calcularTasa(pagos.length ? comp : null, meses);
-    out.resultado_analisis = {
-      ...ACTUAL.resultado_analisis,
-      monto_aprobado: lim.monto, tasa: t.tasa, categoria_tasa: t.categoria,
-      limite_calculado: lim.monto, razon: t.razon,
-      calculado_en: new Date().toISOString()
-    };
+    const h=ACT.tipo_operacion==='nuevo'?null:analizarCuotas(CUOTAS);
+    const t=calcTasa(ACT.tipo_operacion,ing,perfilRubro(ACT.datos_cliente?.rubro),mesesCliente(ACT),h);
+    out.resultado_analisis={...ACT.resultado_analisis,monto_aprobado:lim.monto,tasa:t.tasa,
+      categoria_tasa:t.tipoTasa,razon:`${lim.regla} · ${t.regla}`,calculado_en:new Date().toISOString()};
   }
   return out;
 }
-
 async function guardar(campos){
-  const btns = $$('#d-pie .btn');
-  btns.forEach(b => b.disabled = true);
-
-  const { error } = await sb.from('solicitudes').update(campos).eq('id', ACTUAL.id);
-
-  if(error){
-    toast(traducir(error.message), true);
-    btns.forEach(b => b.disabled = false);
-    return;
-  }
-  toast('Guardado');
+  const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
+  const {error}=await sb.from('solicitudes').update(campos).eq('id',ACT.id);
+  if(error){toast(traducir(error.message),'m');bs.forEach(b=>b.disabled=false);return;}
+  toast('Guardado','k');
   await cargar();
-  const act = SOLS.find(s => s.id === ACTUAL.id);
-  if(act && act.estado !== ACTUAL.estado) cerrar();
-  else if(act){ ACTUAL = act; pintarDetalle(); }
+  const a=SOLS.find(s=>s.id===ACT.id);
+  if(a&&a.estado!==ACT.estado) cerrarModal();
+  else if(a){ACT=a;CUOTAS=a.comportamiento_pago?.cuotas||CUOTAS;detalle();}
 }
-
 function traducir(m){
   if(m.includes('comportamiento de pago')) return 'Falta completar el comportamiento de pago.';
   if(m.includes('referencias')) return 'Faltan referencias por llamar.';
   if(m.includes('ingresos')) return 'Falta capturar los ingresos del cliente.';
+  if(m.includes('fecha de ingreso')) return 'Un reingreso necesita la fecha de ingreso del cliente.';
   if(m.includes('analista')) return 'Debe asignarse un analista.';
   if(m.includes('verificador')) return 'Debe asignarse un verificador.';
-  if(m.includes('violates row-level security')) return 'No tenés permiso para esta acción.';
+  if(m.includes('row-level security')) return 'No tenés permiso para esta acción.';
   return m;
 }
-
 async function aprobar(){
-  const r = ACTUAL.resultado_analisis || {};
-  if(!r.monto_aprobado){ toast('Falta calcular el monto.', true); return; }
-  if(!confirm(`¿Aprobar L${fmt(r.monto_aprobado)} al ${Math.round(r.tasa*100)}%?`)) return;
+  const r=ACT.resultado_analisis||{};
+  if(!r.monto_aprobado){toast('Falta calcular el monto','m');return;}
+  if(!confirm(`¿Aprobar L${fmt(r.monto_aprobado)} al ${r.tasa}%?`)) return;
   await guardar({estado:'aprobado'});
 }
-
-async function denegarManual(){
-  const motivo = prompt('¿Por qué se deniega?');
-  if(!motivo) return;
-  await guardar({
-    estado:'denegado',
-    resultado_analisis: {...ACTUAL.resultado_analisis, motivo_denegacion: motivo}
-  });
+async function denegar(){
+  const m=prompt('¿Por qué se deniega?');
+  if(!m) return;
+  await guardar({estado:'denegado',resultado_analisis:{...ACT.resultado_analisis,motivo_denegacion:m}});
 }
 
-/* ==================================================================
-   PARÁMETROS
-   ================================================================== */
-$('#btn-param').addEventListener('click', ()=>{
-  if(!tengoRol('admin') && !tengoRol('analista')){
-    toast('Solo admin o analista pueden ver los parámetros.', true);
-    return;
-  }
-  const t = JSON.stringify(P, null, 2);
-  const n = prompt('Parámetros del sistema (JSON).\nCambiar con cuidado: aplica a todo el equipo.', t);
-  if(!n || n === t) return;
-  try{
-    const v = JSON.parse(n);
-    sb.from('parametros_sistema').update({valores:v, actualizado_por:YO.id}).eq('id',1)
-      .then(({error})=>{
-        if(error){ toast(traducir(error.message), true); return; }
-        P = v; toast('Parámetros actualizados'); pintarLista();
-      });
-  }catch{ toast('JSON inválido', true); }
-});
-
-/* ==================================================================
-   ARRANQUE
-   ================================================================== */
 (async function(){
-  const { data:{ session } } = await sb.auth.getSession();
+  const {data:{session}}=await sb.auth.getSession();
   if(session) await arrancar(session);
 })();
 </script>
