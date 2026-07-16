@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es-HN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F2A24">
+<title>Más Pisto — Panel de crédito</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --billete:#0F2A24; --billete-2:#163B32; --billete-3:#1D4A3E;
+  --lima:#7BE3A6; --recibo:#F5F0E3; --tinta:#17201D;
+  --sello:#E8574B; --ambar:#F2B341; --gris:#8FA69E;
+  --linea:rgba(123,227,166,.16);
+  --r-lg:16px; --r-md:11px; --r-sm:7px;
+  --display:'Familjen Grotesk',system-ui,sans-serif;
+  --body:'Instrument Sans',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--body);background:var(--billete);color:var(--recibo);
+  line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit}
+:focus-visible{outline:2px solid var(--lima);outline-offset:2px}
+
+/* ===== LOGIN ===== */
+#login{
+  position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
+  background:var(--billete);
+}
+#login::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    repeating-linear-gradient(45deg,transparent 0 12px,rgba(123,227,166,.02) 12px 13px),
+    repeating-linear-gradient(-45deg,transparent 0 12px,rgba(123,227,166,.02) 12px 13px);
+}
+.login-box{position:relative;width:100%;max-width:360px}
+.login-marca{
+  font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--lima);text-align:center;
+}
+.login-box h1{
+  font-family:var(--display);font-size:30px;margin:10px 0 26px;
+  text-align:center;letter-spacing:-.02em;
+}
+.login-card{
+  background:var(--billete-2);border:1px solid var(--linea);
+  border-radius:var(--r-lg);padding:24px;
+}
+
+/* ===== APP ===== */
+#app{display:none;height:100dvh;flex-direction:column;min-height:0}
+.topbar{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;
+  border-bottom:1px solid var(--linea);background:var(--billete-2);flex-shrink:0;
+}
+.topbar .marca{
+  font-family:var(--display);font-weight:700;font-size:13px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--lima);
+}
+.topbar .sp{flex:1}
+.chip{
+  font-size:11.5px;padding:5px 10px;border-radius:20px;
+  background:rgba(123,227,166,.12);color:var(--lima);
+  border:1px solid rgba(123,227,166,.24);white-space:nowrap;
+}
+.ibtn{
+  background:transparent;border:1px solid rgba(255,255,255,.14);
+  color:var(--gris);width:34px;height:34px;border-radius:9px;cursor:pointer;
+  display:grid;place-items:center;flex-shrink:0;
+}
+.ibtn:hover{color:var(--recibo);border-color:rgba(255,255,255,.3)}
+
+/* Tabs */
+.tabs{
+  display:flex;gap:2px;padding:0 12px;background:var(--billete-2);
+  border-bottom:1px solid var(--linea);overflow-x:auto;flex-shrink:0;
+  scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  padding:11px 14px;background:none;border:0;cursor:pointer;
+  color:var(--gris);font-size:13.5px;font-weight:500;white-space:nowrap;
+  border-bottom:2px solid transparent;
+}
+.tab.on{color:var(--lima);border-bottom-color:var(--lima)}
+.tab .n{
+  display:inline-block;margin-left:6px;padding:1px 6px;border-radius:10px;
+  background:rgba(255,255,255,.1);font-size:11px;
+}
+.tab.on .n{background:rgba(123,227,166,.22)}
+
+main{flex:1;overflow-y:auto;min-height:0;padding:14px;-webkit-overflow-scrolling:touch}
+
+/* ===== TARJETAS DE SOLICITUD ===== */
+.sol{
+  background:var(--billete-2);border:1px solid var(--linea);
+  border-radius:var(--r-md);padding:14px;margin-bottom:10px;cursor:pointer;
+  transition:border-color .15s;
+}
+.sol:hover{border-color:rgba(123,227,166,.4)}
+.sol-top{display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:8px}
+.sol-nom{font-weight:600;font-size:15px;line-height:1.3}
+.sol-folio{font-family:var(--mono);font-size:11px;color:var(--lima);margin-top:2px}
+.sol-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.pill{
+  font-size:11px;padding:3px 8px;border-radius:6px;
+  background:rgba(255,255,255,.07);color:var(--gris);
+}
+.pill.dato{background:rgba(123,227,166,.12);color:var(--lima)}
+
+/* SLA */
+.sla{font-family:var(--mono);font-size:11px;padding:3px 7px;border-radius:5px;white-space:nowrap}
+.sla.ok{background:rgba(123,227,166,.14);color:var(--lima)}
+.sla.medio{background:rgba(242,179,65,.16);color:var(--ambar)}
+.sla.tarde{background:rgba(232,87,75,.16);color:#FF9B92}
+
+.vacio{text-align:center;padding:50px 20px;color:var(--gris)}
+.vacio .em{font-size:34px;margin-bottom:10px;opacity:.5}
+.vacio p{font-size:14px}
+
+/* ===== DETALLE (bottom sheet) ===== */
+#sheet{
+  position:fixed;inset:0;z-index:60;display:none;
+}
+#sheet.ver{display:block}
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.sheet-body{
+  position:absolute;left:0;right:0;bottom:0;top:0;
+  background:var(--billete);display:flex;flex-direction:column;min-height:0;
+}
+@media(min-width:720px){
+  .sheet-body{
+    left:50%;transform:translateX(-50%);width:680px;top:24px;
+    border-radius:var(--r-lg) var(--r-lg) 0 0;border:1px solid var(--linea);
+  }
+}
+.sheet-head{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  border-bottom:1px solid var(--linea);flex-shrink:0;background:var(--billete-2);
+}
+.sheet-head h2{font-family:var(--display);font-size:17px;line-height:1.2}
+.sheet-head .f{font-family:var(--mono);font-size:11px;color:var(--lima)}
+.sheet-scroll{flex:1;overflow-y:auto;min-height:0;padding:16px;padding-bottom:100px}
+.sheet-pie{
+  position:absolute;left:0;right:0;bottom:0;padding:12px 16px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--billete) 65%,transparent);
+  display:flex;gap:8px;
+}
+
+/* ===== SECCIONES ===== */
+.sec{
+  background:var(--billete-2);border:1px solid var(--linea);
+  border-radius:var(--r-md);padding:16px;margin-bottom:12px;
+}
+.sec h3{
+  font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--lima);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.sec h3 .badge{
+  margin-left:auto;font-size:10px;padding:2px 7px;border-radius:5px;
+  letter-spacing:0;text-transform:none;font-weight:500;
+}
+.badge.pend{background:rgba(255,255,255,.09);color:var(--gris)}
+.badge.hecho{background:rgba(123,227,166,.18);color:var(--lima)}
+.badge.malo{background:rgba(232,87,75,.18);color:#FF9B92}
+
+.dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13.5px}
+.dl dt{color:var(--gris);white-space:nowrap}
+.dl dd{text-align:right;word-break:break-word}
+
+label{display:block;font-size:12.5px;font-weight:500;margin-bottom:6px;color:var(--recibo)}
+input,select,textarea{
+  width:100%;font-size:16px;padding:11px 12px;border-radius:var(--r-md);
+  background:rgba(0,0,0,.24);color:var(--recibo);
+  border:1.5px solid rgba(255,255,255,.1);
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--lima)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237BE3A6' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+textarea{resize:vertical;min-height:62px}
+.campo{margin-bottom:13px}
+.campo:last-child{margin-bottom:0}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:420px){.f2{grid-template-columns:1fr}}
+
+.btn{
+  padding:12px 16px;border-radius:var(--r-md);border:0;cursor:pointer;
+  font-family:var(--display);font-size:14px;font-weight:600;
+}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-1{background:var(--lima);color:var(--billete);flex:1}
+.btn-2{background:transparent;color:var(--gris);border:1.5px solid rgba(255,255,255,.14)}
+.btn-mal{background:var(--sello);color:#fff}
+.btn-sm{padding:8px 12px;font-size:12.5px}
+
+/* ===== COMPROBANTES DE INGRESO ===== */
+.comp{
+  display:grid;grid-template-columns:1fr 1fr auto;gap:8px;
+  align-items:end;margin-bottom:8px;
+}
+.comp input{padding:9px 10px;font-size:14px}
+.del{
+  background:none;border:0;color:var(--gris);cursor:pointer;
+  padding:9px;border-radius:6px;line-height:1;
+}
+.del:hover{color:var(--sello);background:rgba(232,87,75,.1)}
+
+/* ===== TABLA DE PAGOS ===== */
+.pagos-head{display:grid;grid-template-columns:38px 1fr 1fr auto;gap:8px;
+  font-size:10.5px;color:var(--gris);text-transform:uppercase;letter-spacing:.08em;
+  padding:0 2px 6px}
+.pago{display:grid;grid-template-columns:38px 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:7px}
+.pago .n{font-family:var(--mono);font-size:12px;color:var(--gris);text-align:center}
+.pago input{padding:9px;font-size:14px}
+.pago .dias{font-family:var(--mono);font-size:12px;text-align:center;padding:9px 6px;border-radius:6px;min-width:52px}
+.dias.p{background:rgba(123,227,166,.14);color:var(--lima)}
+.dias.m{background:rgba(242,179,65,.16);color:var(--ambar)}
+.dias.g{background:rgba(232,87,75,.16);color:#FF9B92}
+
+/* ===== REFERENCIAS ===== */
+.ref{
+  background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.07);
+  border-radius:var(--r-md);padding:12px;margin-bottom:9px;
+}
+.ref-t{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+.ref-n{font-weight:600;font-size:14px}
+.ref-tel{font-family:var(--mono);font-size:12px;color:var(--lima)}
+.ref-par{font-size:11.5px;color:var(--gris)}
+.res-ops{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.res{
+  flex:1;min-width:68px;padding:8px 4px;border-radius:7px;cursor:pointer;
+  background:rgba(255,255,255,.05);border:1.5px solid transparent;
+  color:var(--gris);font-size:11.5px;text-align:center;font-weight:500;
+}
+.res:hover{background:rgba(255,255,255,.09)}
+.res.on[data-r="ok"]{background:rgba(123,227,166,.18);border-color:var(--lima);color:var(--lima)}
+.res.on[data-r="no_respondio"]{background:rgba(242,179,65,.18);border-color:var(--ambar);color:var(--ambar)}
+.res.on[data-r="negativa"]{background:rgba(232,87,75,.14);border-color:rgba(232,87,75,.5);color:#FF9B92}
+.res.on[data-r="falsa"]{background:var(--sello);border-color:var(--sello);color:#fff}
+.ref textarea{min-height:44px;font-size:14px;padding:8px 10px}
+
+/* ===== RESULTADO ===== */
+.resu{
+  background:linear-gradient(160deg,var(--billete-3),var(--billete-2));
+  border:1px solid rgba(123,227,166,.34);border-radius:var(--r-md);
+  padding:18px;margin-bottom:12px;
+}
+.resu.mal{border-color:rgba(232,87,75,.45);background:linear-gradient(160deg,#3A1F1C,var(--billete-2))}
+.resu-monto{
+  font-family:var(--display);font-size:34px;font-weight:700;
+  letter-spacing:-.02em;color:var(--lima);line-height:1;
+}
+.resu.mal .resu-monto{font-size:20px;color:#FF9B92}
+.resu-lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gris);margin-bottom:7px}
+.resu-row{display:flex;gap:20px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
+.resu-it{flex:1}
+.resu-v{font-family:var(--display);font-size:18px;font-weight:600;margin-top:2px}
+.resu-razon{font-size:12px;color:var(--gris);margin-top:12px;line-height:1.45}
+
+/* ===== AVISOS ===== */
+.aviso{border-radius:var(--r-md);padding:11px 13px;font-size:13px;margin-bottom:12px;display:none}
+.aviso.ver{display:block}
+.aviso.mal{background:rgba(232,87,75,.12);border:1px solid rgba(232,87,75,.34);color:#FFB5AE}
+.aviso.info{background:rgba(242,179,65,.1);border:1px solid rgba(242,179,65,.3);color:#FFD98A}
+
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);
+  background:var(--lima);color:var(--billete);padding:12px 20px;border-radius:24px;
+  font-weight:600;font-size:13.5px;z-index:200;opacity:0;
+  transition:transform .28s cubic-bezier(.2,.8,.3,1),opacity .28s;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.toast.ver{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.mal{background:var(--sello);color:#fff}
+
+.spin{
+  display:inline-block;width:14px;height:14px;border-radius:50%;
+  border:2px solid rgba(15,42,36,.3);border-top-color:var(--billete);
+  animation:g .7s linear infinite;vertical-align:-2px;margin-right:6px;
+}
+@keyframes g{to{transform:rotate(360deg)}}
+.oculto{display:none!important}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login">
+  <div class="login-box">
+    <div class="login-marca">Más Pisto</div>
+    <h1>Panel de crédito</h1>
+    <div class="login-card">
+      <div class="aviso mal" id="login-err"></div>
+      <div class="campo">
+        <label for="email">Correo</label>
+        <input id="email" type="email" autocomplete="username" placeholder="vos@maspisto.hn">
+      </div>
+      <div class="campo">
+        <label for="pass">Contraseña</label>
+        <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-1" id="btn-login" style="width:100%;margin-top:6px">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+  <div class="topbar">
+    <span class="marca">Más Pisto</span>
+    <span class="sp"></span>
+    <span class="chip" id="quien">—</span>
+    <button class="ibtn" id="btn-param" title="Parámetros">⚙</button>
+    <button class="ibtn" id="btn-salir" title="Salir">⏻</button>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <main id="main"></main>
+</div>
+
+<!-- ===== DETALLE ===== -->
+<div id="sheet">
+  <div class="sheet-bg" id="sheet-bg"></div>
+  <div class="sheet-body">
+    <div class="sheet-head">
+      <button class="ibtn" id="cerrar">✕</button>
+      <div>
+        <h2 id="d-nom">—</h2>
+        <div class="f" id="d-folio">—</div>
+      </div>
+    </div>
+    <div class="sheet-scroll" id="d-body"></div>
+    <div class="sheet-pie" id="d-pie"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==================================================================
+   CONFIG
+   ================================================================== */
+const SUPABASE_URL = 'https://qmxkmslxydxjlojxhzhb.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGttc2x4eWR4amxvanhoemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTM0NTYsImV4cCI6MjA5OTc4OTQ1Nn0.TF1Fvaa5B_eT_qHdM1NpVGMqOub758I0f7NGpm2_mfY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+let YO = null;      // { id, nombre, rol, roles_extra }
+let P = null;       // parametros_sistema.valores
+let SOLS = [];      // solicitudes cargadas
+let ACTUAL = null;  // solicitud abierta
+let TAB = null;
+
+/* ==================================================================
+   MOTOR DE ANÁLISIS
+   ================================================================== */
+/* El formulario captura antigüedad como años + meses por separado.
+   El motor necesita el total en meses. */
+function mesesAntiguedad(d){
+  if(!d) return 0;
+  return (parseInt(d.antiguedad_anios)||0) * 12 + (parseInt(d.antiguedad_meses)||0);
+}
+function mesesVivienda(d){
+  if(!d) return 0;
+  return (parseInt(d.vivienda_anios)||0) * 12 + (parseInt(d.vivienda_meses)||0);
+}
+function fmt(n){ return new Intl.NumberFormat('es-HN',{maximumFractionDigits:0}).format(n||0); }
+function fmtL(n){ return 'L' + new Intl.NumberFormat('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0); }
+
+function calcularLimite(ingreso, meses){
+  if(!ingreso || ingreso <= 0) return {ok:false, motivo:'Sin ingreso registrado'};
+  if(ingreso < P.ingreso_minimo_mensual)
+    return {ok:false, motivo:`Ingreso de L${fmt(ingreso)} es menor al mínimo de L${fmt(P.ingreso_minimo_mensual)}`};
+
+  const L = P.limites_por_antiguedad;
+  let factor, tramo;
+  if(meses >= 6)      { factor = L.seis_meses; tramo = '6+ meses'; }
+  else if(meses >= 3) { factor = L.tres_meses; tramo = '3-5 meses'; }
+  else                { factor = L.nuevo;      tramo = 'nuevo'; }
+
+  let monto = Math.ceil((ingreso * factor) / P.redondeo_credito) * P.redondeo_credito;
+  const topado = monto > P.credito_max;
+  monto = Math.min(monto, P.credito_max);
+
+  if(monto < P.credito_min)
+    return {ok:false, motivo:`El límite calculado (L${fmt(monto)}) es menor al mínimo de L${fmt(P.credito_min)}`};
+
+  return {ok:true, monto, factor, tramo, topado};
+}
+
+function calcularTasa(comp, meses){
+  const T = P.tasas, SP = P.super_preferencial;
+  if(!comp || !comp.pagos || !comp.pagos.length)
+    return {tasa:T.estandar, categoria:'Estándar', razon:'Cliente sin historial de pagos'};
+
+  const pu = comp.pagos_puntuales ?? 0;
+  const a46 = comp.atrasos_4_6 ?? 0;
+  const a7 = comp.atrasos_7_mas ?? 0;
+
+  if(meses >= SP.meses_antiguedad_min && pu >= SP.pagos_puntuales_min &&
+     a7 <= SP.atrasos_7_o_mas_max && a46 <= SP.atrasos_4_a_6_max)
+    return {tasa:T.super_preferencial, categoria:'Súper preferencial',
+            razon:`${pu} pagos puntuales, ${meses} meses de antigüedad`};
+
+  if(a7 === 0 && pu >= 2){
+    const f = [];
+    if(meses < SP.meses_antiguedad_min) f.push(`le faltan ${SP.meses_antiguedad_min-meses} meses de antigüedad`);
+    if(pu < SP.pagos_puntuales_min) f.push(`tiene ${pu} de ${SP.pagos_puntuales_min} pagos puntuales`);
+    if(a46 > SP.atrasos_4_a_6_max) f.push(`${a46} atrasos de 4-6 días`);
+    return {tasa:T.preferencial, categoria:'Preferencial',
+            razon: f.length ? 'No llega a súper: ' + f.join('; ') : 'Buen comportamiento'};
+  }
+
+  const c = [];
+  if(a7 > 0) c.push(`${a7} atraso(s) de 7+ días`);
+  if(pu < 2) c.push('pocos pagos puntuales');
+  return {tasa:T.estandar, categoria:'Estándar', razon: c.join('; ') || 'Comportamiento estándar'};
+}
+
+function analizarPagos(pagos){
+  let pu=0, a46=0, a7=0;
+  pagos.forEach(p=>{
+    const d = Number(p.dias);
+    if(isNaN(d) || p.dias === '' || p.dias === null) return;
+    if(d <= 3) pu++;
+    else if(d <= 6) a46++;
+    else a7++;
+  });
+  return {pagos_puntuales:pu, atrasos_4_6:a46, atrasos_7_mas:a7, total:pagos.length,
+          resultado: a7>0 ? 'con atrasos graves' : (a46>0 ? 'con atrasos leves' : 'favorable')};
+}
+
+function catEquifax(score){
+  if(!score) return null;
+  const r = P.equifax_rangos.find(r => score >= r.min && score <= r.max);
+  return r ? r.nombre : 'Fuera de rango';
+}
+
+/* ==================================================================
+   UTILIDADES
+   ================================================================== */
+function toast(msg, mal){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast ver' + (mal ? ' mal' : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(()=> t.className = 'toast' + (mal?' mal':''), 2600);
+}
+
+function tengoRol(r){
+  if(!YO) return false;
+  return YO.rol === r || (YO.roles_extra || []).includes(r);
+}
+
+function slaClase(desde, estado){
+  const horas = (Date.now() - new Date(desde)) / 36e5;
+  const lim = (P.sla_horas || {})[estado] || 24;
+  if(horas > lim) return 'tarde';
+  if(horas > lim * 0.66) return 'medio';
+  return 'ok';
+}
+function slaTexto(desde){
+  const m = Math.floor((Date.now() - new Date(desde)) / 6e4);
+  if(m < 60) return m + 'm';
+  const h = Math.floor(m/60);
+  if(h < 24) return h + 'h';
+  return Math.floor(h/24) + 'd';
+}
+
+const ETIQUETA = {
+  pendiente_revision:'Nuevas', en_revision_asesor:'En revisión',
+  en_analisis:'Análisis', por_verificar:'Por verificar',
+  en_verificacion:'Verificando', verificado:'Decidir',
+  aprobado:'Aprobadas', denegado:'Denegadas', desembolsado:'Entregadas'
+};
+
+/* ==================================================================
+   LOGIN
+   ================================================================== */
+$('#btn-login').addEventListener('click', entrar);
+$('#pass').addEventListener('keydown', e => { if(e.key === 'Enter') entrar(); });
+
+async function entrar(){
+  const b = $('#btn-login');
+  b.disabled = true; b.innerHTML = '<span class="spin"></span>Entrando';
+  $('#login-err').classList.remove('ver');
+
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: $('#email').value.trim(),
+    password: $('#pass').value
+  });
+
+  if(error){
+    $('#login-err').textContent = error.message.includes('Invalid')
+      ? 'Correo o contraseña incorrectos.' : error.message;
+    $('#login-err').classList.add('ver');
+    b.disabled = false; b.textContent = 'Entrar';
+    return;
+  }
+  await arrancar(data.session);
+}
+
+async function arrancar(session){
+  const { data: perfil, error } = await sb.from('usuarios')
+    .select('*').eq('id', session.user.id).single();
+
+  if(error || !perfil){
+    $('#login-err').textContent = 'Tu usuario no tiene perfil asignado. Contactá al administrador.';
+    $('#login-err').classList.add('ver');
+    await sb.auth.signOut();
+    $('#btn-login').disabled = false; $('#btn-login').textContent = 'Entrar';
+    return;
+  }
+  if(!perfil.activo){
+    $('#login-err').textContent = 'Tu usuario está desactivado.';
+    $('#login-err').classList.add('ver');
+    await sb.auth.signOut();
+    $('#btn-login').disabled = false; $('#btn-login').textContent = 'Entrar';
+    return;
+  }
+
+  YO = perfil;
+
+  const { data: par } = await sb.from('parametros_sistema').select('valores').eq('id',1).single();
+  P = par.valores;
+
+  $('#login').style.display = 'none';
+  $('#app').style.display = 'flex';
+
+  const roles = [YO.rol, ...(YO.roles_extra||[])];
+  $('#quien').textContent = `${YO.nombre} · ${[...new Set(roles)].join('/')}`;
+
+  pintarTabs();
+  await cargar();
+  vivo();
+}
+
+$('#btn-salir').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+  location.reload();
+});
+
+/* ==================================================================
+   TABS SEGÚN ROL
+   ================================================================== */
+function misEstados(){
+  const e = [];
+  if(tengoRol('asesor') || tengoRol('admin')) e.push('pendiente_revision','en_revision_asesor');
+  if(tengoRol('analista') || tengoRol('admin')) e.push('en_analisis','verificado');
+  e.push('por_verificar','en_verificacion');
+  e.push('aprobado','denegado');
+  return [...new Set(e)];
+}
+
+function pintarTabs(){
+  const est = misEstados();
+  TAB = TAB || est[0];
+  $('#tabs').innerHTML = est.map(e =>
+    `<button class="tab ${e===TAB?'on':''}" data-e="${e}">${ETIQUETA[e]}<span class="n" id="n-${e}">0</span></button>`
+  ).join('');
+  $$('.tab').forEach(t => t.addEventListener('click', ()=>{
+    TAB = t.dataset.e;
+    $$('.tab').forEach(x => x.classList.toggle('on', x === t));
+    pintarLista();
+  }));
+}
+
+/* ==================================================================
+   CARGAR
+   ================================================================== */
+async function cargar(){
+  const { data, error } = await sb.from('solicitudes')
+    .select('*').order('estado_desde', {ascending:true});
+  if(error){ toast('No se pudo cargar: ' + error.message, true); return; }
+  SOLS = data || [];
+  pintarLista();
+}
+
+function vivo(){
+  sb.channel('sols')
+    .on('postgres_changes', {event:'*', schema:'public', table:'solicitudes'}, cargar)
+    .subscribe();
+  setInterval(()=>{ if(!$('#sheet').classList.contains('ver')) pintarLista(); }, 60000);
+}
+
+function pintarLista(){
+  misEstados().forEach(e=>{
+    const n = $('#n-'+e);
+    if(n) n.textContent = SOLS.filter(s => s.estado === e).length;
+  });
+
+  const lista = SOLS.filter(s => s.estado === TAB);
+  const m = $('#main');
+
+  if(!lista.length){
+    m.innerHTML = `<div class="vacio"><div class="em">◍</div>
+      <p>No hay solicitudes en <strong>${ETIQUETA[TAB]}</strong>.</p></div>`;
+    return;
+  }
+
+  m.innerHTML = lista.map(s=>{
+    const d = s.datos_cliente || {};
+    const r = s.resultado_analisis || {};
+    const nom = `${d.nombres||''} ${d.apellidos||''}`.trim() || 'Sin nombre';
+    const ing = s.analisis_ingresos?.ingreso_promedio;
+
+    return `<div class="sol" data-id="${s.id}">
+      <div class="sol-top">
+        <div>
+          <div class="sol-nom">${nom}</div>
+          <div class="sol-folio">${s.folio}</div>
+        </div>
+        <span class="sla ${slaClase(s.estado_desde, s.estado)}">${slaTexto(s.estado_desde)}</span>
+      </div>
+      <div class="sol-meta">
+        ${d.telefono ? `<span class="pill">${d.telefono}</span>` : ''}
+        ${d.empresa ? `<span class="pill">${d.empresa}</span>` : ''}
+        ${ing ? `<span class="pill dato">L${fmt(ing)}/mes</span>` : ''}
+        ${r.monto_aprobado ? `<span class="pill dato">L${fmt(r.monto_aprobado)} · ${Math.round(r.tasa*100)}%</span>` : ''}
+        ${s.origen==='cliente' ? '<span class="pill">del cliente</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  $$('.sol').forEach(el => el.addEventListener('click', ()=> abrir(el.dataset.id)));
+}
+
+/* ==================================================================
+   DETALLE
+   ================================================================== */
+function abrir(id){
+  ACTUAL = SOLS.find(s => s.id === id);
+  if(!ACTUAL) return;
+  const d = ACTUAL.datos_cliente || {};
+  $('#d-nom').textContent = `${d.nombres||''} ${d.apellidos||''}`.trim() || 'Sin nombre';
+  $('#d-folio').textContent = ACTUAL.folio;
+  $('#sheet').classList.add('ver');
+  document.body.style.overflow = 'hidden';
+  pintarDetalle();
+}
+function cerrar(){
+  $('#sheet').classList.remove('ver');
+  ACTUAL = null;
+}
+$('#cerrar').addEventListener('click', cerrar);
+$('#sheet-bg').addEventListener('click', cerrar);
+document.addEventListener('keydown', e => { if(e.key==='Escape' && ACTUAL) cerrar(); });
+
+function pintarDetalle(){
+  const s = ACTUAL, d = s.datos_cliente || {};
+  const esAsesor = ['pendiente_revision','en_revision_asesor'].includes(s.estado);
+  const esAnalista = ['en_analisis'].includes(s.estado);
+  const b = $('#d-body');
+  let h = '';
+
+  /* ---- Datos del cliente ---- */
+  const mAnt = mesesAntiguedad(d);
+  h += `<div class="sec"><h3>Cliente</h3><dl class="dl">
+    <dt>Cédula</dt><dd>${d.cedula||d.identidad||'—'}</dd>
+    <dt>Teléfono</dt><dd>${d.telefono||'—'}</dd>
+    ${d.nacimiento ? `<dt>Nacimiento</dt><dd>${d.nacimiento}</dd>` : ''}
+    ${d.monto ? `<dt>Monto que pide</dt><dd style="color:var(--lima);font-weight:600">L${fmt(d.monto)}</dd>` : ''}
+    ${d.destino ? `<dt>Destino</dt><dd>${d.destino}</dd>` : ''}
+    ${d.refiere ? `<dt>Referido por</dt><dd>${d.refiere} ${d.refiere_tel||''}</dd>` : ''}
+  </dl></div>`;
+
+  /* ---- Trabajo ---- */
+  h += `<div class="sec"><h3>Trabajo</h3><dl class="dl">
+    <dt>Empresa</dt><dd>${d.empresa||'—'}</dd>
+    ${d.rubro ? `<dt>Rubro</dt><dd>${d.rubro}</dd>` : ''}
+    <dt>Puesto</dt><dd>${d.puesto||d.cargo||'—'}</dd>
+    <dt>Antigüedad</dt><dd>${d.antiguedad || (mAnt+' meses')} <span style="color:var(--gris)">(${mAnt}m)</span></dd>
+    ${d.salario ? `<dt>Salario declarado</dt><dd>${fmtL(d.salario)}</dd>` : ''}
+    ${d.prestaciones ? `<dt>Prestaciones</dt><dd>${d.prestaciones}</dd>` : ''}
+    ${d.dias_pago ? `<dt>Recibe pago</dt><dd>${d.dias_pago}</dd>` : ''}
+    ${d.otros_ingresos && d.otros_ingresos!=='No' ? `<dt>Otros ingresos</dt><dd>${d.otros_ingresos}</dd>` : ''}
+    ${d.ciudad_empresa ? `<dt>Ciudad</dt><dd>${d.ciudad_empresa}</dd>` : ''}
+    <dt>Dirección</dt><dd>${d.dir_empresa||d.direccion_trabajo||'—'}</dd>
+  </dl></div>`;
+
+  /* ---- Vivienda ---- */
+  h += `<div class="sec"><h3>Vivienda</h3><dl class="dl">
+    ${d.ciudad_vivienda ? `<dt>Ciudad</dt><dd>${d.ciudad_vivienda}</dd>` : ''}
+    <dt>Dirección</dt><dd>${d.direccion||d.direccion_casa||'—'}</dd>
+    ${d.tiempo_vivienda ? `<dt>Tiempo ahí</dt><dd>${d.tiempo_vivienda}</dd>` : ''}
+    ${d.tipo_vivienda ? `<dt>Tipo</dt><dd>${d.tipo_vivienda}${d.tipo_alquiler?' · '+d.tipo_alquiler:''}</dd>` : ''}
+  </dl></div>`;
+
+  /* ---- Comprobantes ---- */
+  if(d.comprobantes){
+    const tiene = !String(d.comprobantes).startsWith('No');
+    h += `<div class="sec"><h3>Comprobantes
+      <span class="badge ${tiene?'hecho':'pend'}">${tiene?'los tiene':'pendientes'}</span></h3>
+      <p style="font-size:13.5px">${d.comprobantes}</p>
+      ${d.telefono?`<a href="https://wa.me/504${String(d.telefono).replace(/\D/g,'')}" target="_blank" rel="noopener"
+        class="btn btn-2 btn-sm" style="display:inline-block;margin-top:10px;text-decoration:none">Pedir por WhatsApp</a>`:''}
+    </div>`;
+  }
+
+  /* ---- Ingresos (asesor) ---- */
+  if(esAsesor){
+    const ai = s.analisis_ingresos || {};
+    const comps = ai.comprobantes || [{monto:'',desc:''}];
+    h += `<div class="sec"><h3>Ingresos
+      <span class="badge ${ai.ingreso_promedio ? 'hecho':'pend'}">${ai.ingreso_promedio ? 'listo':'pendiente'}</span></h3>
+      <label>Comprobantes de salario</label>
+      <div id="comps">${comps.map((c,i)=>compHTML(c,i)).join('')}</div>
+      <button class="btn btn-2 btn-sm" id="add-comp" style="width:100%;margin:4px 0 13px">+ Agregar comprobante</button>
+      <div class="f2">
+        <div class="campo">
+          <label>Ingreso promedio mensual</label>
+          <input id="i-prom" inputmode="decimal" value="${ai.ingreso_promedio||''}" placeholder="0.00">
+        </div>
+        <div class="campo">
+          <label>Deducciones</label>
+          <input id="i-ded" inputmode="decimal" value="${ai.deducciones||''}" placeholder="0.00">
+        </div>
+      </div>
+      <div class="campo"><label>Notas</label>
+        <textarea id="i-notas" placeholder="Observaciones sobre los ingresos">${ai.notas||''}</textarea></div>
+      <div id="prev-limite"></div>
+    </div>`;
+  } else if(s.analisis_ingresos?.ingreso_promedio){
+    const ai = s.analisis_ingresos;
+    h += `<div class="sec"><h3>Ingresos<span class="badge hecho">listo</span></h3><dl class="dl">
+      <dt>Promedio mensual</dt><dd>${fmtL(ai.ingreso_promedio)}</dd>
+      ${ai.deducciones ? `<dt>Deducciones</dt><dd>${fmtL(ai.deducciones)}</dd>` : ''}
+      ${ai.notas ? `<dt>Notas</dt><dd>${ai.notas}</dd>` : ''}
+    </dl></div>`;
+  }
+
+  /* ---- Análisis (analista) ---- */
+  if(esAnalista){
+    const ck = s.checklist_analista || {};
+    const cp = s.comportamiento_pago || {};
+    const pagos = cp.pagos || [{cuota:1,dias:''}];
+
+    h += `<div class="sec"><h3>Comportamiento de pago
+      <span class="badge ${ck.comportamiento_pago?.estado==='realizado'?'hecho':'pend'}"
+        >${ck.comportamiento_pago?.estado==='realizado'?'listo':'pendiente'}</span></h3>
+      <div class="pagos-head"><span>#</span><span>Fecha pactada</span><span>Fecha pagada</span><span>Días</span></div>
+      <div id="pagos">${pagos.map((p,i)=>pagoHTML(p,i)).join('')}</div>
+      <button class="btn btn-2 btn-sm" id="add-pago" style="width:100%;margin-top:6px">+ Agregar cuota</button>
+      <div id="resumen-pagos" style="margin-top:12px"></div>
+    </div>`;
+
+    const cr = s.central_riesgo || {};
+    h += `<div class="sec"><h3>Central de riesgo
+      <span class="badge ${cr.score?'hecho':'pend'}">${cr.score?'consultada':'opcional'}</span></h3>
+      <div class="f2">
+        <div class="campo"><label>Score Equifax</label>
+          <input id="cr-score" inputmode="numeric" value="${cr.score||''}" placeholder="300-850"></div>
+        <div class="campo"><label>Categoría</label>
+          <input id="cr-cat" value="${cr.categoria||''}" readonly style="opacity:.7"></div>
+      </div>
+      <div class="campo"><label>Observaciones</label>
+        <textarea id="cr-obs" placeholder="Moras, saldos, consultas recientes">${cr.observaciones||''}</textarea></div>
+      <div class="aviso info ver" style="margin:12px 0 0">
+        La central no deniega por sí sola. Solo informa la decisión.</div>
+    </div>`;
+
+    const items = ck.referencias?.items || [];
+    h += `<div class="sec"><h3>Referencias
+      <span class="badge ${ck.referencias?.estado==='realizado'?'hecho':(ck.referencias?.estado==='rechazado'?'malo':'pend')}"
+        >${items.filter(r=>r.resultado).length}/${items.length}</span></h3>
+      ${items.length ? items.map((r,i)=>refHTML(r,i)).join('') :
+        '<p style="color:var(--gris);font-size:13px">Este cliente no dio referencias.</p>'}
+      <div class="aviso mal ver" style="margin-top:10px">
+        Marcar una referencia como <strong>falsa</strong> deniega la solicitud de inmediato.</div>
+    </div>`;
+
+    h += `<div class="sec"><h3>Resultado</h3><div id="resultado"></div></div>`;
+  }
+
+  /* ---- Resultado (ya calculado) ---- */
+  else if(s.resultado_analisis?.monto_aprobado || s.resultado_analisis?.motivo_denegacion){
+    h += `<div class="sec"><h3>Resultado del análisis</h3>${resultadoHTML(s.resultado_analisis)}</div>`;
+  }
+
+  /* ---- Referencias (solo lectura) ---- */
+  if(!esAnalista && s.checklist_analista?.referencias?.items?.length){
+    const items = s.checklist_analista.referencias.items;
+    h += `<div class="sec"><h3>Referencias</h3>${items.map(r=>`
+      <div class="ref"><div class="ref-t">
+        <div><div class="ref-n">${r.nombre||'—'}</div>
+             <div class="ref-tel">${r.telefono||''} ${r.parentesco?`· <span class="ref-par">${r.parentesco}</span>`:''}</div></div>
+        <span class="pill ${r.resultado==='ok'?'dato':''}">${textoRes(r.resultado)}</span>
+      </div>${r.comentario?`<div style="font-size:12.5px;color:var(--gris)">${r.comentario}</div>`:''}</div>
+    `).join('')}</div>`;
+  }
+
+  b.innerHTML = h;
+  pintarPie();
+  conectarDetalle(esAsesor, esAnalista);
+}
+
+function compHTML(c,i){
+  return `<div class="comp" data-c="${i}">
+    <div><input class="c-monto" inputmode="decimal" value="${c.monto||''}" placeholder="Monto"></div>
+    <div><input class="c-desc" value="${c.desc||''}" placeholder="Periodo / concepto"></div>
+    <button class="del" data-del-c="${i}">✕</button>
+  </div>`;
+}
+function pagoHTML(p,i){
+  const d = p.dias;
+  const cls = d==='' || d===null || isNaN(Number(d)) ? '' : (Number(d)<=3?'p':(Number(d)<=6?'m':'g'));
+  return `<div class="pago" data-p="${i}">
+    <span class="n">${i+1}</span>
+    <input class="p-pact" type="date" value="${p.pactada||''}">
+    <input class="p-real" type="date" value="${p.pagada||''}">
+    <span class="dias ${cls}" data-dias="${i}">${d===''||d===null||isNaN(Number(d))?'—':(Number(d)>0?'+'+d:d)}</span>
+  </div>`;
+}
+function textoRes(r){
+  return {ok:'Confirmó', no_respondio:'No respondió', falsa:'FALSA', negativa:'Negativa'}[r] || 'Sin llamar';
+}
+function refHTML(r,i){
+  const ops = [['ok','Confirmó'],['no_respondio','No respondió'],['negativa','Negativa'],['falsa','Falsa']];
+  return `<div class="ref" data-ref="${i}">
+    <div class="ref-t">
+      <div><div class="ref-n">${r.nombre||'—'}</div>
+        <div class="ref-tel">${r.telefono||''}</div>
+        ${r.parentesco?`<div class="ref-par">${r.parentesco}</div>`:''}</div>
+      ${r.telefono?`<a href="tel:${r.telefono.replace(/\D/g,'')}" class="btn btn-2 btn-sm" style="text-decoration:none">Llamar</a>`:''}
+    </div>
+    <div class="res-ops">${ops.map(([v,t])=>
+      `<button class="res ${r.resultado===v?'on':''}" data-r="${v}" data-ri="${i}">${t}</button>`).join('')}</div>
+    <textarea class="r-com" data-ci="${i}" placeholder="Qué dijo la referencia">${r.comentario||''}</textarea>
+  </div>`;
+}
+function resultadoHTML(r){
+  if(r.motivo_denegacion){
+    return `<div class="resu mal">
+      <div class="resu-lbl">Denegado${r.denegado_automaticamente?' automáticamente':''}</div>
+      <div class="resu-monto">${r.motivo_denegacion}</div></div>`;
+  }
+  if(!r.monto_aprobado) return '<p style="color:var(--gris);font-size:13px">Sin calcular.</p>';
+  return `<div class="resu">
+    <div class="resu-lbl">Monto aprobado</div>
+    <div class="resu-monto">L${fmt(r.monto_aprobado)}</div>
+    <div class="resu-row">
+      <div class="resu-it"><div class="resu-lbl">Tasa</div>
+        <div class="resu-v">${Math.round(r.tasa*100)}%</div></div>
+      <div class="resu-it"><div class="resu-lbl">Categoría</div>
+        <div class="resu-v" style="font-size:14px">${r.categoria_tasa||'—'}</div></div>
+    </div>
+    ${r.razon?`<div class="resu-razon">${r.razon}</div>`:''}</div>`;
+}
+
+/* ==================================================================
+   INTERACCIÓN DEL DETALLE
+   ================================================================== */
+function conectarDetalle(esAsesor, esAnalista){
+  if(esAsesor){
+    $('#add-comp')?.addEventListener('click', ()=>{
+      const n = $$('#comps .comp').length;
+      $('#comps').insertAdjacentHTML('beforeend', compHTML({},n));
+      conectarComps();
+      recalcularIngreso();
+    });
+    conectarComps();
+    ['#i-prom','#i-ded'].forEach(s => $(s)?.addEventListener('input', previewLimite));
+    previewLimite();
+  }
+
+  if(esAnalista){
+    $('#add-pago')?.addEventListener('click', ()=>{
+      const n = $$('#pagos .pago').length;
+      $('#pagos').insertAdjacentHTML('beforeend', pagoHTML({},n));
+      conectarPagos();
+    });
+    conectarPagos();
+
+    $('#cr-score')?.addEventListener('input', e=>{
+      const v = parseInt(e.target.value);
+      $('#cr-cat').value = v ? (catEquifax(v) || '') : '';
+      recalcularResultado();
+    });
+
+    $$('.res').forEach(b => b.addEventListener('click', ()=>{
+      const i = +b.dataset.ri, v = b.dataset.r;
+      const items = ACTUAL.checklist_analista.referencias.items;
+
+      if(v === 'falsa'){
+        if(!confirm(`¿Marcar a ${items[i].nombre} como referencia FALSA?\n\nEsto DENIEGA la solicitud de inmediato y no se puede deshacer.`))
+          return;
+      }
+      items[i].resultado = items[i].resultado === v ? null : v;
+      $$(`.res[data-ri="${i}"]`).forEach(x => x.classList.toggle('on', x.dataset.r === items[i].resultado));
+      recalcularResultado();
+      pintarPie();
+    }));
+
+    $$('.r-com').forEach(t => t.addEventListener('input', e=>{
+      ACTUAL.checklist_analista.referencias.items[+e.target.dataset.ci].comentario = e.target.value;
+    }));
+
+    recalcularResultado();
+  }
+}
+
+function conectarComps(){
+  $$('.c-monto').forEach(i => i.addEventListener('input', recalcularIngreso));
+  $$('[data-del-c]').forEach(b => b.addEventListener('click', ()=>{
+    if($$('#comps .comp').length <= 1) return;
+    b.closest('.comp').remove();
+    recalcularIngreso();
+  }));
+}
+function recalcularIngreso(){
+  const montos = $$('.c-monto').map(i => parseFloat(i.value)).filter(n => !isNaN(n) && n > 0);
+  if(montos.length){
+    const prom = montos.reduce((a,b)=>a+b,0) / montos.length;
+    $('#i-prom').value = prom.toFixed(2);
+  }
+  previewLimite();
+}
+function previewLimite(){
+  const el = $('#prev-limite');
+  if(!el) return;
+  const ing = parseFloat($('#i-prom')?.value);
+  const meses = mesesAntiguedad(ACTUAL.datos_cliente);
+  if(!ing){ el.innerHTML = ''; return; }
+  const r = calcularLimite(ing, meses);
+  el.innerHTML = r.ok
+    ? `<div class="resu" style="margin:0"><div class="resu-lbl">Límite estimado · ${r.tramo} · ${Math.round(r.factor*100)}%</div>
+       <div class="resu-monto">L${fmt(r.monto)}</div>
+       ${r.topado?'<div class="resu-razon">Topado al máximo permitido.</div>':''}</div>`
+    : `<div class="resu mal" style="margin:0"><div class="resu-lbl">No califica</div>
+       <div class="resu-monto">${r.motivo}</div></div>`;
+}
+
+function conectarPagos(){
+  $$('.pago').forEach(row=>{
+    const i = +row.dataset.p;
+    const calc = ()=>{
+      const pa = row.querySelector('.p-pact').value;
+      const re = row.querySelector('.p-real').value;
+      const span = row.querySelector('.dias');
+      if(!pa || !re){ span.textContent = '—'; span.className = 'dias'; return; }
+      // dias = pagada - pactada. Positivo = tarde.
+      const d = Math.round((new Date(re) - new Date(pa)) / 864e5);
+      span.textContent = d > 0 ? '+' + d : String(d);
+      span.className = 'dias ' + (d <= 3 ? 'p' : (d <= 6 ? 'm' : 'g'));
+      span.dataset.v = d;
+      resumenPagos();
+      recalcularResultado();
+    };
+    row.querySelector('.p-pact').addEventListener('change', calc);
+    row.querySelector('.p-real').addEventListener('change', calc);
+    calc();
+  });
+  resumenPagos();
+}
+function leerPagos(){
+  return $$('.pago').map((row,i)=>{
+    const pa = row.querySelector('.p-pact').value;
+    const re = row.querySelector('.p-real').value;
+    if(!pa || !re) return null;
+    return { cuota:i+1, pactada:pa, pagada:re,
+             dias: Math.round((new Date(re) - new Date(pa)) / 864e5) };
+  }).filter(Boolean);
+}
+function resumenPagos(){
+  const el = $('#resumen-pagos');
+  if(!el) return;
+  const pagos = leerPagos();
+  if(!pagos.length){ el.innerHTML = ''; return; }
+  const a = analizarPagos(pagos);
+  el.innerHTML = `<div class="dl" style="font-size:13px">
+    <dt>Puntuales</dt><dd style="color:var(--lima)">${a.pagos_puntuales}</dd>
+    <dt>Atrasos 4-6 días</dt><dd style="color:${a.atrasos_4_6?'var(--ambar)':'inherit'}">${a.atrasos_4_6}</dd>
+    <dt>Atrasos 7+ días</dt><dd style="color:${a.atrasos_7_mas?'var(--sello)':'inherit'}">${a.atrasos_7_mas}</dd>
+  </div>`;
+}
+
+function recalcularResultado(){
+  const el = $('#resultado');
+  if(!el) return;
+
+  const items = ACTUAL.checklist_analista?.referencias?.items || [];
+  const falsa = items.find(r => r.resultado === 'falsa');
+  if(falsa){
+    el.innerHTML = resultadoHTML({
+      motivo_denegacion:`Referencia falsa: ${falsa.nombre}`,
+      denegado_automaticamente:true
+    });
+    return;
+  }
+
+  const ing = ACTUAL.analisis_ingresos?.ingreso_promedio;
+  const meses = mesesAntiguedad(ACTUAL.datos_cliente);
+  const lim = calcularLimite(ing, meses);
+
+  if(!lim.ok){ el.innerHTML = resultadoHTML({motivo_denegacion: lim.motivo}); return; }
+
+  const pagos = leerPagos();
+  const comp = pagos.length ? {...analizarPagos(pagos), pagos} : null;
+  const t = calcularTasa(comp, meses);
+  const score = parseInt($('#cr-score')?.value);
+
+  el.innerHTML = resultadoHTML({
+    monto_aprobado: lim.monto, tasa: t.tasa, categoria_tasa: t.categoria,
+    razon: t.razon + (score ? ` · Equifax ${score} (${catEquifax(score)})` : '')
+  });
+}
+
+/* ==================================================================
+   ACCIONES
+   ================================================================== */
+function pintarPie(){
+  const s = ACTUAL, p = $('#d-pie');
+  let h = '';
+
+  if(s.estado === 'pendiente_revision' && (tengoRol('asesor')||tengoRol('admin')))
+    h = `<button class="btn btn-1" id="a-tomar">Tomar solicitud</button>`;
+
+  else if(s.estado === 'en_revision_asesor' && (tengoRol('asesor')||tengoRol('admin')))
+    h = `<button class="btn btn-2" id="a-guardar">Guardar</button>
+         <button class="btn btn-1" id="a-analisis">Enviar a análisis</button>`;
+
+  else if(s.estado === 'en_analisis' && (tengoRol('analista')||tengoRol('admin'))){
+    const items = s.checklist_analista?.referencias?.items || [];
+    const falsa = items.some(r => r.resultado === 'falsa');
+    if(falsa)
+      h = `<button class="btn btn-mal" id="a-denegar-ref" style="flex:1">Denegar por referencia falsa</button>`;
+    else
+      h = `<button class="btn btn-2" id="a-guardar-an">Guardar</button>
+           <button class="btn btn-1" id="a-verificar">Enviar a verificar</button>`;
+  }
+
+  else if(s.estado === 'verificado' && (tengoRol('analista')||tengoRol('admin')))
+    h = `<button class="btn btn-mal" id="a-rechazar">Denegar</button>
+         <button class="btn btn-1" id="a-aprobar">Aprobar</button>`;
+
+  p.innerHTML = h;
+
+  $('#a-tomar')?.addEventListener('click', ()=> guardar({estado:'en_revision_asesor', asesor_id:YO.id}));
+  $('#a-guardar')?.addEventListener('click', ()=> guardar(datosAsesor()));
+  $('#a-analisis')?.addEventListener('click', ()=> guardar({...datosAsesor(), estado:'en_analisis'}));
+  $('#a-guardar-an')?.addEventListener('click', ()=> guardar(datosAnalista()));
+  $('#a-verificar')?.addEventListener('click', ()=> guardar({...datosAnalista(), estado:'por_verificar'}));
+  $('#a-denegar-ref')?.addEventListener('click', ()=> guardar(datosAnalista()));
+  $('#a-aprobar')?.addEventListener('click', aprobar);
+  $('#a-rechazar')?.addEventListener('click', denegarManual);
+}
+
+function datosAsesor(){
+  const comps = $$('#comps .comp').map(c => ({
+    monto: parseFloat(c.querySelector('.c-monto').value) || 0,
+    desc: c.querySelector('.c-desc').value.trim()
+  })).filter(c => c.monto > 0);
+
+  return {
+    analisis_ingresos: {
+      comprobantes: comps,
+      ingreso_promedio: parseFloat($('#i-prom')?.value) || 0,
+      deducciones: parseFloat($('#i-ded')?.value) || 0,
+      notas: $('#i-notas')?.value.trim() || '',
+      es_asalariado: ['asalariado','ambos'].includes(ACTUAL.datos_cliente?.tipo_empleo),
+      es_comerciante: ['comerciante','ambos'].includes(ACTUAL.datos_cliente?.tipo_empleo)
+    },
+    asesor_id: ACTUAL.asesor_id || YO.id
+  };
+}
+
+function datosAnalista(){
+  const pagos = leerPagos();
+  const comp = pagos.length ? {...analizarPagos(pagos), pagos} : {};
+  const score = parseInt($('#cr-score')?.value) || null;
+  const ck = JSON.parse(JSON.stringify(ACTUAL.checklist_analista));
+
+  // Referencias: listas si todas tienen resultado
+  const items = ck.referencias?.items || [];
+  const todas = items.length > 0 && items.every(r => r.resultado);
+  if(todas) ck.referencias.estado = 'realizado';
+
+  const out = {
+    comportamiento_pago: comp,
+    checklist_analista: ck,
+    analista_id: YO.id
+  };
+
+  if(score){
+    out.central_riesgo = {
+      score, categoria: catEquifax(score),
+      observaciones: $('#cr-obs')?.value.trim() || '',
+      consultado_en: new Date().toISOString()
+    };
+  }
+
+  // Resultado calculado (visible para asesor y analista)
+  const ing = ACTUAL.analisis_ingresos?.ingreso_promedio;
+  const meses = mesesAntiguedad(ACTUAL.datos_cliente);
+  const lim = calcularLimite(ing, meses);
+  if(lim.ok){
+    const t = calcularTasa(pagos.length ? comp : null, meses);
+    out.resultado_analisis = {
+      ...ACTUAL.resultado_analisis,
+      monto_aprobado: lim.monto, tasa: t.tasa, categoria_tasa: t.categoria,
+      limite_calculado: lim.monto, razon: t.razon,
+      calculado_en: new Date().toISOString()
+    };
+  }
+  return out;
+}
+
+async function guardar(campos){
+  const btns = $$('#d-pie .btn');
+  btns.forEach(b => b.disabled = true);
+
+  const { error } = await sb.from('solicitudes').update(campos).eq('id', ACTUAL.id);
+
+  if(error){
+    toast(traducir(error.message), true);
+    btns.forEach(b => b.disabled = false);
+    return;
+  }
+  toast('Guardado');
+  await cargar();
+  const act = SOLS.find(s => s.id === ACTUAL.id);
+  if(act && act.estado !== ACTUAL.estado) cerrar();
+  else if(act){ ACTUAL = act; pintarDetalle(); }
+}
+
+function traducir(m){
+  if(m.includes('comportamiento de pago')) return 'Falta completar el comportamiento de pago.';
+  if(m.includes('referencias')) return 'Faltan referencias por llamar.';
+  if(m.includes('ingresos')) return 'Falta capturar los ingresos del cliente.';
+  if(m.includes('analista')) return 'Debe asignarse un analista.';
+  if(m.includes('verificador')) return 'Debe asignarse un verificador.';
+  if(m.includes('violates row-level security')) return 'No tenés permiso para esta acción.';
+  return m;
+}
+
+async function aprobar(){
+  const r = ACTUAL.resultado_analisis || {};
+  if(!r.monto_aprobado){ toast('Falta calcular el monto.', true); return; }
+  if(!confirm(`¿Aprobar L${fmt(r.monto_aprobado)} al ${Math.round(r.tasa*100)}%?`)) return;
+  await guardar({estado:'aprobado'});
+}
+
+async function denegarManual(){
+  const motivo = prompt('¿Por qué se deniega?');
+  if(!motivo) return;
+  await guardar({
+    estado:'denegado',
+    resultado_analisis: {...ACTUAL.resultado_analisis, motivo_denegacion: motivo}
+  });
+}
+
+/* ==================================================================
+   PARÁMETROS
+   ================================================================== */
+$('#btn-param').addEventListener('click', ()=>{
+  if(!tengoRol('admin') && !tengoRol('analista')){
+    toast('Solo admin o analista pueden ver los parámetros.', true);
+    return;
+  }
+  const t = JSON.stringify(P, null, 2);
+  const n = prompt('Parámetros del sistema (JSON).\nCambiar con cuidado: aplica a todo el equipo.', t);
+  if(!n || n === t) return;
+  try{
+    const v = JSON.parse(n);
+    sb.from('parametros_sistema').update({valores:v, actualizado_por:YO.id}).eq('id',1)
+      .then(({error})=>{
+        if(error){ toast(traducir(error.message), true); return; }
+        P = v; toast('Parámetros actualizados'); pintarLista();
+      });
+  }catch{ toast('JSON inválido', true); }
+});
+
+/* ==================================================================
+   ARRANQUE
+   ================================================================== */
+(async function(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session) await arrancar(session);
+})();
+</script>
+</body>
+</html>

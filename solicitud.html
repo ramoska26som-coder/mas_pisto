@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solicitud de Crédito · Más Pisto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --azul:#1877F2;
+    --azul-oscuro:#0B5AD6;
+    --azul-tinta:#0A2A66;
+    --amarillo:#FFD400;
+    --amarillo-oscuro:#E6BE00;
+    --cielo:#EAF3FF;
+    --gris:#5B6B82;
+    --linea:#DCE6F5;
+    --error:#D63B3B;
+    --ok:#1F9D57;
+    --blanco:#ffffff;
+    --sombra:0 10px 40px rgba(11,90,214,.12);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--azul-tinta);
+    background:
+      radial-gradient(1100px 600px at 100% -10%, rgba(24,119,242,.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(255,212,0,.10), transparent 55%),
+      #F7FAFF;
+    line-height:1.5;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:24px 18px 80px}
+
+  .brand{display:flex;align-items:center;gap:12px;padding:8px 0 22px}
+  .brand svg{width:44px;height:44px;flex:none}
+  .brand .name{font-family:'Poppins';font-weight:800;font-size:26px;color:var(--azul);letter-spacing:-.5px;line-height:1}
+  .brand .tag{font-family:'Poppins';font-weight:600;font-size:9.5px;letter-spacing:1.5px;color:var(--gris);margin-top:2px}
+
+  .card{background:var(--blanco);border:1px solid var(--linea);border-radius:22px;box-shadow:var(--sombra);overflow:hidden}
+  .hero{background:linear-gradient(135deg,var(--azul) 0%,var(--azul-oscuro) 100%);color:#fff;padding:30px 30px 26px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-70px;top:-70px;width:230px;height:230px;background:radial-gradient(circle,rgba(255,212,0,.35),transparent 70%);border-radius:50%}
+  .hero .eyebrow{font-family:'Poppins';font-weight:700;font-size:12px;letter-spacing:2px;color:var(--amarillo);text-transform:uppercase;margin:0 0 6px}
+  .hero h1{font-family:'Poppins';font-weight:800;font-size:30px;line-height:1.08;margin:0;letter-spacing:-.6px}
+  .hero p{margin:12px 0 0;font-size:14.5px;color:rgba(255,255,255,.92);max-width:52ch}
+  .body{padding:28px 30px 34px}
+
+  .consent .lead{font-size:15px;color:var(--gris);margin:0 0 20px}
+  .terms{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:12px}
+  .terms li{display:flex;gap:12px;align-items:flex-start;background:var(--cielo);border:1px solid var(--linea);padding:14px 16px;border-radius:14px;font-size:14px}
+  .terms .ic{flex:none;width:26px;height:26px;border-radius:8px;background:var(--azul);display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;font-family:'Poppins';margin-top:1px}
+  .terms strong{font-family:'Poppins';font-weight:600;color:var(--azul-tinta)}
+  .checkline{display:flex;gap:12px;align-items:flex-start;padding:16px;border:2px dashed var(--azul);border-radius:14px;background:#fff;cursor:pointer;margin-bottom:20px;transition:background .15s}
+  .checkline:hover{background:var(--cielo)}
+  .checkline input{width:22px;height:22px;flex:none;margin-top:1px;accent-color:var(--azul);cursor:pointer}
+  .checkline span{font-size:14px}
+  .checkline b{font-family:'Poppins';font-weight:600}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field.full{grid-column:1 / -1}
+  label{font-family:'Poppins';font-weight:600;font-size:13px;color:var(--azul-tinta)}
+  label .req{color:var(--azul);margin-left:2px}
+  .hint{font-size:12px;color:var(--gris);margin-top:-2px}
+  input,select,textarea{font-family:'Inter';font-size:14.5px;color:var(--azul-tinta);padding:12px 14px;border:1.5px solid var(--linea);border-radius:12px;background:#fff;width:100%;transition:border-color .15s,box-shadow .15s}
+  textarea{resize:vertical;min-height:78px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 4px rgba(24,119,242,.14)}
+  input.err,select.err,textarea.err{border-color:var(--error);box-shadow:0 0 0 4px rgba(214,59,59,.12)}
+  .msg{font-size:12px;color:var(--error);display:none}
+  .msg.show{display:block}
+  select.placeholder{color:var(--gris)}
+
+  .divider{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin:14px 0 2px}
+  .divider span{font-family:'Poppins';font-weight:700;font-size:12px;letter-spacing:1.5px;color:var(--azul);text-transform:uppercase;white-space:nowrap}
+  .divider::before,.divider::after{content:"";height:1.5px;background:var(--linea);flex:1}
+
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .duo .sub{display:flex;flex-direction:column;gap:4px}
+  .duo .sub small{font-size:11px;color:var(--gris);font-weight:500}
+
+  .radios{display:flex;gap:10px;flex-wrap:wrap}
+  .radios label{flex:1;min-width:120px;font-family:'Inter';font-weight:500;font-size:14px;border:1.5px solid var(--linea);border-radius:12px;padding:11px 12px;cursor:pointer;display:flex;align-items:center;gap:9px;transition:all .15s;background:#fff}
+  .radios label:hover{border-color:var(--azul)}
+  .radios input{width:18px;height:18px;accent-color:var(--azul);margin:0;flex:none}
+  .radios label:has(input:checked){border-color:var(--azul);background:var(--cielo)}
+  .radios s{text-decoration:none}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chips label{cursor:pointer}
+  .chips input{position:absolute;opacity:0;width:0;height:0}
+  .chips s{display:inline-flex;text-decoration:none;padding:9px 14px;border:1.5px solid var(--linea);border-radius:999px;font-size:14px;font-weight:500;transition:all .15s}
+  .chips label:hover s{border-color:var(--azul)}
+  .chips input:checked + s{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
+
+  .rows{display:flex;flex-direction:column;gap:10px}
+  .row-ing{display:grid;grid-template-columns:1fr 150px 40px;gap:10px;align-items:center}
+  .row-ing .del{border:1.5px solid var(--linea);background:#fff;color:var(--error);border-radius:10px;height:44px;cursor:pointer;font-size:20px;line-height:1;font-weight:700}
+  .row-ing .del:hover{background:#FFF0F0;border-color:var(--error)}
+  .add-row{align-self:flex-start;background:var(--cielo);color:var(--azul);border:1.5px dashed var(--azul);border-radius:10px;padding:9px 14px;font-family:'Poppins';font-weight:600;font-size:13px;cursor:pointer}
+  .add-row:hover{background:#DFEEFF}
+
+  .conditional{display:none}
+  .conditional.show{display:flex}
+
+  .callout{grid-column:1/-1;background:var(--cielo);border:1px solid var(--linea);border-radius:14px;padding:16px 18px;font-size:14px}
+  .callout b{font-family:'Poppins';font-weight:600}
+
+  .btn{font-family:'Poppins';font-weight:700;font-size:16px;border:none;border-radius:14px;padding:16px 22px;cursor:pointer;width:100%;transition:transform .08s,box-shadow .15s,background .15s}
+  .btn:active{transform:translateY(1px)}
+  .btn-amarillo{background:var(--amarillo);color:var(--azul-tinta);box-shadow:0 8px 20px rgba(255,212,0,.4)}
+  .btn-amarillo:hover{background:var(--amarillo-oscuro)}
+  .btn-amarillo:disabled{background:#E7ECF3;color:#A9B6C7;box-shadow:none;cursor:not-allowed}
+  .btn-azul{background:var(--azul);color:#fff;box-shadow:0 8px 20px rgba(24,119,242,.35);margin-top:26px}
+  .btn-azul:hover{background:var(--azul-oscuro)}
+  .btn-azul:disabled{opacity:.7;cursor:progress}
+
+  .screen{display:none}
+  .screen.active{display:block;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .done{text-align:center;padding:20px 8px}
+  .done .ring{width:82px;height:82px;border-radius:50%;background:var(--cielo);display:grid;place-items:center;margin:0 auto 18px;border:3px solid var(--azul)}
+  .done h2{font-family:'Poppins';font-weight:800;font-size:24px;margin:0 0 8px;color:var(--azul-tinta)}
+  .done p{color:var(--gris);font-size:15px;margin:0 auto;max-width:46ch}
+  .wa{display:inline-flex;align-items:center;gap:9px;margin-top:22px;background:#25D366;color:#fff;font-family:'Poppins';font-weight:700;padding:14px 22px;border-radius:12px;text-decoration:none;font-size:15px;box-shadow:0 8px 20px rgba(37,211,102,.35)}
+  .footnote{text-align:center;font-size:12px;color:var(--gris);margin-top:30px}
+
+  /* Folio */
+  .folio-box{display:none;background:var(--cielo);border:2px dashed var(--azul);border-radius:16px;padding:18px;margin:22px auto 0;max-width:360px}
+  .folio-lbl{font-family:'Poppins';font-weight:600;font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gris)}
+  .folio-num{font-family:'Poppins';font-weight:800;font-size:28px;color:var(--azul);letter-spacing:.5px;margin-top:4px}
+  .copy-link{margin-top:12px;width:100%;background:#fff;border:1.5px solid var(--azul);color:var(--azul);font-family:'Poppins';font-weight:600;font-size:13px;padding:10px;border-radius:10px;cursor:pointer}
+  .copy-link:hover{background:var(--azul);color:#fff}
+
+  /* Seguimiento */
+  .track-head{text-align:center;padding-bottom:8px}
+  .steps{list-style:none;margin:24px 0 0;padding:0}
+  .step{display:flex;gap:14px;align-items:flex-start;padding-bottom:24px;position:relative}
+  .step:last-child{padding-bottom:0}
+  .step::before{content:"";position:absolute;left:13px;top:28px;bottom:0;width:2px;background:var(--linea)}
+  .step:last-child::before{display:none}
+  .step.hecho::before{background:var(--azul)}
+  .dot{width:28px;height:28px;border-radius:50%;flex:none;border:2px solid var(--linea);background:#fff;display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff;position:relative;z-index:1}
+  .step.hecho .dot{background:var(--azul);border-color:var(--azul)}
+  .step.activo .dot{border-color:var(--azul);background:#fff;box-shadow:0 0 0 5px rgba(24,119,242,.14)}
+  .st{font-family:'Poppins';font-weight:600;font-size:15px;line-height:1.3}
+  .step.pend .st{color:var(--gris);font-weight:500}
+  .sd{font-size:13px;color:var(--gris);margin-top:2px}
+
+  @media(max-width:600px){
+    .wrap{padding:18px 14px 60px}
+    .grid{grid-template-columns:1fr}
+    .hero{padding:26px 22px}.hero h1{font-size:25px}
+    .body{padding:22px 20px 28px}
+    .row-ing{grid-template-columns:1fr 110px 40px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Más Pisto">
+      <path d="M22 46h10V36h-10V25h-10v11H2v10h10v11h10V46z" fill="#1877F2"/>
+      <path d="M46 25h30a3 3 0 0 1 3 3v14c0 15-10 25-25 25V57c8 0 14-6 14-15v-7H46V25z" fill="#1877F2"/>
+      <rect x="46" y="35" width="10" height="42" rx="1" fill="#1877F2"/>
+    </svg>
+    <div>
+      <div class="name">más pisto</div>
+      <div class="tag">FÁCIL, RÁPIDOS Y CONFIABLES</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hero">
+      <p class="eyebrow" id="heroEyebrow">Solicitud de crédito</p>
+      <h1 id="heroTitle">Antes de empezar, confirma lo siguiente</h1>
+      <p id="heroText">Tu solicitud pasa por una verificación real. Léela con calma: toma menos de un minuto.</p>
+    </div>
+
+    <div class="body">
+
+      <section class="screen active consent" id="screenConsent">
+        <p class="lead">Para poder atender tu solicitud, necesitamos que aceptes cómo trabajamos:</p>
+        <ul class="terms">
+          <li><span class="ic">✓</span><div>La información que brindes será <strong>verificada por uno de nuestros gestores</strong> mediante <strong>visita domiciliaria y visita a tu lugar de trabajo</strong>.</div></li>
+          <li><span class="ic">✓</span><div>Las referencias deben ser <strong>únicamente familiares</strong>, y deben poder <strong>contestar la llamada en el momento</strong> en que las contactemos.</div></li>
+        </ul>
+        <label class="checkline" for="acepto">
+          <input type="checkbox" id="acepto">
+          <span>He leído y <b>acepto</b> que mi información sea verificada con visita domiciliaria y laboral, y que mis referencias familiares puedan ser contactadas de inmediato.</span>
+        </label>
+        <button class="btn btn-amarillo" id="btnStart" disabled>Continuar con mi solicitud</button>
+      </section>
+
+      <section class="screen" id="screenForm">
+        <form id="form" novalidate>
+          <div class="grid">
+
+            <div class="divider"><span>Datos personales</span></div>
+            <div class="field full">
+              <label>Nombre completo <span class="req">*</span></label>
+              <input name="nombre" autocomplete="name" required><div class="msg">Escribe tu nombre completo.</div>
+            </div>
+            <div class="field">
+              <label>Cédula de identidad <span class="req">*</span></label>
+              <input name="cedula" inputmode="numeric" placeholder="0000-0000-00000" required><div class="msg">Ingresa tu número de cédula.</div>
+            </div>
+            <div class="field">
+              <label>Teléfono <span class="req">*</span></label>
+              <input name="telefono" inputmode="tel" placeholder="0000-0000" required><div class="msg">Ingresa un teléfono válido.</div>
+            </div>
+            <div class="field">
+              <label>Fecha de nacimiento <span class="req">*</span></label>
+              <input name="nacimiento" type="date" required><div class="msg">Selecciona tu fecha de nacimiento.</div>
+            </div>
+            <div class="field">
+              <label>Cantidad solicitada (L) <span class="req">*</span></label>
+              <input name="monto" inputmode="numeric" placeholder="Ej. 15000" required>
+              <div class="hint">Sujeta a análisis de ingresos.</div><div class="msg">Indica el monto que necesitas.</div>
+            </div>
+
+            <div class="divider"><span>Trabajo e ingresos</span></div>
+            <div class="field full">
+              <label>Nombre de la empresa o negocio <span class="req">*</span></label>
+              <input name="empresa" required><div class="msg">Escribe dónde trabajas.</div>
+            </div>
+            <div class="field full">
+              <label>Rubro de la empresa <span class="req">*</span></label>
+              <select name="rubro" id="rubro" class="placeholder" required>
+                <option value="" disabled selected>Cargando opciones…</option>
+              </select>
+              <div class="hint">¿A qué se dedica la empresa?</div><div class="msg">Selecciona el rubro.</div>
+            </div>
+            <div class="field full conditional" id="rubroOtroWrap">
+              <label>Especifica el rubro <span class="req">*</span></label>
+              <input name="rubro_otro" placeholder="Escribe a qué se dedica la empresa"><div class="msg">Especifica el rubro.</div>
+            </div>
+            <div class="field">
+              <label>Ciudad de la empresa <span class="req">*</span></label>
+              <select name="ciudad_empresa" class="placeholder ciudad" required></select><div class="msg">Selecciona la ciudad.</div>
+            </div>
+            <div class="field"></div>
+            <div class="field full">
+              <label>Dirección de la empresa <span class="req">*</span></label>
+              <textarea name="dir_empresa" placeholder="Incluye mínimo 3 puntos de referencia" required></textarea>
+              <div class="hint">Mínimo 3 puntos de referencia.</div><div class="msg">Ingresa la dirección con referencias.</div>
+            </div>
+            <div class="field">
+              <label>Puesto laboral <span class="req">*</span></label>
+              <input name="puesto" required><div class="msg">Indica tu puesto.</div>
+            </div>
+            <div class="field">
+              <label>Antigüedad laboral <span class="req">*</span></label>
+              <div class="duo">
+                <div class="sub"><select name="antiguedad_anios" class="placeholder" required><option value="" disabled selected>Años</option></select><small>Años</small></div>
+                <div class="sub"><select name="antiguedad_meses" class="placeholder" required><option value="" disabled selected>Meses</option></select><small>Meses</small></div>
+              </div>
+              <div class="msg">Indica años y meses.</div>
+            </div>
+            <div class="field">
+              <label>Salario mensual (L) <span class="req">*</span></label>
+              <input name="salario" inputmode="numeric" placeholder="Ej. 18000" required><div class="msg">Indica tu salario mensual.</div>
+            </div>
+            <div class="field full">
+              <label>¿Tiene derecho a prestaciones laborales? <span class="req">*</span></label>
+              <div class="radios">
+                <label><input type="radio" name="prestaciones" value="Sí" required><s>Sí</s></label>
+                <label><input type="radio" name="prestaciones" value="No"><s>No</s></label>
+              </div><div class="msg">Selecciona una opción.</div>
+            </div>
+
+            <div class="field full">
+              <label>¿Cada cuánto recibe su salario? <span class="req">*</span></label>
+              <div class="radios" id="freqRadios">
+                <label><input type="radio" name="frecuencia_pago" value="Diario" required><s>Diario</s></label>
+                <label><input type="radio" name="frecuencia_pago" value="Semanal"><s>Semanal</s></label>
+                <label><input type="radio" name="frecuencia_pago" value="Quincenal"><s>Quincenal</s></label>
+                <label><input type="radio" name="frecuencia_pago" value="Mensual"><s>Mensual</s></label>
+              </div><div class="msg">Selecciona una opción.</div>
+            </div>
+            <div class="field full conditional" id="diaSemanaWrap">
+              <label>¿Qué día de la semana recibe su pago? <span class="req">*</span></label>
+              <div class="chips" id="diaSemanaChips">
+                <label><input type="radio" name="dia_semana" value="Lunes"><s>Lun</s></label>
+                <label><input type="radio" name="dia_semana" value="Martes"><s>Mar</s></label>
+                <label><input type="radio" name="dia_semana" value="Miércoles"><s>Mié</s></label>
+                <label><input type="radio" name="dia_semana" value="Jueves"><s>Jue</s></label>
+                <label><input type="radio" name="dia_semana" value="Viernes"><s>Vie</s></label>
+                <label><input type="radio" name="dia_semana" value="Sábado"><s>Sáb</s></label>
+                <label><input type="radio" name="dia_semana" value="Domingo"><s>Dom</s></label>
+              </div><div class="msg">Selecciona un día.</div>
+            </div>
+            <div class="field conditional" id="quinceWrap1">
+              <label>Primera fecha de pago <span class="req">*</span></label>
+              <select name="quincena_1" class="placeholder"><option value="" disabled selected>Día del mes</option></select><div class="msg">Selecciona el día.</div>
+            </div>
+            <div class="field conditional" id="quinceWrap2">
+              <label>Segunda fecha de pago <span class="req">*</span></label>
+              <select name="quincena_2" class="placeholder"><option value="" disabled selected>Día del mes</option></select><div class="msg">Selecciona el día.</div>
+            </div>
+            <div class="field conditional" id="mensualWrap">
+              <label>¿Qué día del mes recibe su salario? <span class="req">*</span></label>
+              <select name="dia_mensual" class="placeholder"><option value="" disabled selected>Día del mes</option></select><div class="msg">Selecciona el día.</div>
+            </div>
+
+            <div class="field full">
+              <label>¿Tiene otros ingresos?</label>
+              <div class="radios" id="otrosRadios">
+                <label><input type="radio" name="tiene_otros" value="Sí"><s>Sí</s></label>
+                <label><input type="radio" name="tiene_otros" value="No"><s>No</s></label>
+              </div>
+            </div>
+            <div class="field full conditional" id="otrosWrap">
+              <label>Detalle sus otros ingresos</label>
+              <div class="hint">¿A qué se debe el ingreso y cuánto recibe al mes?</div>
+              <div class="rows" id="ingresoRows"></div>
+              <button type="button" class="add-row" id="addIngreso">+ Agregar otro ingreso</button>
+            </div>
+
+            <div class="divider"><span>Método de pago</span></div>
+            <div class="field full">
+              <label>Nuestros métodos de pago son transferencias o depósitos. ¿Está de acuerdo? <span class="req">*</span></label>
+              <div class="radios">
+                <label><input type="radio" name="metodo_pago" value="Sí, de acuerdo" required><s>Sí, de acuerdo</s></label>
+                <label><input type="radio" name="metodo_pago" value="No"><s>No</s></label>
+              </div><div class="msg">Selecciona una opción.</div>
+            </div>
+
+            <div class="divider"><span>Sobre el préstamo</span></div>
+            <div class="field full">
+              <label>¿Para qué solicita el préstamo? <span class="req">*</span></label>
+              <textarea name="destino" required></textarea><div class="msg">Cuéntanos el destino del préstamo.</div>
+            </div>
+            <div class="field">
+              <label>¿Quién lo refiere?</label>
+              <input name="refiere" placeholder="Opcional">
+            </div>
+            <div class="field">
+              <label>Teléfono de quien lo refiere</label>
+              <input name="refiere_tel" inputmode="tel" placeholder="Opcional">
+            </div>
+
+            <div class="divider"><span>Vivienda</span></div>
+            <div class="field">
+              <label>Ciudad de residencia <span class="req">*</span></label>
+              <select name="ciudad_vivienda" class="placeholder ciudad" required></select><div class="msg">Selecciona la ciudad.</div>
+            </div>
+            <div class="field"></div>
+            <div class="field full">
+              <label>¿Dónde vive? <span class="req">*</span></label>
+              <textarea name="direccion" placeholder="Dirección con puntos de referencia" required></textarea><div class="msg">Ingresa tu dirección.</div>
+            </div>
+            <div class="field">
+              <label>Tiempo residiendo ahí <span class="req">*</span></label>
+              <div class="duo">
+                <div class="sub"><select name="vivienda_anios" class="placeholder" required><option value="" disabled selected>Años</option></select><small>Años</small></div>
+                <div class="sub"><select name="vivienda_meses" class="placeholder" required><option value="" disabled selected>Meses</option></select><small>Meses</small></div>
+              </div><div class="msg">Indica años y meses.</div>
+            </div>
+            <div class="field">
+              <label>Tipo de vivienda <span class="req">*</span></label>
+              <select name="tipo_vivienda" id="tipoVivienda" class="placeholder" required>
+                <option value="" disabled selected>Selecciona…</option>
+                <option>Propia</option><option>Familiar</option><option>Alquilada</option>
+              </select><div class="msg">Selecciona una opción.</div>
+            </div>
+            <div class="field full conditional" id="alquilerWrap">
+              <label>¿Qué tipo de alquiler? <span class="req">*</span></label>
+              <div class="radios">
+                <label><input type="radio" name="tipo_alquiler" value="Casa"><s>Casa</s></label>
+                <label><input type="radio" name="tipo_alquiler" value="Apartamento"><s>Apartamento</s></label>
+              </div><div class="msg">Selecciona una opción.</div>
+            </div>
+
+            <div class="divider"><span>Referencias familiares</span></div>
+            <div class="field full"><p class="hint" style="margin:0">Deben ser <b>familiares</b> y poder contestar la llamada en el momento.</p></div>
+            <div class="field">
+              <label>Referencia 1 · Nombre completo <span class="req">*</span></label>
+              <input name="ref1_nombre" required><div class="msg">Ingresa el nombre.</div>
+            </div>
+            <div class="field">
+              <label>Referencia 1 · Parentesco <span class="req">*</span></label>
+              <select name="ref1_parentesco" class="placeholder parentesco" required></select><div class="msg">Selecciona el parentesco.</div>
+            </div>
+            <div class="field full">
+              <label>Referencia 1 · Celular <span class="req">*</span></label>
+              <input name="ref1_tel" inputmode="tel" placeholder="0000-0000" required><div class="msg">Ingresa el celular.</div>
+            </div>
+            <div class="field">
+              <label>Referencia 2 · Nombre completo <span class="req">*</span></label>
+              <input name="ref2_nombre" required><div class="msg">Ingresa el nombre.</div>
+            </div>
+            <div class="field">
+              <label>Referencia 2 · Parentesco <span class="req">*</span></label>
+              <select name="ref2_parentesco" class="placeholder parentesco" required></select><div class="msg">Selecciona el parentesco.</div>
+            </div>
+            <div class="field full">
+              <label>Referencia 2 · Celular <span class="req">*</span></label>
+              <input name="ref2_tel" inputmode="tel" placeholder="0000-0000" required><div class="msg">Ingresa el celular.</div>
+            </div>
+
+            <div class="divider"><span>Comprobantes</span></div>
+            <div class="callout">
+              Para agilizar tu análisis necesitamos <b>uno</b> de estos documentos: tus <b>últimos 4 comprobantes de pago</b> de salario, o tus <b>estados de cuenta bancaria de los últimos 3 meses</b>. Los enviarás por WhatsApp al terminar.
+            </div>
+            <div class="field full">
+              <label>¿Cuentas con alguno de estos documentos? <span class="req">*</span></label>
+              <div class="radios">
+                <label><input type="radio" name="comprobantes" value="Sí, comprobantes de pago" required><s>Sí, comprobantes de pago</s></label>
+                <label><input type="radio" name="comprobantes" value="Sí, estados de cuenta"><s>Sí, estados de cuenta</s></label>
+                <label><input type="radio" name="comprobantes" value="No los tengo aún"><s>No los tengo aún</s></label>
+              </div><div class="msg">Selecciona una opción.</div>
+            </div>
+
+          </div>
+          <button type="submit" class="btn btn-azul" id="btnSubmit">Enviar mi solicitud</button>
+        </form>
+      </section>
+
+      <section class="screen done" id="screenDone">
+        <div class="ring">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none"><path d="M4 12.5l5 5 11-12" stroke="#1877F2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h2>¡Solicitud recibida!</h2>
+        <p id="doneMsg">Gracias. Ahora envía tus comprobantes por WhatsApp para agilizar tu análisis. Una asesora de crédito se comunicará contigo pronto.</p>
+
+        <div class="folio-box" id="folioBox">
+          <div class="folio-lbl">Tu número de solicitud</div>
+          <div class="folio-num" id="folioOut">—</div>
+          <button type="button" class="copy-link" id="copyLink">Copiar enlace de seguimiento</button>
+        </div>
+
+        <a class="wa" id="waDocs" href="#" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.5 14.1c-.2.6-1.2 1.2-1.7 1.2-.5.1-1 .1-3-.8-2.5-1-4.1-3.6-4.2-3.8-.1-.2-1-1.3-1-2.5s.6-1.8.8-2c.2-.2.5-.3.6-.3h.5c.2 0 .4 0 .5.4l.7 1.7c.1.1.1.3 0 .5l-.3.4-.3.3c-.1.1-.2.3-.1.5.1.2.6 1 1.3 1.6.9.8 1.6 1 1.8 1.1.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.5-.1l1.6.8c.2.1.4.2.4.3.1.1.1.6-.1 1.2Z"/></svg>
+          Enviar comprobantes por WhatsApp
+        </a>
+        <p class="footnote" style="margin-top:24px">Recuerda: la información será verificada con visita domiciliaria y laboral.</p>
+      </section>
+
+      <section class="screen" id="screenTrack">
+        <div class="track-head">
+          <div class="folio-lbl">Solicitud</div>
+          <div class="folio-num" id="trackFolio">—</div>
+          <p class="hint" id="trackFecha" style="margin-top:6px">—</p>
+        </div>
+        <ol class="steps" id="trackList"></ol>
+        <div class="callout" id="trackFinal" style="display:none;margin-top:20px"></div>
+        <p class="footnote" style="margin-top:26px"><a href="#" id="nuevaSol" style="color:var(--azul)">Hacer una nueva solicitud</a></p>
+      </section>
+
+    </div>
+  </div>
+  <p class="footnote">Más Pisto Financiera · Tus datos se usan únicamente para evaluar tu solicitud.</p>
+</div>
+
+<script>
+  /* =========== CONFIGURACIÓN =========== */
+  const SUPABASE_URL  = "https://qmxkmslxydxjlojxhzhb.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGttc2x4eWR4amxvanhoemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTM0NTYsImV4cCI6MjA5OTc4OTQ1Nn0.TF1Fvaa5B_eT_qHdM1NpVGMqOub758I0f7NGpm2_mfY";
+  const WHATSAPP_DOCS = "50496658360"; // comprobantes (Honduras +504 9665-8360)
+
+  async function rpc(fn,args){
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON,'Authorization':`Bearer ${SUPABASE_ANON}`},
+      body: JSON.stringify(args)
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }
+
+  const RUBROS_FALLBACK = ["Comercio","Servicios","Manufactura","Construcción","Transporte","Agricultura","Salud","Educación","Gobierno","Otro"];
+  const PARENTESCOS = ["Madre","Padre","Hermano(a)","Hijo(a)","Primo(a)","Tío(a)","Sobrino(a)"];
+  const CIUDADES = ["San Pedro Sula","Choloma","Villanueva"];
+
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const acepto=$('#acepto'), btnStart=$('#btnStart');
+  const screens={consent:$('#screenConsent'),form:$('#screenForm'),done:$('#screenDone'),track:$('#screenTrack')};
+  const hero={e:$('#heroEyebrow'),t:$('#heroTitle'),x:$('#heroText')};
+
+  function show(name,h){
+    Object.values(screens).forEach(s=>s.classList.remove('active'));
+    screens[name].classList.add('active');
+    if(h){hero.e.textContent=h.e;hero.t.textContent=h.t;hero.x.textContent=h.x;}
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function toggle(el,on){el.classList.toggle('show',on);}
+
+  function fillNumberSelect(sel,from,to){
+    for(let i=from;i<=to;i++){const o=document.createElement('option');o.value=i;o.textContent=i;sel.appendChild(o);}
+  }
+  $$('[name="antiguedad_anios"],[name="vivienda_anios"]').forEach(s=>fillNumberSelect(s,0,50));
+  $$('[name="antiguedad_meses"],[name="vivienda_meses"]').forEach(s=>fillNumberSelect(s,0,11));
+  $$('[name="quincena_1"],[name="quincena_2"],[name="dia_mensual"]').forEach(s=>fillNumberSelect(s,1,31));
+
+  function fillSelect(sel,items){
+    const ph=document.createElement('option');ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="Selecciona…";sel.appendChild(ph);
+    items.forEach(p=>{const o=document.createElement('option');o.textContent=p;sel.appendChild(o);});
+  }
+  $$('.parentesco').forEach(sel=>fillSelect(sel,PARENTESCOS));
+  $$('.ciudad').forEach(sel=>fillSelect(sel,CIUDADES));
+
+  function setRubros(list){
+    const sel=$('#rubro');sel.innerHTML='';
+    const ph=document.createElement('option');ph.value="";ph.disabled=true;ph.selected=true;ph.textContent="Selecciona…";sel.appendChild(ph);
+    list.forEach(r=>{const o=document.createElement('option');o.textContent=r;sel.appendChild(o);});
+  }
+  /* Los rubros los configura el analista en el panel (parametros_sistema).
+     Si aún no hay ninguno cargado, se usa la lista base. */
+  (function loadRubros(){
+    rpc('rubros_publicos',{})
+      .then(d=>{
+        const list = Array.isArray(d) && d.length ? d.map(r=>r.nombre||r) : RUBROS_FALLBACK;
+        setRubros(list.includes('Otro') ? list : [...list,'Otro']);
+      })
+      .catch(()=>setRubros(RUBROS_FALLBACK));
+  })();
+
+  acepto.addEventListener('change',()=>btnStart.disabled=!acepto.checked);
+  btnStart.addEventListener('click',()=>{
+    if(!acepto.checked)return;
+    show('form',{e:'Solicitud de crédito',t:'Completa tu solicitud',x:'Llena tus datos con cuidado. Todos los campos con * son obligatorios.'});
+  });
+
+  $('#rubro').addEventListener('change',e=>toggle($('#rubroOtroWrap'),e.target.value==='Otro'));
+
+  const freqBlocks={Diario:[],Semanal:['#diaSemanaWrap'],Quincenal:['#quinceWrap1','#quinceWrap2'],Mensual:['#mensualWrap']};
+  $$('[name="frecuencia_pago"]').forEach(r=>r.addEventListener('change',()=>{
+    ['#diaSemanaWrap','#quinceWrap1','#quinceWrap2','#mensualWrap'].forEach(id=>toggle($(id),false));
+    (freqBlocks[r.value]||[]).forEach(id=>toggle($(id),true));
+  }));
+
+  const otrosWrap=$('#otrosWrap'),ingresoRows=$('#ingresoRows');
+  function addIngresoRow(){
+    const div=document.createElement('div');div.className='row-ing';
+    div.innerHTML=`<input placeholder="¿A qué se debe? (Ej. negocio propio)" data-k="concepto"><input inputmode="numeric" placeholder="L / mes" data-k="monto"><button type="button" class="del" title="Quitar">×</button>`;
+    div.querySelector('.del').addEventListener('click',()=>div.remove());
+    ingresoRows.appendChild(div);
+  }
+  $('#addIngreso').addEventListener('click',addIngresoRow);
+  $$('[name="tiene_otros"]').forEach(r=>r.addEventListener('change',()=>{
+    const on=r.value==='Sí';toggle(otrosWrap,on);
+    if(on&&!ingresoRows.children.length)addIngresoRow();
+    if(!on)ingresoRows.innerHTML='';
+  }));
+
+  $('#tipoVivienda').addEventListener('change',e=>toggle($('#alquilerWrap'),e.target.value==='Alquilada'));
+
+  const form=$('#form'),btnSubmit=$('#btnSubmit');
+  function wrapOf(el){return el.closest('.field');}
+  function setError(el,on){
+    const w=wrapOf(el);if(!w)return;const msg=w.querySelector('.msg');
+    if(el.type==='radio'){w.querySelectorAll('.radios label').forEach(l=>l.style.borderColor=on?'var(--error)':'');w.querySelectorAll('.chips s').forEach(l=>l.style.borderColor=on?'var(--error)':'');}
+    else{el.classList.toggle('err',on);}
+    if(msg)msg.classList.toggle('show',on);
+  }
+  form.addEventListener('input',e=>{if(e.target.matches('input,select,textarea'))setError(e.target,false);});
+  form.addEventListener('change',e=>{if(e.target.matches('input,select,textarea'))setError(e.target,false);});
+  function visible(el){return el.offsetParent!==null;}
+
+  function validate(){
+    let firstBad=null;const seen=new Set();
+    form.querySelectorAll('[required]').forEach(el=>{
+      if(!visible(el))return;
+      let bad=false;
+      if(el.type==='radio'){if(seen.has(el.name))return;seen.add(el.name);bad=!form.querySelector(`[name="${el.name}"]:checked`);}
+      else{bad=!el.value.trim();}
+      setError(el,bad);if(bad&&!firstBad)firstBad=el;
+    });
+    const cond=[['#rubroOtroWrap','rubro_otro'],['#diaSemanaWrap','dia_semana'],['#quinceWrap1','quincena_1'],['#quinceWrap2','quincena_2'],['#mensualWrap','dia_mensual'],['#alquilerWrap','tipo_alquiler']];
+    cond.forEach(([id,name])=>{
+      const wrap=$(id);if(!wrap.classList.contains('show'))return;
+      const els=form.querySelectorAll(`[name="${name}"]`);if(!els.length)return;
+      const isRadio=els[0].type==='radio';
+      const bad=isRadio?!form.querySelector(`[name="${name}"]:checked`):!els[0].value.trim();
+      setError(els[0],bad);if(bad&&!firstBad)firstBad=els[0];
+    });
+    if(firstBad)firstBad.scrollIntoView({behavior:'smooth',block:'center'});
+    return !firstBad;
+  }
+
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!validate())return;
+    btnSubmit.disabled=true;const original=btnSubmit.textContent;btnSubmit.textContent='Enviando…';
+
+    const data=Object.fromEntries(new FormData(form).entries());
+    const ingresos=Array.from(ingresoRows.querySelectorAll('.row-ing')).map(r=>{
+      const c=r.querySelector('[data-k="concepto"]').value.trim();
+      const m=r.querySelector('[data-k="monto"]').value.trim();
+      return c||m?`${c||'(sin detalle)'}: L${m||'0'}/mes`:null;
+    }).filter(Boolean);
+    data.otros_ingresos=(data.tiene_otros==='Sí'&&ingresos.length)?ingresos.join(' | '):(data.tiene_otros==='No'?'No':'');
+    if(data.rubro==='Otro'&&data.rubro_otro)data.rubro=data.rubro_otro+' (otro)';
+    data.antiguedad=`${data.antiguedad_anios||0} años ${data.antiguedad_meses||0} meses`;
+    data.tiempo_vivienda=`${data.vivienda_anios||0} años ${data.vivienda_meses||0} meses`;
+    if(data.frecuencia_pago==='Semanal')data.dias_pago=`Semanal (${data.dia_semana||''})`;
+    else if(data.frecuencia_pago==='Quincenal')data.dias_pago=`Quincenal (día ${data.quincena_1||''} y ${data.quincena_2||''})`;
+    else if(data.frecuencia_pago==='Mensual')data.dias_pago=`Mensual (día ${data.dia_mensual||''})`;
+    else data.dias_pago='Diario';
+    data.fecha_envio=new Date().toLocaleString('es-HN');
+
+    /* Normalizar para el sistema de crédito */
+    data.consentimiento = true;
+    data.antiguedad_anios  = parseInt(data.antiguedad_anios)  || 0;
+    data.antiguedad_meses  = parseInt(data.antiguedad_meses)  || 0;
+    data.vivienda_anios    = parseInt(data.vivienda_anios)    || 0;
+    data.vivienda_meses    = parseInt(data.vivienda_meses)    || 0;
+    data.monto             = parseFloat(String(data.monto).replace(/[^\d.]/g,''))   || 0;
+    data.salario           = parseFloat(String(data.salario).replace(/[^\d.]/g,'')) || 0;
+    data.otros_ingresos_detalle = Array.from(ingresoRows.querySelectorAll('.row-ing')).map(r=>({
+      concepto: r.querySelector('[data-k="concepto"]').value.trim(),
+      monto: parseFloat(r.querySelector('[data-k="monto"]').value.replace(/[^\d.]/g,''))||0
+    })).filter(x=>x.concepto||x.monto);
+
+    /* Referencias: el analista las llama desde el panel */
+    data.referencias = [
+      {nombre:data.ref1_nombre, telefono:data.ref1_tel, parentesco:data.ref1_parentesco},
+      {nombre:data.ref2_nombre, telefono:data.ref2_tel, parentesco:data.ref2_parentesco}
+    ].filter(r=>r.nombre && r.telefono);
+
+    /* Alias que usa el panel de crédito */
+    data.direccion_casa    = data.direccion;
+    data.direccion_trabajo = data.dir_empresa;
+    data.cargo             = data.puesto;
+
+    try{
+      const res = await rpc('crear_solicitud_publica',{
+        p_datos_cliente: data,
+        p_tipo_credito: 'general'
+      });
+      if(!res.ok) throw new Error(res.error||'No se pudo enviar la solicitud.');
+
+      localStorage.setItem('mp_token',res.token);
+      history.replaceState(null,'',`${location.pathname}?t=${res.token}`);
+
+      const tipoDoc=data.comprobantes.includes('estados')?'estados de cuenta de los últimos 3 meses':'últimos 4 comprobantes de pago';
+      const msg=`Hola, soy ${data.nombre}. Acabo de enviar mi solicitud de crédito en Más Pisto (folio ${res.folio}) y adjunto mis ${tipoDoc}.`;
+      $('#waDocs').href=`https://wa.me/${WHATSAPP_DOCS}?text=${encodeURIComponent(msg)}`;
+      $('#folioOut').textContent=res.folio;
+      $('#folioBox').style.display='block';
+      if(data.comprobantes.startsWith('No')){
+        $('#doneMsg').textContent='Gracias. Cuando tengas tus comprobantes de pago o estados de cuenta, envíalos por WhatsApp para agilizar tu análisis. Una asesora se comunicará contigo pronto.';
+      }
+      show('done',{e:'Listo',t:'¡Gracias por tu solicitud!',x:'Hemos recibido tu información correctamente.'});
+    }catch(err){
+      btnSubmit.disabled=false;btnSubmit.textContent=original;
+      alert(err.message.startsWith('HTTP')
+        ? 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.'
+        : err.message);
+    }
+  });
+
+  /* =========== SEGUIMIENTO DE LA SOLICITUD =========== */
+  const PASOS=[
+    {n:1,t:'Solicitud recibida',d:'Ya tenemos tus datos.'},
+    {n:2,t:'En revisión',d:'Una asesora está revisando tu información.'},
+    {n:3,t:'Análisis de crédito',d:'Estamos evaluando tu solicitud.'},
+    {n:4,t:'Verificación',d:'Visitaremos tu casa y tu trabajo.'},
+    {n:5,t:'Resultado',d:'Decisión final.'}
+  ];
+
+  async function rastrear(token){
+    show('track',{e:'Seguimiento',t:'Tu solicitud',x:'Aquí puedes ver en qué paso va.'});
+    try{
+      const r=await rpc('rastrear_solicitud',{p_token:token});
+      if(r.error){
+        $('#trackList').innerHTML='<p class="hint">No encontramos esa solicitud. Revisa el enlace.</p>';
+        return;
+      }
+      $('#trackFolio').textContent=r.folio;
+      const f=new Date(r.actualizado_en);
+      $('#trackFecha').textContent='Actualizado el '+f.toLocaleDateString('es-HN',{day:'numeric',month:'long'})+
+        ' a las '+f.toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'});
+
+      const cerrada=['aprobado','denegado','desembolsado'].includes(r.estado);
+      $('#trackList').innerHTML=PASOS.map(p=>{
+        let cls='pend',ic='';
+        if(p.n<r.paso){cls='hecho';ic='✓';}
+        else if(p.n===r.paso){cls=cerrada?'hecho':'activo';ic=cerrada?'✓':'';}
+        const d=(p.n===r.paso&&!cerrada)?r.etiqueta:p.d;
+        return `<li class="step ${cls}"><span class="dot">${ic}</span>
+          <div><div class="st">${p.t}</div><div class="sd">${d}</div></div></li>`;
+      }).join('');
+
+      if(cerrada){
+        const box=$('#trackFinal');box.style.display='block';
+        if(r.estado==='denegado'){
+          box.className='callout';box.style.background='#FFF0F0';box.style.borderColor='#F3C4C4';
+          box.innerHTML='<b>No pudimos aprobar tu solicitud.</b><br>Una asesora se comunicará contigo para explicarte. Puedes volver a aplicar más adelante.';
+        }else{
+          box.className='callout';box.style.background='#EFFAF3';box.style.borderColor='#BFE8CF';
+          box.innerHTML='<b>¡Tu crédito fue aprobado!</b><br>Una asesora se comunicará contigo para coordinar la entrega.';
+        }
+      }
+    }catch{
+      $('#trackList').innerHTML='<p class="hint">No pudimos cargar el estado. Intenta de nuevo en un momento.</p>';
+    }
+  }
+
+  $('#copyLink').addEventListener('click',async e=>{
+    const url=`${location.origin}${location.pathname}?t=${localStorage.getItem('mp_token')}`;
+    try{
+      await navigator.clipboard.writeText(url);
+      e.target.textContent='✓ Enlace copiado';
+      setTimeout(()=>e.target.textContent='Copiar enlace de seguimiento',2000);
+    }catch{ prompt('Copia este enlace:',url); }
+  });
+
+  $('#nuevaSol').addEventListener('click',e=>{
+    e.preventDefault();
+    localStorage.removeItem('mp_token');
+    location.href=location.pathname;
+  });
+
+  /* Si trae token, va directo al seguimiento */
+  (function(){
+    const t=new URLSearchParams(location.search).get('t')||localStorage.getItem('mp_token');
+    if(t) rastrear(t);
+  })();
+</script>
+</body>
+</html>
