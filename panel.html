@@ -256,6 +256,10 @@
   .hide{display:none!important}
   @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
+  .file-ic{width:36px;height:36px;border-radius:9px;flex:none;display:grid;place-items:center;
+    font-family:'Poppins';font-weight:700;font-size:10px;letter-spacing:.5px}
+  .file-ic.pdf{background:var(--error-lt);color:var(--error)}
+  .file-ic.img{background:var(--cielo);color:var(--azul)}
   .u-row{display:flex;align-items:center;gap:11px;padding:13px;background:#fff;border:1px solid var(--linea);
     border-radius:13px;margin-bottom:9px;flex-wrap:wrap}
   .u-av{width:38px;height:38px;border-radius:50%;background:var(--cielo);color:var(--azul);flex:none;
@@ -955,13 +959,20 @@ function detalle(){
     </dl></div>`;
   }
 
-  if(d.comprobantes){
-    const tiene=!String(d.comprobantes).startsWith('No');
+  if(d.comprobantes||d.archivos?.length){
+    const arch=d.archivos||[];
     h+=`<div class="sec"><div class="sec-h"><h4>Comprobantes</h4>
-        <span class="badge ${tiene?'k':'p'}">${tiene?'los tiene':'pendientes'}</span></div>
-      <p style="font-size:13.5px">${esc(d.comprobantes)}</p>
-      ${d.telefono?`<a href="https://wa.me/504${String(d.telefono).replace(/\D/g,'')}" target="_blank" rel="noopener"
-        class="btn btn-g btn-sm" style="display:inline-block;margin-top:10px;text-decoration:none">Pedir por WhatsApp</a>`:''}
+        <span class="badge ${arch.length?'k':'p'}">${arch.length?arch.length+' archivo'+(arch.length>1?'s':''):'sin subir'}</span></div>
+      ${d.comprobantes?`<p style="font-size:13.5px;margin-bottom:${arch.length?'12px':'0'}">${esc(d.comprobantes)}</p>`:''}
+      ${arch.length?`<div id="arch-list">${arch.map((a,i)=>`
+        <div class="u-row" style="padding:10px 12px">
+          <div class="file-ic ${String(a.tipo).includes('pdf')?'pdf':'img'}">${String(a.tipo).includes('pdf')?'PDF':'IMG'}</div>
+          <div class="u-i"><div class="u-n" style="font-size:13.5px">${esc(a.nombre)}</div>
+            <div class="u-m">${a.tamano?(a.tamano<1048576?(a.tamano/1024).toFixed(0)+' KB':(a.tamano/1048576).toFixed(1)+' MB'):''}</div></div>
+          <button class="btn btn-g btn-sm" data-ver="${i}" style="flex:none">Ver</button>
+        </div>`).join('')}</div>`
+      : `${d.telefono?`<a href="https://wa.me/504${String(d.telefono).replace(/\D/g,'')}" target="_blank" rel="noopener"
+          class="btn btn-g btn-sm" style="display:inline-block;margin-top:10px;text-decoration:none">Pedir por WhatsApp</a>`:''}`}
     </div>`;
   }
 
@@ -1044,7 +1055,21 @@ function detalle(){
   }
 
   $('#m-body').innerHTML=h;
-  pie(); conectar(esAse,esAna);
+  pie(); conectar(esAse,esAna); conectarArchivos();
+}
+
+/* Los comprobantes están en un bucket privado: se abren con URL firmada
+   de 5 minutos, no con enlace permanente. */
+function conectarArchivos(){
+  const arch=ACT.datos_cliente?.archivos||[];
+  $$('[data-ver]').forEach(b=>b.addEventListener('click',async()=>{
+    const a=arch[+b.dataset.ver]; if(!a) return;
+    const t=b.textContent; b.disabled=true; b.textContent='…';
+    const {data,error}=await sb.storage.from('comprobantes').createSignedUrl(a.path,300);
+    b.disabled=false; b.textContent=t;
+    if(error||!data?.signedUrl){ toast('No se pudo abrir el archivo','m'); return; }
+    window.open(data.signedUrl,'_blank','noopener');
+  }));
 }
 
 const cmpHTML=(c,i)=>`<div class="row-d" data-c="${i}">
