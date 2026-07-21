@@ -549,7 +549,14 @@
   const SUPABASE_URL  = "https://qmxkmslxydxjlojxhzhb.supabase.co";
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGttc2x4eWR4amxvanhoemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTM0NTYsImV4cCI6MjA5OTc4OTQ1Nn0.TF1Fvaa5B_eT_qHdM1NpVGMqOub758I0f7NGpm2_mfY";
   const WHATSAPP_CREDITO = "50496658360"; // WhatsApp de crédito (+504 9665-8360)
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  // Edge/Safari con "Tracking Prevention" bloquean localStorage para algunos
+  // dominios; el SDK de Supabase lo usa para la sesión y, si falla, manda el
+  // upload sin Authorization -> Storage responde 400. Como el formulario es
+  // público (solo anon), desactivamos la persistencia de sesión.
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+    auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false },
+    global: { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
+  });
 
   const MAX_MB = 10;
   const TIPOS_OK = ['image/jpeg','image/png','image/webp','image/heic','image/heif','application/pdf'];
@@ -875,11 +882,17 @@
           if(bar){ bar.style.display='block'; bar.querySelector('i').style.width='40%'; }
           const safe=a.file.name.replace(/[^\w.\-]/g,'_').slice(-60);
           const path=`${res.token}/${Date.now()}_${safe}`;
+          // Algunos navegadores (o Tracking Prevention) dejan file.type vacío;
+          // inferimos el MIME de la extensión para no mandar el upload sin Content-Type.
+          const ext=(a.file.name.split('.').pop()||'').toLowerCase();
+          const mimePorExt={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',
+            webp:'image/webp',heic:'image/heic',heif:'image/heif',pdf:'application/pdf'};
+          const ctype=a.file.type||mimePorExt[ext]||'application/octet-stream';
           const {error}=await sb.storage.from('comprobantes')
-            .upload(path,a.file,{contentType:a.file.type||undefined,upsert:false});
-          if(error) throw new Error(`No se pudo subir "${a.file.name}". Revisá tu conexión e intentá de nuevo.`);
+            .upload(path,a.file,{contentType:ctype,upsert:true});
+          if(error) throw new Error(`No se pudo subir "${a.file.name}": ${error.message||error.error||'error desconocido'}.`);
           if(bar) bar.querySelector('i').style.width='100%';
-          subidos.push({path,nombre:a.file.name,tipo:a.file.type||'',tamano:a.file.size,
+          subidos.push({path,nombre:a.file.name,tipo:ctype,tamano:a.file.size,
                         subido_en:new Date().toISOString()});
           btnSubmit.textContent=`Subiendo documentos… ${++n}/${porSubir.length}`;
         }
