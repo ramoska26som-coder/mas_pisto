@@ -97,6 +97,44 @@
   .chip.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
   .chip .n{margin-left:6px;font-size:11px;opacity:.85}
 
+  /* Kanban */
+  .kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
+  @media(max-width:820px){
+    .kanban{display:flex;overflow-x:auto;gap:11px;scroll-snap-type:x mandatory;
+      margin:0 -18px;padding:0 18px 8px;scrollbar-width:none}
+    .kanban::-webkit-scrollbar{display:none}
+    .kcol{flex:0 0 82vw;scroll-snap-align:start}
+  }
+  .kcol{background:var(--fondo);border:1px solid var(--linea);border-radius:16px;padding:10px;min-height:120px}
+  .kcol-h{display:flex;align-items:center;gap:8px;padding:5px 8px 11px}
+  .kcol-t{font-family:'Poppins';font-weight:700;font-size:13.5px}
+  .kcol-n{margin-left:auto;font-family:'Poppins';font-weight:700;font-size:12px;color:#fff;
+    min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 7px}
+  .kdot{width:9px;height:9px;border-radius:50%;flex:none}
+  .kcol.pend .kdot,.kcol.pend .kcol-n{background:var(--amber)}
+  .kcol.proc .kdot,.kcol.proc .kcol-n{background:var(--azul)}
+  .kcol.fin  .kdot,.kcol.fin  .kcol-n{background:var(--ok)}
+  .kempty{text-align:center;padding:26px 10px;color:var(--gris);font-size:12.5px}
+
+  /* Tarjeta kanban */
+  .kcard{background:#fff;border:1px solid var(--linea);border-radius:13px;box-shadow:var(--sombra-sm);
+    padding:13px;margin-bottom:9px;cursor:pointer;transition:border-color .15s,transform .1s}
+  .kcard:hover{border-color:var(--azul)}
+  .kcard:active{transform:scale(.99)}
+  .kc-nom{font-family:'Poppins';font-weight:600;font-size:14.5px;line-height:1.25}
+  .kc-folio{font-size:11px;color:var(--azul);font-weight:600;margin-top:1px}
+  .kc-fecha{font-size:11.5px;color:var(--gris);margin-top:8px;display:flex;align-items:center;gap:5px}
+  .kc-row{display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .kc-estado{font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;background:var(--cielo);color:var(--azul);border:1px solid #C7DFFB}
+  .kc-tipo{font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px}
+  .kc-tipo.nuevo{background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
+  .kc-tipo.reingreso{background:#FFF8DC;color:#8A6D00;border:1px solid #F2E08A}
+  .kc-tipo.refinanciamiento{background:#F0E9FF;color:#6D4AB5;border:1px solid #D9C9F5}
+  .kc-transc{margin-left:auto;font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap}
+  .kc-transc.ok{background:var(--ok-lt);color:var(--ok)}
+  .kc-transc.md{background:var(--amber-lt);color:var(--amber)}
+  .kc-transc.no{background:var(--error-lt);color:var(--error)}
+
   .card{background:#fff;border:1px solid var(--linea);border-radius:16px;box-shadow:var(--sombra-sm);
     padding:16px;margin-bottom:11px;cursor:pointer;transition:border-color .15s,transform .1s}
   .card:hover{border-color:var(--azul)}
@@ -361,7 +399,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 
-let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[];
+let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[],RUBROS=[];
 
 const fmt=n=>new Intl.NumberFormat('es-HN',{maximumFractionDigits:0}).format(n||0);
 const fmtL=n=>'L '+new Intl.NumberFormat('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);
@@ -393,11 +431,15 @@ function labelMeses(m){
   return `${m} meses (${a} año${a>1?'s':''}${r>0?` y ${r} mes${r>1?'es':''}`:''})`;
 }
 function perfilRubro(nom){
-  if(!nom||!P?.rubros) return 'normal';
+  if(!nom||!RUBROS.length) return 'normal';
   const b=String(nom).replace(/\s*\(otro\)$/i,'').trim().toLowerCase();
-  const r=P.rubros.find(x=>String(x.nombre).toLowerCase()===b);
+  const r=RUBROS.find(x=>String(x.nombre).toLowerCase()===b);
   if(!r) return 'normal';
   return r.riesgo?'riesgo':(r.ideal?'ideal':'normal');
+}
+async function cargarRubros(){
+  const {data}=await sb.from('rubros').select('*').order('orden').order('nombre');
+  RUBROS=data||[];
 }
 function catEquifax(s){
   if(!s) return null;
@@ -475,6 +517,7 @@ async function arrancar(session){
   YO=perfil;
   const {data:par}=await sb.from('parametros_sistema').select('valores').eq('id',1).single();
   P=par.valores;
+  await cargarRubros();
   $('#login').style.display='none';
   $('#app').style.display='block';
   const roles=[...new Set([YO.rol,...(YO.roles_extra||[])])];
@@ -540,48 +583,84 @@ function sla(s){
 const ETQ={pendiente_revision:'Nuevas',en_revision_asesor:'En revisión',en_analisis:'Análisis',
   por_verificar:'Por verificar',en_verificacion:'Verificando',verificado:'Decidir',
   aprobado:'Aprobadas',denegado:'Denegadas',desembolsado:'Entregadas'};
-const TIPO_L={nuevo:'Nuevo',reingreso:'Reingreso',refinanciamiento:'Refinanciamiento'};
-function misEstados(){
-  const e=[];
-  if(rol('asesor')||esAdmin()) e.push('pendiente_revision','en_revision_asesor');
-  if(rol('analista')||esAdmin()) e.push('en_analisis','verificado');
-  e.push('por_verificar','en_verificacion');
-  return [...new Set(e)];
+const TIPO_L={nuevo:'Nuevo Préstamo',reingreso:'Reingreso',refinanciamiento:'Refinanciamiento'};
+const ESTATUS_L={pendiente_revision:'Sin tomar',en_revision_asesor:'En revisión',
+  en_analisis:'En análisis',por_verificar:'Por verificar',en_verificacion:'En verificación',
+  verificado:'Por decidir',aprobado:'Aprobada',denegado:'Denegada',desembolsado:'Entregada'};
+
+/* Las 3 columnas del kanban */
+const COL_PEND=['pendiente_revision','en_revision_asesor'];
+const COL_PROC=['en_analisis','por_verificar','en_verificacion','verificado'];
+const COL_FIN =['aprobado','denegado','desembolsado'];
+
+function esDeHoy(s){
+  const f=new Date(s.cerrado_en||s.actualizado_en);
+  const h=new Date();
+  return f.getFullYear()===h.getFullYear()&&f.getMonth()===h.getMonth()&&f.getDate()===h.getDate();
+}
+function fechaHora(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString('es-HN',{day:'2-digit',month:'2-digit',year:'2-digit'})+
+    ' · '+d.toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'});
+}
+function transcurrido(s){
+  // Tiempo desde que se creó la solicitud
+  const min=Math.floor((Date.now()-new Date(s.creado_en))/6e4);
+  const txt=min<60?min+' min':min<1440?Math.floor(min/60)+' h':Math.floor(min/1440)+' d';
+  // Color según SLA del estado actual (mientras esté abierta)
+  let cls='ok';
+  if(!COL_FIN.includes(s.estado)){
+    const hrs=(Date.now()-new Date(s.estado_desde))/36e5;
+    const lim=(P.sla_horas||{})[s.estado]||24;
+    cls=hrs>lim?'no':hrs>lim*.66?'md':'ok';
+  }
+  return {txt,cls};
 }
 
-/* ===== SOLICITUDES ===== */
+/* ===== SOLICITUDES (KANBAN) ===== */
 function pintarSolicitudes(){
-  const est=misEstados();
-  if(!FILTRO||!est.includes(FILTRO)) FILTRO=est[0];
-  const lista=SOLS.filter(s=>s.estado===FILTRO);
-  let h=`<div class="chips-row">${est.map(e=>{
-    const n=SOLS.filter(s=>s.estado===e).length;
-    return `<button class="chip ${e===FILTRO?'on':''}" data-e="${e}">${ETQ[e]}<span class="n">${n}</span></button>`;
-  }).join('')}</div>`;
-  h+= lista.length ? lista.map(cardHTML).join('')
-    : `<div class="vacio"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-       <p>No hay solicitudes en <b>${ETQ[FILTRO]}</b>.</p></div>`;
-  $('#cont').innerHTML=h;
-  $$('.chip').forEach(c=>c.addEventListener('click',()=>{FILTRO=c.dataset.e;pintarSolicitudes();}));
-  $$('.card[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
+  const pend=SOLS.filter(s=>COL_PEND.includes(s.estado))
+    .sort((a,b)=>new Date(a.creado_en)-new Date(b.creado_en));
+  const proc=SOLS.filter(s=>COL_PROC.includes(s.estado))
+    .sort((a,b)=>new Date(a.estado_desde)-new Date(b.estado_desde));
+  const fin=SOLS.filter(s=>COL_FIN.includes(s.estado)&&esDeHoy(s))
+    .sort((a,b)=>new Date(b.cerrado_en||b.actualizado_en)-new Date(a.cerrado_en||a.actualizado_en));
+
+  const col=(clase,titulo,lista,vacio)=>`
+    <div class="kcol ${clase}">
+      <div class="kcol-h"><span class="kdot"></span><span class="kcol-t">${titulo}</span>
+        <span class="kcol-n">${lista.length}</span></div>
+      ${lista.length?lista.map(kcardHTML).join(''):`<div class="kempty">${vacio}</div>`}
+    </div>`;
+
+  $('#cont').innerHTML=`<div class="kanban">
+    ${col('pend','Pendientes',pend,'Nada pendiente')}
+    ${col('proc','En proceso',proc,'Nada en proceso')}
+    ${col('fin','Finalizadas hoy',fin,'Nada finalizado hoy')}
+  </div>`;
+  $$('.kcard[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
 }
-function cardHTML(s){
-  const d=s.datos_cliente||{},r=s.resultado_analisis||{};
-  const ing=s.analisis_ingresos?.ingreso_promedio;
-  return `<div class="card" data-id="${s.id}">
-    <div class="c-top"><div style="min-width:0">
-      <div class="c-nom">${esc(nombreDe(d))}</div>
-      <div class="c-folio">${esc(s.folio)}</div></div>${sla(s)}</div>
-    <div class="c-meta">
-      <span class="tag ${s.tipo_operacion!=='nuevo'?'y':''}">${TIPO_L[s.tipo_operacion]}</span>
-      ${d.telefono?`<span class="tag">${esc(d.telefono)}</span>`:''}
-      ${d.empresa?`<span class="tag">${esc(d.empresa)}</span>`:''}
-      ${d.monto?`<span class="tag">Pide L${fmt(d.monto)}</span>`:''}
-      ${ing?`<span class="tag b">L${fmt(ing)}/mes</span>`:''}
-      ${r.monto_aprobado?`<span class="tag b">L${fmt(r.monto_aprobado)} · ${r.tasa}%</span>`:''}
-      ${s.origen==='cliente'?'<span class="tag">del formulario</span>':''}
-    </div></div>`;
+
+function kcardHTML(s){
+  const d=s.datos_cliente||{};
+  const t=transcurrido(s);
+  const tipo=s.tipo_operacion||'nuevo';
+  return `<div class="kcard" data-id="${s.id}">
+    <div class="kc-nom">${esc(nombreDe(d))}</div>
+    <div class="kc-folio">${esc(s.folio)}</div>
+    <div class="kc-fecha">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      ${fechaHora(s.creado_en)}
+    </div>
+    <div class="kc-row">
+      <span class="kc-tipo ${tipo}">${TIPO_L[tipo]}</span>
+      <span class="kc-transc ${t.cls}">${t.txt}</span>
+    </div>
+    <div class="kc-row">
+      <span class="kc-estado">${ESTATUS_L[s.estado]||s.estado}</span>
+      ${s.origen==='cliente'?'<span class="kc-tipo nuevo">del formulario</span>':''}
+    </div>
+  </div>`;
 }
 
 /* ===== HISTORIAL ===== */
@@ -691,7 +770,7 @@ function pintarParametros(){
       ${n('p-dt','Días de tolerancia',P.diasTarde,'Hasta aquí cuenta como pago bueno')}
   </div></div>
   <div class="sec"><div class="sec-h"><h4>Rubros</h4></div>
-    <div class="callout">El perfil <b>ideal</b> permite tasa preferencial. El de <b>riesgo</b> bloquea toda mejora.</div>
+    <div class="callout">El perfil <b>ideal</b> permite tasa preferencial. El de <b>riesgo</b> bloquea toda mejora. Los cambios de rubros se guardan al instante.</div>
     <div id="rub-list"></div>
     <div style="display:flex;gap:9px;margin-top:10px">
       <input id="rub-new" placeholder="Nombre del rubro nuevo">
@@ -699,11 +778,13 @@ function pintarParametros(){
     </div></div>
   <button class="btn btn-b btn-full" id="p-save" style="margin-bottom:20px">Guardar parámetros</button>`;
   renderRubros();
-  $('#rub-add').addEventListener('click',()=>{
+  $('#rub-add').addEventListener('click',async()=>{
     const v=$('#rub-new').value.trim();if(!v)return;
-    if(P.rubros.some(r=>r.nombre.toLowerCase()===v.toLowerCase())){toast('Ese rubro ya existe','m');return;}
-    P.rubros.push({id:Date.now(),nombre:v,ideal:false,riesgo:false});
-    $('#rub-new').value='';renderRubros();
+    if(RUBROS.some(r=>r.nombre.toLowerCase()===v.toLowerCase())){toast('Ese rubro ya existe','m');return;}
+    const orden=RUBROS.length?Math.max(...RUBROS.map(r=>r.orden||0))+1:1;
+    const {error}=await sb.from('rubros').insert({nombre:v,ideal:false,riesgo:false,orden});
+    if(error){toast(traducir(error.message),'m');return;}
+    $('#rub-new').value=''; await cargarRubros(); renderRubros(); toast('Rubro agregado','k');
   });
   $('#p-save').addEventListener('click',guardarParams);
 
@@ -733,28 +814,36 @@ function pintarParametros(){
   });
 }
 function renderRubros(){
-  $('#rub-list').innerHTML=P.rubros.map((r,i)=>`
+  $('#rub-list').innerHTML=RUBROS.map(r=>`
     <div class="u-row" style="padding:9px 11px">
       <div class="u-i"><div class="u-n" style="font-size:13.5px">${esc(r.nombre)}</div></div>
-      <select data-rp="${i}" style="width:auto;padding:6px 9px;font-size:12.5px">
+      <select data-rp="${r.id}" style="width:auto;padding:6px 9px;font-size:12.5px">
         <option value="normal" ${!r.ideal&&!r.riesgo?'selected':''}>Normal</option>
         <option value="ideal" ${r.ideal?'selected':''}>Ideal</option>
         <option value="riesgo" ${r.riesgo?'selected':''}>Riesgo</option>
       </select>
-      <button class="del" data-rd="${i}" style="height:32px;width:32px;font-size:16px">×</button>
+      <button class="del" data-rd="${r.id}" data-nom="${esc(r.nombre)}" style="height:32px;width:32px;font-size:16px">×</button>
     </div>`).join('');
-  $$('[data-rp]').forEach(s=>s.addEventListener('change',e=>{
-    const r=P.rubros[+e.target.dataset.rp];
-    r.ideal=e.target.value==='ideal';r.riesgo=e.target.value==='riesgo';
+  $$('[data-rp]').forEach(s=>s.addEventListener('change',async e=>{
+    const id=+e.target.dataset.rp, v=e.target.value;
+    const {error}=await sb.from('rubros')
+      .update({ideal:v==='ideal',riesgo:v==='riesgo'}).eq('id',id);
+    if(error){toast(traducir(error.message),'m');return;}
+    await cargarRubros(); toast('Perfil actualizado','k');
   }));
-  $$('[data-rd]').forEach(b=>b.addEventListener('click',()=>{P.rubros.splice(+b.dataset.rd,1);renderRubros();}));
+  $$('[data-rd]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm(`¿Quitar el rubro "${b.dataset.nom}"?`)) return;
+    const {error}=await sb.from('rubros').delete().eq('id',+b.dataset.rd);
+    if(error){toast(traducir(error.message),'m');return;}
+    await cargarRubros(); renderRubros(); toast('Rubro eliminado','k');
+  }));
 }
 async function guardarParams(){
   const g=id=>parseFloat($('#'+id).value)||0;
   const v={...P,minIngreso:g('p-min'),ingresoPref:g('p-pref'),limiteMin:g('p-lmin'),limiteMax:g('p-lmax'),
     redondeo:g('p-red')||1000,pctNuevo:g('p-pn'),mesMedio:g('p-mm'),pctMedio:g('p-pm'),mesAlto:g('p-ma'),
     pctAlto:g('p-pa'),tasaStd:g('p-ts'),tasaPref:g('p-tp'),tasaSuper:g('p-tsu'),spAntig:g('p-sa'),
-    spCuotas:g('p-sc'),spMaxLeves:g('p-sl'),spDiasGrave:g('p-sg'),diasTarde:g('p-dt'),rubros:P.rubros};
+    spCuotas:g('p-sc'),spMaxLeves:g('p-sl'),spDiasGrave:g('p-sg'),diasTarde:g('p-dt')};
   const b=$('#p-save');b.disabled=true;b.innerHTML='<span class="sp"></span>Guardando';
   const {error}=await sb.from('parametros_sistema').update({valores:v,actualizado_por:YO.id}).eq('id',1);
   b.disabled=false;b.textContent='Guardar parámetros';
@@ -871,7 +960,7 @@ $('#btn-nueva').addEventListener('click',()=>{
       <div class="fld"><label>Monto que solicita (L)</label><input id="ns-monto" inputmode="numeric"></div>
       <div class="fld"><label>Rubro de la empresa</label><select id="ns-rubro">
         <option value="">Selecciona…</option>
-        ${(P.rubros||[]).map(r=>`<option>${esc(r.nombre)}</option>`).join('')}</select></div>
+        ${(RUBROS||[]).map(r=>`<option>${esc(r.nombre)}</option>`).join('')}</select></div>
     </div>
     <div class="fld"><label>Empresa</label><input id="ns-emp"></div>
     <div class="fld"><label>Dirección de la casa</label><textarea id="ns-dcasa"></textarea></div>
