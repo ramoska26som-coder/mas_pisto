@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#1877F2">
+<title>Verificador · Más Pisto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --azul:#1877F2;--azul-oscuro:#0B5AD6;--azul-tinta:#0A2A66;
+    --amarillo:#FFD400;--amarillo-oscuro:#E6BE00;
+    --cielo:#EAF3FF;--gris:#5B6B82;--linea:#DCE6F5;
+    --error:#D63B3B;--error-lt:#FFF0F0;--ok:#1F9D57;--ok-lt:#EFFAF3;
+    --amber:#B7791F;--amber-lt:#FFF8E6;--fondo:#F7FAFF;
+    --sombra:0 10px 40px rgba(11,90,214,.14);--sombra-sm:0 2px 10px rgba(11,90,214,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--azul-tinta);background:var(--fondo);
+    line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;overscroll-behavior:none}
+  button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+  :focus-visible{outline:3px solid rgba(24,119,242,.35);outline-offset:1px}
+  h1,h2,h3,h4{font-family:'Poppins';letter-spacing:-.3px}
+  .hide{display:none!important}
+
+  /* LOGIN */
+  #login{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:20px;
+    background:radial-gradient(1100px 600px at 100% -10%,rgba(24,119,242,.10),transparent 60%),
+               radial-gradient(900px 500px at -10% 110%,rgba(255,212,0,.10),transparent 55%),var(--fondo)}
+  .login-box{width:100%;max-width:360px}
+  .brand{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:20px}
+  .brand svg{width:42px;height:42px;flex:none}
+  .brand .name{font-family:'Poppins';font-weight:800;font-size:24px;color:var(--azul);line-height:1}
+  .brand .tag{font-family:'Poppins';font-weight:600;font-size:9px;letter-spacing:1.5px;color:var(--gris);margin-top:2px}
+  .login-card{background:#fff;border:1px solid var(--linea);border-radius:22px;box-shadow:var(--sombra);overflow:hidden}
+  .login-hero{background:linear-gradient(135deg,var(--azul),var(--azul-oscuro));color:#fff;padding:22px 24px;position:relative;overflow:hidden}
+  .login-hero::after{content:"";position:absolute;right:-70px;top:-70px;width:200px;height:200px;
+    background:radial-gradient(circle,rgba(255,212,0,.35),transparent 70%);border-radius:50%}
+  .login-hero .eyebrow{font-family:'Poppins';font-weight:700;font-size:11px;letter-spacing:2px;color:var(--amarillo);text-transform:uppercase}
+  .login-hero h1{font-size:22px;font-weight:800;margin-top:5px}
+  .login-body{padding:22px 24px 24px}
+
+  /* APP */
+  #app{display:none;height:100dvh;flex-direction:column;min-height:0}
+  .top{display:flex;align-items:center;gap:11px;padding:12px 16px;background:#fff;
+    border-bottom:1px solid var(--linea);flex:none;padding-top:calc(12px + env(safe-area-inset-top))}
+  .top .logo{width:30px;height:30px;flex:none}
+  .top-i{flex:1;min-width:0}
+  .top-t{font-family:'Poppins';font-weight:700;font-size:15px;line-height:1.1}
+  .top-s{font-size:11.5px;color:var(--gris)}
+  .icon-btn{width:38px;height:38px;border-radius:11px;border:1.5px solid var(--linea);background:#fff;
+    cursor:pointer;display:grid;place-items:center;flex:none;color:var(--gris)}
+  .icon-btn:hover{border-color:var(--azul);color:var(--azul)}
+
+  .cont{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch}
+  .pad{padding:16px;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+
+  /* TABS INFERIORES */
+  .tabbar{display:flex;background:#fff;border-top:1px solid var(--linea);flex:none;
+    padding-bottom:env(safe-area-inset-bottom)}
+  .tab{flex:1;border:0;background:none;padding:9px 4px 8px;cursor:pointer;display:flex;
+    flex-direction:column;align-items:center;gap:3px;color:var(--gris);font-family:'Poppins';font-weight:600;font-size:10.5px}
+  .tab svg{width:22px;height:22px}
+  .tab.on{color:var(--azul)}
+  .tab .badge-n{position:absolute;transform:translate(14px,-6px);background:var(--error);color:#fff;
+    font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:grid;place-items:center;padding:0 4px}
+
+  /* TARJETAS DE RUTA/LISTA */
+  .card{background:#fff;border:1px solid var(--linea);border-radius:16px;box-shadow:var(--sombra-sm);
+    padding:15px;margin-bottom:11px}
+  .card.tap{cursor:pointer;transition:border-color .15s,transform .1s}
+  .card.tap:hover{border-color:var(--azul)}
+  .card.tap:active{transform:scale(.995)}
+  .c-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .c-nom{font-family:'Poppins';font-weight:600;font-size:15.5px;line-height:1.25}
+  .c-folio{font-size:11.5px;color:var(--azul);font-weight:600;margin-top:2px}
+  .c-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tag{font-size:11.5px;padding:3px 9px;border-radius:7px;background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
+  .tag.b{background:var(--cielo);color:var(--azul);border-color:#C7DFFB;font-weight:600}
+  .tag.ok{background:var(--ok-lt);color:var(--ok);border-color:#BFE8CF;font-weight:600}
+  .tag.no{background:var(--amber-lt);color:var(--amber);border-color:#F2E08A;font-weight:600}
+  .pill-num{width:26px;height:26px;border-radius:50%;background:var(--azul);color:#fff;flex:none;
+    display:grid;place-items:center;font-family:'Poppins';font-weight:700;font-size:12.5px}
+
+  .vacio{text-align:center;padding:56px 20px;color:var(--gris)}
+  .vacio svg{opacity:.3;margin-bottom:12px}
+
+  .seg{display:flex;gap:6px;margin-bottom:14px;background:var(--cielo);padding:4px;border-radius:12px}
+  .seg button{flex:1;border:0;background:none;padding:9px;border-radius:9px;cursor:pointer;
+    font-family:'Poppins';font-weight:600;font-size:13px;color:var(--gris)}
+  .seg button.on{background:#fff;color:var(--azul);box-shadow:var(--sombra-sm)}
+
+  /* DETALLE */
+  .modal{position:fixed;inset:0;z-index:100;display:none}
+  .modal.on{display:block}
+  .modal-b{position:absolute;inset:0;background:var(--fondo);display:flex;flex-direction:column;min-height:0}
+  .modal-h{display:flex;align-items:center;gap:11px;padding:12px 14px;background:#fff;border-bottom:1px solid var(--linea);
+    flex:none;padding-top:calc(12px + env(safe-area-inset-top))}
+  .modal-h h3{font-size:16px;font-weight:700;line-height:1.15}
+  .modal-h .f{font-size:11px;color:var(--azul);font-weight:600}
+  .modal-s{flex:1;overflow-y:auto;min-height:0;padding:14px;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+  .modal-p{position:absolute;left:0;right:0;bottom:0;padding:12px 14px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--linea);display:flex;gap:9px}
+
+  .sec{background:#fff;border:1px solid var(--linea);border-radius:15px;padding:15px;margin-bottom:11px}
+  .sec-h{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .sec-h h4{font-size:11.5px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--azul)}
+  .badge{margin-left:auto;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:7px}
+  .badge.p{background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
+  .badge.k{background:var(--ok-lt);color:var(--ok)}
+  .badge.m{background:var(--error-lt);color:var(--error)}
+
+  .dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13.5px}
+  .dl dt{color:var(--gris);white-space:nowrap}
+  .dl dd{text-align:right;word-break:break-word;font-weight:500}
+  .addr{background:var(--fondo);border:1px solid var(--linea);border-radius:11px;padding:11px 13px;font-size:13.5px;margin-top:4px}
+  .addr b{font-family:'Poppins';font-weight:600;font-size:11px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
+
+  /* CHECKLIST */
+  .chk{border:1px solid var(--linea);border-radius:13px;padding:13px;margin-bottom:10px}
+  .chk.done{border-color:var(--ok);background:var(--ok-lt)}
+  .chk.fail{border-color:var(--error);background:var(--error-lt)}
+  .chk-t{display:flex;gap:10px;align-items:flex-start}
+  .chk-n{font-family:'Poppins';font-weight:600;font-size:14px;flex:1}
+  .chk-o{font-size:11px;color:var(--gris)}
+  .chk-req{font-size:10px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.4px}
+  .chk-btns{display:flex;gap:7px;margin-top:11px}
+  .chk-btns button{flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--linea);background:#fff;
+    cursor:pointer;font-family:'Poppins';font-weight:600;font-size:12.5px;color:var(--gris)}
+  .chk-btns button.si.on{background:var(--ok);border-color:var(--ok);color:#fff}
+  .chk-btns button.no.on{background:var(--error);border-color:var(--error);color:#fff}
+  .chk-foto{margin-top:10px}
+  .foto-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .foto-thumb{width:70px;height:70px;border-radius:10px;object-fit:cover;border:1px solid var(--linea)}
+  .foto-add{width:70px;height:70px;border-radius:10px;border:1.5px dashed var(--azul);background:var(--cielo);
+    cursor:pointer;display:grid;place-items:center;color:var(--azul)}
+  .foto-wrap{position:relative}
+  .foto-del{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--error);
+    color:#fff;border:2px solid #fff;cursor:pointer;font-size:13px;line-height:1;display:grid;place-items:center}
+  .chk textarea{width:100%;margin-top:9px;font-size:13px;padding:9px 11px;border:1.5px solid var(--linea);
+    border-radius:10px;resize:vertical;min-height:38px}
+  .chk textarea:focus{outline:none;border-color:var(--azul)}
+
+  /* GPS */
+  .gps{background:var(--cielo);border:1px solid var(--linea);border-radius:13px;padding:13px;margin-bottom:11px}
+  .gps-row{display:flex;align-items:center;gap:11px}
+  .gps-dot{width:11px;height:11px;border-radius:50%;background:var(--gris);flex:none}
+  .gps-dot.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(31,157,87,.18)}
+  .gps-dot.no{background:var(--error)}
+  .gps-t{flex:1;font-size:13px}
+  .gps-c{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--gris)}
+
+  label{display:block;font-family:'Poppins';font-weight:600;font-size:12.5px;margin-bottom:6px}
+  input,select,textarea{width:100%;font-size:15px;padding:11px 13px;border:1.5px solid var(--linea);
+    border-radius:11px;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 4px rgba(24,119,242,.13)}
+  .fld{margin-bottom:12px}
+
+  .btn{font-family:'Poppins';font-weight:700;font-size:14.5px;border:none;border-radius:12px;
+    padding:13px 18px;cursor:pointer;transition:background .15s,transform .08s}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn-y{background:var(--amarillo);color:var(--azul-tinta);box-shadow:0 6px 16px rgba(255,212,0,.35);flex:1}
+  .btn-y:hover:not(:disabled){background:var(--amarillo-oscuro)}
+  .btn-b{background:var(--azul);color:#fff;box-shadow:0 6px 16px rgba(24,119,242,.3);flex:1}
+  .btn-b:hover:not(:disabled){background:var(--azul-oscuro)}
+  .btn-g{background:#fff;border:1.5px solid var(--linea);color:var(--gris)}
+  .btn-g:hover{border-color:var(--azul);color:var(--azul)}
+  .btn-r{background:var(--error);color:#fff;flex:1}
+  .btn-sm{padding:9px 13px;font-size:12.5px;border-radius:10px}
+  .btn-full{width:100%}
+  .btn-nav{display:inline-flex;align-items:center;gap:7px;text-decoration:none;justify-content:center}
+
+  .callout{background:var(--cielo);border:1px solid var(--linea);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:11px}
+  .callout.w{background:var(--amber-lt);border-color:#F2E08A}
+  .callout.r{background:var(--error-lt);border-color:#F3C4C4}
+  .callout b{font-family:'Poppins';font-weight:600}
+
+  /* MAPA */
+  #map{width:100%;height:100%;min-height:0;flex:1}
+  .ruta-wrap{display:flex;flex-direction:column;height:100%;min-height:0}
+  .ruta-top{padding:12px 16px;background:#fff;border-bottom:1px solid var(--linea);flex:none}
+  .ruta-lista{max-height:38vh;overflow-y:auto;background:var(--fondo);flex:none;padding:12px 16px}
+  .rl-item{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--linea);
+    border-radius:12px;padding:11px;margin-bottom:8px}
+  .rl-i{flex:1;min-width:0}
+  .rl-n{font-family:'Poppins';font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rl-d{font-size:11.5px;color:var(--gris)}
+
+  .toast{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(90px);
+    background:var(--azul-tinta);color:#fff;padding:12px 20px;border-radius:24px;font-family:'Poppins';font-weight:600;
+    font-size:13px;z-index:300;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.3,1),opacity .28s;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:88vw;text-align:center}
+  .toast.on{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast.k{background:var(--ok)}.toast.m{background:var(--error)}
+
+  .sp{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);
+    border-top-color:#fff;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  .sp.d{border-color:rgba(10,42,102,.25);border-top-color:var(--azul-tinta)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <div class="brand">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22 46h10V36h-10V25h-10v11H2v10h10v11h10V46z" fill="#1877F2"/>
+        <path d="M46 25h30a3 3 0 0 1 3 3v14c0 15-10 25-25 25V57c8 0 14-6 14-15v-7H46V25z" fill="#1877F2"/>
+        <rect x="46" y="35" width="10" height="42" rx="1" fill="#1877F2"/>
+      </svg>
+      <div><div class="name">más pisto</div><div class="tag">VERIFICADOR DE CAMPO</div></div>
+    </div>
+    <div class="login-card">
+      <div class="login-hero"><p class="eyebrow">Uso interno</p><h1>Verificación</h1></div>
+      <div class="login-body">
+        <div class="callout r hide" id="lerr"></div>
+        <div class="fld"><label for="email">Correo</label>
+          <input id="email" type="email" autocomplete="username" placeholder="vos@maspisto.hn"></div>
+        <div class="fld"><label for="pass">Contraseña</label>
+          <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+        <button class="btn btn-b btn-full" id="btn-login" style="margin-top:6px">Entrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="top">
+    <svg class="logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22 46h10V36h-10V25h-10v11H2v10h10v11h10V46z" fill="#1877F2"/>
+      <path d="M46 25h30a3 3 0 0 1 3 3v14c0 15-10 25-25 25V57c8 0 14-6 14-15v-7H46V25z" fill="#1877F2"/>
+      <rect x="46" y="35" width="10" height="42" rx="1" fill="#1877F2"/>
+    </svg>
+    <div class="top-i"><div class="top-t" id="top-t">Mis verificaciones</div><div class="top-s" id="top-s">—</div></div>
+    <button class="icon-btn" id="salir" title="Salir">⏻</button>
+  </div>
+
+  <div class="cont" id="cont"><div class="pad" id="pad"></div></div>
+  <div class="ruta-wrap hide" id="rutaView"></div>
+
+  <div class="tabbar">
+    <button class="tab on" data-t="lista">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3.5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3.5" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
+      <span>Pendientes</span>
+    </button>
+    <button class="tab" data-t="ruta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.5 2.5V6L9 3.5m0 16.5l6-3m-6 3V3.5m6 13.5l5.5 2.5V6L15 3.5m0 13.5V3.5m0 0L9 6"/></svg>
+      <span>Ruta</span>
+    </button>
+    <button class="tab" data-t="hechas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Hechas</span>
+    </button>
+  </div>
+</div>
+
+<!-- DETALLE -->
+<div class="modal" id="modal">
+  <div class="modal-b">
+    <div class="modal-h">
+      <button class="icon-btn" id="m-cerrar">✕</button>
+      <div style="flex:1;min-width:0"><h3 id="m-t">—</h3><div class="f" id="m-f">—</div></div>
+    </div>
+    <div class="modal-s" id="m-body"></div>
+    <div class="modal-p" id="m-pie"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL='https://qmxkmslxydxjlojxhzhb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGttc2x4eWR4amxvanhoemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTM0NTYsImV4cCI6MjA5OTc4OTQ1Nn0.TF1Fvaa5B_eT_qHdM1NpVGMqOub758I0f7NGpm2_mfY';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+
+let YO=null,P=null,SOLS=[],ACT=null,VISTA='lista',REQS=[];
+let CHK=[];            // checklist de la verificación activa
+let POS=null;         // ubicación GPS actual {lat,lng,acc}
+let MAPA=null,MARCADORES={},RUTA_LAYER=null,YO_MARK=null;
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m,t){const e=$('#toast');e.textContent=m;e.className='toast on'+(t?' '+t:'');
+  clearTimeout(e._t);e._t=setTimeout(()=>e.className='toast',3000);}
+function nombreDe(d){if(!d)return'Sin nombre';const n=d.nombre||[d.nombres,d.apellidos].filter(Boolean).join(' ');return String(n||'').trim()||'Sin nombre';}
+const TIPO_L={nuevo:'Nuevo',reingreso:'Reingreso',refinanciamiento:'Refinanciamiento'};
+
+/* ===== LOGIN ===== */
+$('#btn-login').addEventListener('click',entrar);
+$('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')entrar()});
+$('#email').addEventListener('keydown',e=>{if(e.key==='Enter')$('#pass').focus()});
+async function entrar(){
+  const b=$('#btn-login');b.disabled=true;b.innerHTML='<span class="sp"></span>Entrando';
+  $('#lerr').classList.add('hide');
+  const {data,error}=await sb.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#pass').value});
+  if(error){$('#lerr').textContent=error.message.includes('Invalid')?'Correo o contraseña incorrectos.':error.message;
+    $('#lerr').classList.remove('hide');b.disabled=false;b.textContent='Entrar';return;}
+  await arrancar(data.session);
+}
+async function arrancar(session){
+  const fail=async m=>{$('#lerr').textContent=m;$('#lerr').classList.remove('hide');
+    await sb.auth.signOut();$('#btn-login').disabled=false;$('#btn-login').textContent='Entrar';};
+  const {data:perfil,error}=await sb.from('usuarios').select('*').eq('id',session.user.id).single();
+  if(error||!perfil) return fail('Tu usuario no tiene perfil asignado.');
+  if(!perfil.activo) return fail('Tu usuario está desactivado.');
+  const roles=[perfil.rol,...(perfil.roles_extra||[])];
+  if(!roles.includes('verificador')&&perfil.rol!=='admin')
+    return fail('Este acceso es solo para verificadores.');
+  YO=perfil;
+  const {data:par}=await sb.from('parametros_sistema').select('valores').eq('id',1).single();
+  P=par?.valores||{};
+  const {data:reqs}=await sb.from('requisitos_tipo').select('*').eq('activo',true).order('orden');
+  REQS=reqs||[];
+  $('#login').style.display='none';
+  $('#app').style.display='flex';
+  $('#top-s').textContent=YO.nombre;
+  await cargar(); vivo(); iniciarGPS();
+}
+$('#salir').addEventListener('click',async()=>{await sb.auth.signOut();location.reload();});
+
+/* ===== CARGA ===== */
+async function cargar(){
+  const {data,error}=await sb.from('solicitudes').select('*')
+    .in('estado',['por_verificar','en_verificacion','verificado'])
+    .order('estado_desde',{ascending:true});
+  if(error){toast('No se pudo cargar: '+error.message,'m');return;}
+  // El verificador solo ve las suyas o las libres (RLS ya filtra, esto es defensivo)
+  SOLS=(data||[]).filter(s=>s.estado==='por_verificar'||s.verificador_id===YO.id||YO.rol==='admin');
+  render();
+}
+function vivo(){
+  sb.channel('verif').on('postgres_changes',{event:'*',schema:'public',table:'solicitudes'},cargar).subscribe();
+}
+
+/* ===== TABS ===== */
+$$('.tab').forEach(b=>b.addEventListener('click',()=>ir(b.dataset.t)));
+function ir(v){
+  VISTA=v;
+  $$('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===v));
+  const titulos={lista:'Pendientes',ruta:'Mi ruta de hoy',hechas:'Verificadas'};
+  $('#top-t').textContent=titulos[v];
+  if(v==='ruta'){ $('#cont').classList.add('hide'); $('#rutaView').classList.remove('hide'); pintarRuta(); }
+  else { $('#rutaView').classList.add('hide'); $('#cont').classList.remove('hide'); render(); }
+}
+
+function estadoLista(){
+  if(VISTA==='hechas') return SOLS.filter(s=>s.estado==='verificado');
+  return SOLS.filter(s=>s.estado==='por_verificar'||s.estado==='en_verificacion');
+}
+function render(){
+  const lista=estadoLista();
+  // Badge de pendientes en el tab
+  const pend=SOLS.filter(s=>s.estado==='por_verificar'||s.estado==='en_verificacion').length;
+
+  if(!lista.length){
+    $('#pad').innerHTML=`<div class="vacio">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <p>${VISTA==='hechas'?'Todavía no has verificado ninguna.':'No tienes verificaciones pendientes.'}</p></div>`;
+    return;
+  }
+  $('#pad').innerHTML=lista.map(cardHTML).join('');
+  $$('#pad .card[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
+}
+function cardHTML(s){
+  const d=s.datos_cliente||{};
+  const libre=s.estado==='por_verificar';
+  const mia=s.estado==='en_verificacion'&&s.verificador_id===YO.id;
+  const items=s.requisitos_verificacion?.items||[];
+  const hechos=items.filter(i=>i.resultado).length;
+  return `<div class="card tap" data-id="${s.id}">
+    <div class="c-top"><div style="min-width:0">
+      <div class="c-nom">${esc(nombreDe(d))}</div>
+      <div class="c-folio">${esc(s.folio)} · ${TIPO_L[s.tipo_operacion]||''}</div>
+    </div>${libre?'<span class="tag b">Libre</span>':mia?'<span class="tag ok">Tomada</span>':'<span class="tag">Verificada</span>'}</div>
+    <div class="c-meta">
+      ${d.direccion||d.direccion_casa?'<span class="tag">🏠 Domicilio</span>':''}
+      ${d.dir_empresa||d.direccion_trabajo?'<span class="tag">💼 Trabajo</span>':''}
+      ${d.ciudad_vivienda?`<span class="tag">${esc(d.ciudad_vivienda)}</span>`:''}
+      ${items.length?`<span class="tag ${hechos===items.length?'ok':''}">${hechos}/${items.length} puntos</span>`:''}
+    </div></div>`;
+}
+
+/* ===== GPS ===== */
+function iniciarGPS(){
+  if(!('geolocation' in navigator)) return;
+  navigator.geolocation.watchPosition(
+    p=>{ POS={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};
+         actualizarGPSUI(); actualizarYoMark(); },
+    ()=>{ actualizarGPSUI(true); },
+    {enableHighAccuracy:true,maximumAge:10000,timeout:15000}
+  );
+}
+function actualizarGPSUI(err){
+  const el=$('#gps-box'); if(!el) return;
+  const dot=el.querySelector('.gps-dot'), txt=el.querySelector('.gps-t'), coo=el.querySelector('.gps-c');
+  if(err||!POS){ dot.className='gps-dot no'; txt.textContent='Sin señal GPS'; coo.textContent='Activá la ubicación'; return; }
+  dot.className='gps-dot ok';
+  txt.textContent=`Ubicación lista (±${Math.round(POS.acc)} m)`;
+  coo.textContent=`${POS.lat.toFixed(5)}, ${POS.lng.toFixed(5)}`;
+}
+
+/* ===== DETALLE / VERIFICACIÓN ===== */
+function abrir(id){
+  ACT=SOLS.find(s=>s.id===id); if(!ACT) return;
+  // Cargar checklist: el guardado, o generado desde requisitos del tipo
+  const guardado=ACT.requisitos_verificacion?.items;
+  if(guardado&&guardado.length){ CHK=JSON.parse(JSON.stringify(guardado)); }
+  else {
+    const reqs=REQS.filter(r=>r.tipo_credito===(ACT.tipo_credito||'general'));
+    const base=reqs.length?reqs:REQS.filter(r=>r.tipo_credito==='general');
+    CHK=base.map(r=>({clave:r.clave,etiqueta:r.etiqueta,obligatorio:r.obligatorio,
+      requiere_foto:r.requiere_foto,orden:r.orden,resultado:'',nota:'',fotos:[]}));
+  }
+  const d=ACT.datos_cliente||{};
+  $('#m-t').textContent=nombreDe(d);
+  $('#m-f').textContent=`${ACT.folio} · ${TIPO_L[ACT.tipo_operacion]||''}`;
+  $('#modal').classList.add('on');
+  detalle();
+}
+function cerrarModal(){$('#modal').classList.remove('on');ACT=null;}
+$('#m-cerrar').addEventListener('click',cerrarModal);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classList.contains('on'))cerrarModal();});
+
+function detalle(){
+  const s=ACT,d=s.datos_cliente||{};
+  const dirCasa=d.direccion||d.direccion_casa||'';
+  const dirTrab=d.dir_empresa||d.direccion_trabajo||'';
+  const editable=s.estado==='en_verificacion'&&s.verificador_id===YO.id;
+  let h='';
+
+  // GPS
+  h+=`<div class="gps" id="gps-box"><div class="gps-row">
+    <span class="gps-dot"></span>
+    <div class="gps-t">Buscando ubicación…</div></div>
+    <div class="gps-c" style="margin-top:5px;margin-left:22px">—</div></div>`;
+
+  // Cliente + direcciones
+  h+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4></div><dl class="dl">
+    <dt>Cédula</dt><dd>${esc(d.cedula||d.identidad||'—')}</dd>
+    <dt>Teléfono</dt><dd>${d.telefono?`<a href="tel:${String(d.telefono).replace(/\\D/g,'')}">${esc(d.telefono)}</a>`:'—'}</dd>
+    ${d.empresa?`<dt>Empresa</dt><dd>${esc(d.empresa)}</dd>`:''}
+  </dl>
+  ${dirCasa?`<div class="addr"><b>🏠 Domicilio</b>${esc(dirCasa)}
+    <div style="margin-top:9px"><a class="btn btn-g btn-sm btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dirCasa+', '+(d.ciudad_vivienda||'Honduras'))}" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Ir al domicilio</a></div></div>`:''}
+  ${dirTrab?`<div class="addr" style="margin-top:8px"><b>💼 Trabajo</b>${esc(dirTrab)}
+    <div style="margin-top:9px"><a class="btn btn-g btn-sm btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dirTrab+', Honduras')}" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Ir al trabajo</a></div></div>`:''}
+  </div>`;
+
+  if(!editable){
+    // Solo tomar, o solo lectura
+    if(s.estado==='por_verificar'){
+      h+=`<div class="callout"><b>Esta verificación está libre.</b> Tómala para empezar a registrar los puntos en campo.</div>`;
+    } else if(s.estado==='verificado'){
+      h+=`<div class="callout w"><b>Verificación completada.</b> Ya la enviaste al analista para su decisión.</div>`;
+      h+=checklistHTML(false);
+    } else if(s.verificador_id&&s.verificador_id!==YO.id){
+      h+=`<div class="callout w">La está verificando otro gestor.</div>`;
+    }
+  } else {
+    h+=`<div class="sec"><div class="sec-h"><h4>Puntos a verificar</h4>
+        <span class="badge ${CHK.every(c=>!c.obligatorio||c.resultado)?'k':'p'}">${CHK.filter(c=>c.resultado).length}/${CHK.length}</span></div>
+      <div class="callout w" style="margin-bottom:12px">Marcá cada punto <b>en el sitio</b>. Los obligatorios llevan foto cuando se indica.</div>
+      ${CHK.map((c,i)=>chkHTML(c,i)).join('')}
+    </div>`;
+  }
+
+  $('#m-body').innerHTML=h;
+  actualizarGPSUI(!POS);
+  pie();
+  if(editable) conectarChecklist();
+}
+
+function checklistHTML(editable){
+  return `<div class="sec"><div class="sec-h"><h4>Puntos verificados</h4></div>
+    ${CHK.map((c,i)=>chkHTML(c,i,editable)).join('')}</div>`;
+}
+function chkHTML(c,i,editable=true){
+  const cls=c.resultado==='si'?'done':c.resultado==='no'?'fail':'';
+  return `<div class="chk ${cls}" data-i="${i}">
+    <div class="chk-t">
+      <div class="chk-n">${esc(c.etiqueta)}
+        <div class="chk-o">${c.obligatorio?'<span class="chk-req">Obligatorio</span>':'Opcional'}${c.requiere_foto?' · requiere foto':''}</div>
+      </div>
+    </div>
+    ${editable?`<div class="chk-btns">
+      <button class="si ${c.resultado==='si'?'on':''}" data-r="si" data-i="${i}">✓ Cumple</button>
+      <button class="no ${c.resultado==='no'?'on':''}" data-r="no" data-i="${i}">✕ No cumple</button>
+    </div>`:`<div style="margin-top:8px"><span class="tag ${c.resultado==='si'?'ok':c.resultado==='no'?'no':''}">${c.resultado==='si'?'Cumple':c.resultado==='no'?'No cumple':'Sin marcar'}</span></div>`}
+    ${c.requiere_foto?`<div class="chk-foto">
+      <div class="foto-row" id="fotos-${i}">
+        ${(c.fotos||[]).map((f,j)=>`<div class="foto-wrap"><img class="foto-thumb" src="${f.url||f.preview||''}" alt="">
+          ${editable?`<button class="foto-del" data-df="${i}-${j}">×</button>`:''}</div>`).join('')}
+        ${editable?`<div class="foto-add" data-foto="${i}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>`:''}
+      </div></div>`:''}
+    ${editable?`<textarea data-nota="${i}" placeholder="Observaciones (opcional)">${esc(c.nota||'')}</textarea>`:
+      (c.nota?`<div style="font-size:12.5px;color:var(--gris);margin-top:8px">${esc(c.nota)}</div>`:'')}
+  </div>`;
+}
+
+function conectarChecklist(){
+  $$('.chk-btns button').forEach(b=>b.addEventListener('click',()=>{
+    const i=+b.dataset.i, r=b.dataset.r;
+    CHK[i].resultado = CHK[i].resultado===r?'':r;
+    const card=$(`.chk[data-i="${i}"]`);
+    card.className='chk '+(CHK[i].resultado==='si'?'done':CHK[i].resultado==='no'?'fail':'');
+    $$(`.chk[data-i="${i}"] .chk-btns button`).forEach(x=>x.classList.toggle('on',x.dataset.r===CHK[i].resultado));
+    actualizarBadge();
+  }));
+  $$('[data-nota]').forEach(t=>t.addEventListener('input',e=>{CHK[+e.target.dataset.nota].nota=e.target.value;}));
+  $$('[data-foto]').forEach(b=>b.addEventListener('click',()=>tomarFoto(+b.dataset.foto)));
+  $$('[data-df]').forEach(b=>b.addEventListener('click',()=>{
+    const [i,j]=b.dataset.df.split('-').map(Number);
+    CHK[i].fotos.splice(j,1); detalle();
+  }));
+}
+function actualizarBadge(){
+  const b=$('.sec-h .badge');
+  if(b){ b.textContent=`${CHK.filter(c=>c.resultado).length}/${CHK.length}`;
+    b.className='badge '+(CHK.every(c=>!c.obligatorio||c.resultado)?'k':'p'); }
+}
+
+/* Foto con la cámara del teléfono */
+function tomarFoto(i){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*'; inp.capture='environment';
+  inp.onchange=async e=>{
+    const f=e.target.files[0]; if(!f) return;
+    if(f.size>10485760){ toast('La foto pesa más de 10 MB','m'); return; }
+    // Vista previa inmediata
+    const preview=URL.createObjectURL(f);
+    CHK[i].fotos=CHK[i].fotos||[];
+    CHK[i].fotos.push({file:f,preview,geo:POS?{lat:POS.lat,lng:POS.lng}:null});
+    detalle();
+  };
+  inp.click();
+}
+
+/* ===== ACCIONES ===== */
+function pie(){
+  const s=ACT; let h='';
+  if(s.estado==='por_verificar'){
+    h=`<button class="btn btn-b" id="tomar">Tomar verificación</button>`;
+  } else if(s.estado==='en_verificacion'&&s.verificador_id===YO.id){
+    h=`<button class="btn btn-g btn-sm" id="guardar" style="flex:none">Guardar</button>
+       <button class="btn btn-y" id="finalizar">Finalizar y enviar</button>`;
+  } else {
+    h=`<button class="btn btn-g btn-full" id="cerrar2">Cerrar</button>`;
+  }
+  $('#m-pie').innerHTML=h;
+  $('#tomar')?.addEventListener('click',tomar);
+  $('#guardar')?.addEventListener('click',()=>guardar(false));
+  $('#finalizar')?.addEventListener('click',finalizar);
+  $('#cerrar2')?.addEventListener('click',cerrarModal);
+}
+
+async function tomar(){
+  const b=$('#tomar');b.disabled=true;b.innerHTML='<span class="sp"></span>Tomando';
+  const {error}=await sb.from('solicitudes').update({
+    estado:'en_verificacion', verificador_id:YO.id,
+    requisitos_verificacion:{items:CHK, iniciado_en:new Date().toISOString()}
+  }).eq('id',ACT.id);
+  if(error){toast(traducir(error.message),'m');b.disabled=false;b.textContent='Tomar verificación';return;}
+  toast('Verificación tomada','k');
+  await cargar(); ACT=SOLS.find(s=>s.id===ACT.id); detalle();
+}
+
+async function subirFotos(){
+  for(const c of CHK){
+    if(!c.fotos) continue;
+    for(const f of c.fotos){
+      if(f.url) continue;           // ya subida
+      if(!f.file) continue;
+      const path=`${ACT.id}/${c.clave}_${Date.now()}.jpg`;
+      const {error}=await sb.storage.from('verificaciones').upload(path,f.file,{contentType:f.file.type||'image/jpeg',upsert:false});
+      if(error) throw new Error('No se pudo subir una foto: '+error.message);
+      f.path=path; f.url=null; delete f.file; delete f.preview;
+    }
+  }
+}
+function limpiarChkParaGuardar(){
+  return CHK.map(c=>({clave:c.clave,etiqueta:c.etiqueta,obligatorio:c.obligatorio,requiere_foto:c.requiere_foto,
+    orden:c.orden,resultado:c.resultado,nota:c.nota||'',
+    fotos:(c.fotos||[]).filter(f=>f.path).map(f=>({path:f.path,geo:f.geo||null}))}));
+}
+
+async function guardar(cerrar){
+  const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
+  try{
+    await subirFotos();
+    const {error}=await sb.from('solicitudes').update({
+      requisitos_verificacion:{items:limpiarChkParaGuardar(),
+        actualizado_en:new Date().toISOString(), gps_ultimo:POS||null}
+    }).eq('id',ACT.id);
+    if(error) throw new Error(traducir(error.message));
+    toast('Guardado','k');
+    await cargar(); ACT=SOLS.find(s=>s.id===ACT.id);
+    if(cerrar) return true;
+    detalle();
+  }catch(err){ toast(err.message,'m'); bs.forEach(b=>b.disabled=false); }
+  return false;
+}
+
+async function finalizar(){
+  // Validar obligatorios en el cliente antes de mandar
+  const faltan=CHK.filter(c=>c.obligatorio&&!c.resultado);
+  if(faltan.length){ toast(`Faltan ${faltan.length} punto(s) obligatorio(s)`,'m'); return; }
+  const sinFoto=CHK.filter(c=>c.obligatorio&&c.requiere_foto&&c.resultado==='si'&&!(c.fotos||[]).length);
+  if(sinFoto.length){
+    if(!confirm(`${sinFoto.length} punto(s) que requieren foto no la tienen. ¿Enviar de todos modos?`)) return;
+  }
+  const rechazos=CHK.filter(c=>c.resultado==='no');
+  const msg=rechazos.length
+    ? `Hay ${rechazos.length} punto(s) que NO cumplen. El analista lo verá al decidir. ¿Finalizar la verificación?`
+    : '¿Finalizar y enviar la verificación al analista?';
+  if(!confirm(msg)) return;
+
+  const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
+  try{
+    await subirFotos();
+    const items=limpiarChkParaGuardar();
+    const resultado={
+      completada_en:new Date().toISOString(),
+      verificador:YO.nombre,
+      puntos_ok:items.filter(c=>c.resultado==='si').length,
+      puntos_no:items.filter(c=>c.resultado==='no').length,
+      hay_rechazos:rechazos.length>0,
+      gps_final:POS||null
+    };
+    // Guardar checklist + resultado, luego pasar a verificado
+    let {error}=await sb.from('solicitudes').update({
+      requisitos_verificacion:{items, completada_en:resultado.completada_en, gps_ultimo:POS||null},
+      resultado_verificacion:resultado
+    }).eq('id',ACT.id);
+    if(error) throw new Error(traducir(error.message));
+
+    ({error}=await sb.from('solicitudes').update({estado:'verificado'}).eq('id',ACT.id));
+    if(error) throw new Error(traducir(error.message));
+
+    toast('Verificación enviada al analista','k');
+    cerrarModal(); await cargar();
+  }catch(err){ toast(err.message,'m'); bs.forEach(b=>b.disabled=false); }
+}
+
+function traducir(m){
+  if(m.includes('obligatorio')) return m; // ya viene claro del validador
+  if(m.includes('row-level security')) return 'No tenés permiso para esta acción.';
+  if(m.includes('verificador')) return 'Esta verificación es de otro gestor.';
+  if(m.includes('checklist')) return 'No hay checklist cargado.';
+  return m;
+}
+
+/* ===== RUTA (Leaflet + OSRM) ===== */
+function pintarRuta(){
+  const pend=SOLS.filter(s=>s.estado==='por_verificar'||s.estado==='en_verificacion');
+  $('#rutaView').innerHTML=`
+    <div class="ruta-top">
+      <div style="display:flex;gap:9px;align-items:center">
+        <div style="flex:1">
+          <div style="font-family:'Poppins';font-weight:700;font-size:14px">${pend.length} parada(s)</div>
+          <div style="font-size:12px;color:var(--gris)" id="ruta-info">Optimizá el orden desde tu ubicación</div>
+        </div>
+        <button class="btn btn-b btn-sm" id="opt-ruta" style="flex:none">Optimizar ruta</button>
+      </div>
+    </div>
+    <div id="map"></div>
+    <div class="ruta-lista" id="ruta-lista"></div>`;
+
+  if(MAPA){ MAPA.remove(); MAPA=null; MARCADORES={}; RUTA_LAYER=null; YO_MARK=null; }
+  MAPA=L.map('map',{zoomControl:true}).setView([15.5,-88.0],12); // norte de Honduras
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {maxZoom:19,attribution:'© OpenStreetMap'}).addTo(MAPA);
+  setTimeout(()=>MAPA.invalidateSize(),200);
+
+  geocodificarParadas(pend);
+  $('#opt-ruta').addEventListener('click',()=>optimizarRuta(pend));
+}
+
+/* Geocodifica direcciones con Nominatim (sin API key). Cachea en la solicitud si ya tiene coords. */
+async function geocodificarParadas(pend){
+  const info=$('#ruta-info');
+  const conCoords=[];
+  for(const s of pend){
+    const d=s.datos_cliente||{};
+    let lat=s.requisitos_verificacion?.geo_casa?.lat, lng=s.requisitos_verificacion?.geo_casa?.lng;
+    if(!lat){
+      const dir=(d.direccion||d.direccion_casa||'')+', '+(d.ciudad_vivienda||'San Pedro Sula')+', Honduras';
+      try{
+        const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(dir)}`,
+          {headers:{'Accept-Language':'es'}});
+        const j=await r.json();
+        if(j[0]){ lat=parseFloat(j[0].lat); lng=parseFloat(j[0].lon); }
+      }catch(e){}
+      await new Promise(r=>setTimeout(r,1100)); // Nominatim: máx ~1 req/seg
+    }
+    if(lat&&lng){ s._lat=lat; s._lng=lng; conCoords.push(s); dibujarMarcador(s); }
+  }
+  if(conCoords.length){
+    const grp=L.featureGroup(Object.values(MARCADORES));
+    if(grp.getLayers().length) MAPA.fitBounds(grp.getBounds().pad(0.2));
+  }
+  if(info) info.textContent=conCoords.length
+    ? `${conCoords.length} de ${pend.length} paradas ubicadas`
+    : 'No se pudieron ubicar las direcciones automáticamente';
+  pintarListaRuta(pend);
+}
+function dibujarMarcador(s,orden){
+  const d=s.datos_cliente||{};
+  const ic=L.divIcon({className:'',html:`<div style="background:${orden?'#1877F2':'#5B6B82'};color:#fff;width:28px;height:28px;
+    border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);
+    display:grid;place-items:center"><span style="transform:rotate(45deg);font-weight:700;font-size:12px;font-family:Poppins">${orden||'•'}</span></div>`,
+    iconSize:[28,28],iconAnchor:[14,28]});
+  if(MARCADORES[s.id]){ MARCADORES[s.id].setLatLng([s._lat,s._lng]).setIcon(ic); }
+  else{ MARCADORES[s.id]=L.marker([s._lat,s._lng],{icon:ic}).addTo(MAPA)
+    .bindPopup(`<b>${esc(nombreDe(d))}</b><br>${esc(s.folio)}`); }
+}
+function actualizarYoMark(){
+  if(!MAPA||!POS) return;
+  const ic=L.divIcon({className:'',html:`<div style="background:#1F9D57;width:16px;height:16px;border-radius:50%;
+    border:3px solid #fff;box-shadow:0 0 0 4px rgba(31,157,87,.25)"></div>`,iconSize:[16,16],iconAnchor:[8,8]});
+  if(YO_MARK) YO_MARK.setLatLng([POS.lat,POS.lng]);
+  else YO_MARK=L.marker([POS.lat,POS.lng],{icon:ic,zIndexOffset:1000}).addTo(MAPA).bindPopup('Estás aquí');
+}
+
+async function optimizarRuta(pend){
+  const con=pend.filter(s=>s._lat&&s._lng);
+  if(!con.length){ toast('No hay paradas ubicadas','m'); return; }
+  if(!POS){ toast('Necesito tu ubicación GPS','m'); return; }
+  const b=$('#opt-ruta');b.disabled=true;b.innerHTML='<span class="sp"></span>Calculando';
+
+  // OSRM Trip: parte de mi ubicación, ordena las paradas por cercanía
+  const coords=[[POS.lng,POS.lat],...con.map(s=>[s._lng,s._lat])];
+  const str=coords.map(c=>c.join(',')).join(';');
+  try{
+    const r=await fetch(`https://router.project-osrm.org/trip/v1/driving/${str}?source=first&roundtrip=false&overview=full&geometries=geojson`);
+    const j=await r.json();
+    if(j.code!=='Ok') throw new Error('OSRM: '+j.code);
+
+    // Orden de visita (waypoint_index), excluyendo el punto 0 (yo)
+    const orden=j.waypoints.map((w,idx)=>({idx,pos:w.waypoint_index})).slice(1)
+      .sort((a,b)=>a.pos-b.pos);
+    const ordenadas=orden.map(o=>con[o.idx-1]);
+
+    // Redibujar marcadores numerados
+    Object.values(MARCADORES).forEach(m=>MAPA.removeLayer(m)); MARCADORES={};
+    ordenadas.forEach((s,i)=>dibujarMarcador(s,i+1));
+    actualizarYoMark();
+
+    // Dibujar la línea de la ruta
+    if(RUTA_LAYER) MAPA.removeLayer(RUTA_LAYER);
+    RUTA_LAYER=L.geoJSON(j.trips[0].geometry,{style:{color:'#1877F2',weight:4,opacity:.7}}).addTo(MAPA);
+    MAPA.fitBounds(RUTA_LAYER.getBounds().pad(0.15));
+
+    const km=(j.trips[0].distance/1000).toFixed(1);
+    const min=Math.round(j.trips[0].duration/60);
+    $('#ruta-info').textContent=`${ordenadas.length} paradas · ${km} km · ~${min} min manejando`;
+    pintarListaRuta(ordenadas,true);
+    toast('Ruta optimizada','k');
+  }catch(e){ toast('No se pudo optimizar: '+e.message,'m'); }
+  b.disabled=false;b.textContent='Optimizar ruta';
+}
+
+function pintarListaRuta(lista,ordenada){
+  $('#ruta-lista').innerHTML=lista.map((s,i)=>{
+    const d=s.datos_cliente||{};
+    const dir=(d.direccion||d.direccion_casa||'')+(d.ciudad_vivienda?', '+d.ciudad_vivienda:'');
+    const destino=encodeURIComponent(dir+', Honduras');
+    return `<div class="rl-item">
+      <div class="pill-num" style="${ordenada?'':'background:var(--gris)'}">${ordenada?i+1:'•'}</div>
+      <div class="rl-i"><div class="rl-n">${esc(nombreDe(d))}</div>
+        <div class="rl-d">${esc(dir||'Sin dirección')}</div></div>
+      <a class="btn btn-g btn-sm btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${destino}" target="_blank" rel="noopener" style="flex:none">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></a>
+    </div>`;
+  }).join('');
+  $$('#ruta-lista .rl-item').forEach((el,i)=>el.addEventListener('click',e=>{
+    if(e.target.closest('a')) return;
+    const s=lista[i]; if(s&&MARCADORES[s.id]){ MAPA.setView([s._lat,s._lng],16); MARCADORES[s.id].openPopup(); }
+  }));
+}
+
+/* ===== ARRANQUE ===== */
+(async function(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) await arrancar(session);
+})();
+</script>
+</body>
+</html>

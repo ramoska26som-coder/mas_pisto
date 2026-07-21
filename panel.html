@@ -644,6 +644,21 @@ function pintarParametros(){
   const n=(id,l,v,s)=>`<div class="fld"><label>${l}${s?`<small>${s}</small>`:''}</label>
     <input type="number" id="${id}" value="${v}" step="any"></div>`;
   $('#cont').innerHTML=`
+  <div class="sec"><div class="sec-h"><h4>Logo de la marca</h4></div>
+    <div class="callout">Se muestra en el formulario público que llenan los clientes. PNG, JPG, WebP o SVG, máximo 2 MB.</div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div id="logo-prev" style="width:120px;height:70px;border:1px solid var(--linea);border-radius:12px;
+        display:grid;place-items:center;background:var(--fondo);overflow:hidden;flex:none">
+        ${P.logo_url?`<img src="${esc(P.logo_url)}" style="max-width:100%;max-height:100%;object-fit:contain">`
+                    :'<span style="font-size:11px;color:var(--gris)">Sin logo</span>'}
+      </div>
+      <div style="flex:1;min-width:180px">
+        <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+        <button class="btn btn-g btn-sm" id="logo-btn" style="width:auto">Subir nuevo logo</button>
+        ${P.logo_url?'<button class="btn btn-g btn-sm" id="logo-del" style="width:auto;margin-left:8px">Quitar</button>':''}
+        <div id="logo-msg" style="font-size:12px;color:var(--gris);margin-top:8px"></div>
+      </div>
+    </div></div>
   <div class="sec"><div class="sec-h"><h4>Ingresos y límites</h4></div><div class="g2">
     ${n('p-min','Ingreso mínimo (L)',P.minIngreso,'Debajo de esto se deniega')}
     ${n('p-pref','Ingreso para preferencial (L)',P.ingresoPref,'Con perfil ideal baja la tasa')}
@@ -691,6 +706,31 @@ function pintarParametros(){
     $('#rub-new').value='';renderRubros();
   });
   $('#p-save').addEventListener('click',guardarParams);
+
+  /* Logo */
+  $('#logo-btn')?.addEventListener('click',()=>$('#logo-file').click());
+  $('#logo-file')?.addEventListener('change',async e=>{
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    if(f.size>2097152){ $('#logo-msg').textContent='El logo no debe pesar más de 2 MB.'; return; }
+    $('#logo-msg').textContent='Subiendo…';
+    const ext=(f.name.split('.').pop()||'png').toLowerCase();
+    const path=`logo_${Date.now()}.${ext}`;
+    const {error}=await sb.storage.from('marca').upload(path,f,{contentType:f.type||undefined,upsert:true});
+    if(error){ $('#logo-msg').textContent='No se pudo subir: '+error.message; return; }
+    const {data:pub}=sb.storage.from('marca').getPublicUrl(path);
+    const url=pub.publicUrl+'?v='+Date.now(); // evita caché
+    const {error:e2}=await sb.from('parametros_sistema')
+      .update({valores:{...P,logo_url:url},actualizado_por:YO.id}).eq('id',1);
+    if(e2){ $('#logo-msg').textContent=traducir(e2.message); return; }
+    P.logo_url=url; toast('Logo actualizado','k'); pintarParametros();
+  });
+  $('#logo-del')?.addEventListener('click',async()=>{
+    if(!confirm('¿Quitar el logo? El formulario volverá al logo por defecto.')) return;
+    const {error}=await sb.from('parametros_sistema')
+      .update({valores:{...P,logo_url:''},actualizado_por:YO.id}).eq('id',1);
+    if(error){ toast(traducir(error.message),'m'); return; }
+    P.logo_url=''; toast('Logo quitado','k'); pintarParametros();
+  });
 }
 function renderRubros(){
   $('#rub-list').innerHTML=P.rubros.map((r,i)=>`
@@ -933,7 +973,8 @@ function detalle(){
     ${d.nacimiento?`<dt>Nacimiento</dt><dd>${esc(d.nacimiento)}</dd>`:''}
     ${d.monto?`<dt>Monto que pide</dt><dd style="color:var(--azul)">L${fmt(d.monto)}</dd>`:''}
     ${d.destino?`<dt>Destino</dt><dd>${esc(d.destino)}</dd>`:''}
-    ${d.refiere?`<dt>Referido por</dt><dd>${esc(d.refiere)} ${esc(d.refiere_tel||'')}</dd>`:''}
+    ${d.canal?`<dt>Cómo nos conoció</dt><dd>${esc(d.canal)}</dd>`:''}
+    ${d.refiere?`<dt>Referido por</dt><dd>${esc(d.refiere)} ${esc(d.refiere_tel||'')}${d.refiere_parentesco?' · '+esc(d.refiere_parentesco):''}</dd>`:''}
   </dl></div>`;
 
   const pr=perfilRubro(d.rubro);
@@ -1054,8 +1095,45 @@ function detalle(){
         ${r.comentario?`<div style="font-size:12.5px;color:var(--gris)">${esc(r.comentario)}</div>`:''}</div>`).join('')}</div>`;
   }
 
+  // Verificación de campo: la ve el analista al decidir, y queda en el historial
+  const rv=s.requisitos_verificacion?.items||[];
+  if(rv.length&&['verificado','aprobado','denegado','desembolsado'].includes(s.estado)){
+    const rvOk=rv.filter(x=>x.resultado==='si').length;
+    const rvNo=rv.filter(x=>x.resultado==='no').length;
+    h+=`<div class="sec"><div class="sec-h"><h4>Verificación de campo</h4>
+        <span class="badge ${rvNo?'m':'k'}">${rvOk} cumple · ${rvNo} no</span></div>
+      ${s.resultado_verificacion?.verificador?`<p style="font-size:12.5px;color:var(--gris);margin-bottom:11px">Verificó ${esc(s.resultado_verificacion.verificador)}${s.resultado_verificacion.completada_en?' · '+new Date(s.resultado_verificacion.completada_en).toLocaleDateString('es-HN'):''}</p>`:''}
+      ${rvNo?`<div class="callout r" style="margin-bottom:11px">Hay <b>${rvNo} punto(s) que no cumplen</b>. Considéralo en tu decisión.</div>`:''}
+      ${rv.map((c,i)=>`<div class="chk-line" style="display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--linea)">
+        <span style="flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;
+          background:${c.resultado==='si'?'var(--ok-lt)':c.resultado==='no'?'var(--error-lt)':'var(--fondo)'};
+          color:${c.resultado==='si'?'var(--ok)':c.resultado==='no'?'var(--error)':'var(--gris)'}">${c.resultado==='si'?'✓':c.resultado==='no'?'✕':'–'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13.5px;font-weight:500">${esc(c.etiqueta)}${c.obligatorio?'':' <span style="font-size:10px;color:var(--gris)">(opcional)</span>'}</div>
+          ${c.nota?`<div style="font-size:12px;color:var(--gris);margin-top:2px">${esc(c.nota)}</div>`:''}
+          ${(c.fotos||[]).length?`<button class="btn btn-g btn-sm" data-verfoto="${i}" style="margin-top:6px;width:auto">Ver ${c.fotos.length} foto(s)</button>`:''}
+        </div></div>`).join('')}
+    </div>`;
+  }
+
   $('#m-body').innerHTML=h;
-  pie(); conectar(esAse,esAna); conectarArchivos();
+  pie(); conectar(esAse,esAna); conectarArchivos(); conectarFotosVerif();
+}
+
+/* Fotos de verificación: bucket privado, URL firmada de 5 min */
+function conectarFotosVerif(){
+  const rv=ACT.requisitos_verificacion?.items||[];
+  $$('[data-verfoto]').forEach(b=>b.addEventListener('click',async()=>{
+    const fotos=rv[+b.dataset.verfoto]?.fotos||[];
+    if(!fotos.length) return;
+    const t=b.textContent;b.disabled=true;b.textContent='…';
+    for(const f of fotos){
+      if(!f.path) continue;
+      const {data,error}=await sb.storage.from('verificaciones').createSignedUrl(f.path,300);
+      if(!error&&data?.signedUrl) window.open(data.signedUrl,'_blank','noopener');
+    }
+    b.disabled=false;b.textContent=t;
+  }));
 }
 
 /* Los comprobantes están en un bucket privado: se abren con URL firmada

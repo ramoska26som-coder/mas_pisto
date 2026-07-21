@@ -195,16 +195,19 @@
 <body>
 <div class="wrap">
 
-  <div class="brand">
-    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Más Pisto">
-      <path d="M22 46h10V36h-10V25h-10v11H2v10h10v11h10V46z" fill="#1877F2"/>
-      <path d="M46 25h30a3 3 0 0 1 3 3v14c0 15-10 25-25 25V57c8 0 14-6 14-15v-7H46V25z" fill="#1877F2"/>
-      <rect x="46" y="35" width="10" height="42" rx="1" fill="#1877F2"/>
-    </svg>
-    <div>
-      <div class="name">más pisto</div>
-      <div class="tag">FÁCIL, RÁPIDOS Y CONFIABLES</div>
-    </div>
+  <div class="brand" id="brand">
+    <img id="brandLogo" alt="Más Pisto" style="display:none;max-height:56px;width:auto">
+    <span id="brandDefault" style="display:contents">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Más Pisto">
+        <path d="M22 46h10V36h-10V25h-10v11H2v10h10v11h10V46z" fill="#1877F2"/>
+        <path d="M46 25h30a3 3 0 0 1 3 3v14c0 15-10 25-25 25V57c8 0 14-6 14-15v-7H46V25z" fill="#1877F2"/>
+        <rect x="46" y="35" width="10" height="42" rx="1" fill="#1877F2"/>
+      </svg>
+      <div>
+        <div class="name">más pisto</div>
+        <div class="tag">FÁCIL, RÁPIDOS Y CONFIABLES</div>
+      </div>
+    </span>
   </div>
 
   <div class="card">
@@ -220,7 +223,7 @@
         <p class="lead">Para poder atender tu solicitud, necesitamos que aceptes cómo trabajamos:</p>
         <ul class="terms">
           <li><span class="ic">✓</span><div>La información que brindes será <strong>verificada por uno de nuestros gestores</strong> mediante <strong>visita domiciliaria y visita a tu lugar de trabajo</strong>.</div></li>
-          <li><span class="ic">✓</span><div>Las referencias deben ser <strong>únicamente familiares</strong>, y deben poder <strong>contestar la llamada en el momento</strong> en que las contactemos.</div></li>
+          <li><span class="ic">✓</span><div>Las referencias deben ser <strong>únicamente familiares</strong>, debes asegurarte que <strong>puedan atender nuestras llamadas en el momento</strong>.</div></li>
         </ul>
         <label class="checkline" for="acepto">
           <input type="checkbox" id="acepto">
@@ -356,10 +359,10 @@
 
             <div class="divider"><span>Método de pago</span></div>
             <div class="field full">
-              <label>Nuestros métodos de pago son transferencias o depósitos. ¿Está de acuerdo? <span class="req">*</span></label>
+              <label>¿Por qué medio realizará sus pagos? <span class="req">*</span></label>
               <div class="radios">
-                <label><input type="radio" name="metodo_pago" value="Sí, de acuerdo" required><s>Sí, de acuerdo</s></label>
-                <label><input type="radio" name="metodo_pago" value="No"><s>No</s></label>
+                <label><input type="radio" name="metodo_pago" value="Transferencia" required><s>Transferencia</s></label>
+                <label><input type="radio" name="metodo_pago" value="Depósito"><s>Depósito</s></label>
               </div><div class="msg">Selecciona una opción.</div>
             </div>
 
@@ -368,19 +371,35 @@
               <label>¿Para qué solicita el préstamo? <span class="req">*</span></label>
               <textarea name="destino" required></textarea><div class="msg">Cuéntanos el destino del préstamo.</div>
             </div>
-            <div class="field">
-              <label>¿Quién lo refiere?</label>
-              <input name="refiere" placeholder="Opcional">
+            <div class="field full">
+              <label>¿Cómo supiste de Más Pisto? <span class="req">*</span></label>
+              <select name="canal" id="canal" class="placeholder" required>
+                <option value="" disabled selected>Selecciona…</option>
+                <option>Facebook</option>
+                <option>Instagram</option>
+                <option>Conocido</option>
+                <option>Amigo</option>
+                <option>Familiar</option>
+              </select><div class="msg">Selecciona una opción.</div>
             </div>
-            <div class="field">
-              <label>Teléfono de quien lo refiere</label>
-              <input name="refiere_tel" inputmode="tel" placeholder="Opcional">
+            <div class="field full conditional" id="canalPersonaWrap" style="display:none">
+              <div class="hint" id="canalPersonaHint">Cuéntanos quién te habló de nosotros.</div>
+              <div class="grid" style="width:100%">
+                <div class="field">
+                  <label>Nombre de la persona <span class="req">*</span></label>
+                  <input name="canal_nombre" data-cond><div class="msg">Ingresa el nombre.</div>
+                </div>
+                <div class="field">
+                  <label>Número de celular <span class="req">*</span></label>
+                  <input name="canal_tel" inputmode="tel" data-cond><div class="msg">Ingresa el número.</div>
+                </div>
+                <div class="field">
+                  <label>Parentesco <span class="req">*</span></label>
+                  <select name="canal_parentesco" class="placeholder parentesco-refiere" data-cond></select><div class="msg">Selecciona el parentesco.</div>
+                </div>
+                <div class="field"></div>
+              </div>
             </div>
-            <div class="field">
-              <label>Parentesco con quien lo refiere</label>
-              <select name="refiere_parentesco" class="placeholder parentesco-refiere"></select>
-            </div>
-            <div class="field"></div>
 
             <div class="divider"><span>Vivienda</span></div>
             <div class="field">
@@ -390,7 +409,8 @@
             <div class="field"></div>
             <div class="field full">
               <label>¿Dónde vive? <span class="req">*</span></label>
-              <textarea name="direccion" placeholder="Dirección con puntos de referencia" required></textarea><div class="msg">Ingresa tu dirección.</div>
+              <div class="hint">Coloca <b>al menos 3 puntos de referencia</b>, el <b>color de la casa</b> y cualquier particularidad que ayude a ubicarla (portón, negocio cercano, etc.).</div>
+              <textarea name="direccion" rows="4" placeholder="Ej: Col. López Arellano, casa color verde con portón negro. A media cuadra de la pulpería Doña Mari, frente al parque, tercera casa después de la iglesia." required></textarea><div class="msg">Ingresa tu dirección con puntos de referencia, color y particularidades.</div>
             </div>
             <div class="field">
               <label>Tiempo residiendo ahí <span class="req">*</span></label>
@@ -545,8 +565,8 @@
   }
 
   const RUBROS_FALLBACK = ["Comercio","Servicios","Manufactura","Construcción","Transporte","Agricultura","Salud","Educación","Gobierno","Otro"];
-  const PARENTESCOS = ["Madre","Padre","Hermano(a)","Hijo(a)","Abuelo(a)","Primo(a)","Tío(a)","Sobrino(a)"];
-  /* Quien refiere puede no ser familiar */
+  const PARENTESCOS = ["Madre","Padre","Hermano(a)","Hijo(a)","Abuelo(a)","Cuñado(a)","Primo(a)","Tío(a)","Sobrino(a)"];
+  /* Quien te refiere (Amigo/Conocido/Familiar) puede no ser familiar directo */
   const PARENTESCOS_REFIERE = [...PARENTESCOS, "Amigo(a)"];
   const CIUDADES = ["San Pedro Sula","Choloma","Villanueva"];
 
@@ -624,6 +644,31 @@
   }));
 
   $('#tipoVivienda').addEventListener('change',e=>toggle($('#alquilerWrap'),e.target.value==='Alquilada'));
+
+  /* ¿Cómo supiste de Más Pisto? — Conocido/Amigo/Familiar piden datos de la persona */
+  const CANAL_PIDE_PERSONA = ['Conocido','Amigo','Familiar'];
+  $('#canal').addEventListener('change',e=>{
+    const pide = CANAL_PIDE_PERSONA.includes(e.target.value);
+    $('#canalPersonaWrap').style.display = pide ? 'block' : 'none';
+    $('#canalPersonaHint').textContent =
+      e.target.value==='Familiar' ? 'Cuéntanos qué familiar te habló de nosotros.'
+      : e.target.value==='Amigo'  ? 'Cuéntanos qué amigo te habló de nosotros.'
+      : 'Cuéntanos quién te habló de nosotros.';
+  });
+
+  /* Logo: si el admin subió uno en el panel, se usa; si no, queda el de siempre */
+  (function loadMarca(){
+    rpc('marca_publica',{})
+      .then(m=>{
+        if(m && m.logo_url){
+          const img=$('#brandLogo');
+          img.onload=()=>{ img.style.display='block'; $('#brandDefault').style.display='none'; };
+          img.onerror=()=>{ img.style.display='none'; $('#brandDefault').style.display='contents'; };
+          img.src=m.logo_url;
+        }
+      })
+      .catch(()=>{});
+  })();
 
   /* =========== SUBIDA DE COMPROBANTES =========== */
   let ARCHIVOS = [];   // {file, id, error}
@@ -723,7 +768,7 @@
       else{bad=!el.value.trim();}
       setError(el,bad);if(bad&&!firstBad)firstBad=el;
     });
-    const cond=[['#rubroOtroWrap','rubro_otro'],['#diaSemanaWrap','dia_semana'],['#quinceWrap1','quincena_1'],['#quinceWrap2','quincena_2'],['#mensualWrap','dia_mensual'],['#alquilerWrap','tipo_alquiler']];
+    const cond=[['#rubroOtroWrap','rubro_otro'],['#diaSemanaWrap','dia_semana'],['#quinceWrap1','quincena_1'],['#quinceWrap2','quincena_2'],['#mensualWrap','dia_mensual'],['#alquilerWrap','tipo_alquiler'],['#canalPersonaWrap','canal_nombre'],['#canalPersonaWrap','canal_tel'],['#canalPersonaWrap','canal_parentesco']];
     cond.forEach(([id,name])=>{
       const wrap=$(id);if(!wrap.classList.contains('show'))return;
       const els=form.querySelectorAll(`[name="${name}"]`);if(!els.length)return;
@@ -792,6 +837,17 @@
       {nombre:data.ref1_nombre, telefono:data.ref1_tel, parentesco:data.ref1_parentesco},
       {nombre:data.ref2_nombre, telefono:data.ref2_tel, parentesco:data.ref2_parentesco}
     ].filter(r=>r.nombre && r.telefono);
+
+    /* ¿Cómo supiste de Más Pisto? Si es persona, guardamos sus datos.
+       'refiere' se mantiene para que el panel lo muestre como antes. */
+    if(CANAL_PIDE_PERSONA.includes(data.canal)){
+      data.refiere            = data.canal_nombre || '';
+      data.refiere_tel        = data.canal_tel || '';
+      data.refiere_parentesco = data.canal_parentesco || '';
+      data.canal_detalle      = `${data.canal}: ${data.canal_nombre||''} ${data.canal_tel?'('+data.canal_tel+')':''} ${data.canal_parentesco?'· '+data.canal_parentesco:''}`.trim();
+    } else {
+      data.canal_detalle = data.canal || '';
+    }
 
     /* Alias que usa el panel de crédito */
     data.direccion_casa    = data.direccion;
