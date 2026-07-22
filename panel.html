@@ -154,25 +154,56 @@
   .vacio svg{opacity:.3;margin-bottom:12px}
   .vacio p{font-size:14.5px}
 
-  .modal{position:fixed;inset:0;z-index:100;display:none}
+  /* Detalle a pantalla completa (ya no es modal flotante) */
+  .modal{position:fixed;inset:0;z-index:100;display:none;background:var(--fondo)}
   .modal.on{display:block}
-  .modal-bg{position:absolute;inset:0;background:rgba(10,42,102,.45)}
+  .modal-bg{display:none}
   .modal-b{position:absolute;inset:0;background:var(--fondo);display:flex;flex-direction:column;min-height:0}
-  @media(min-width:760px){
-    .modal-b{left:50%;transform:translateX(-50%);width:720px;top:20px;bottom:0;
-      border-radius:20px 20px 0 0;box-shadow:var(--sombra);overflow:hidden}
-  }
-  .modal-h{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#fff;border-bottom:1px solid var(--linea);flex:none}
-  .modal-h h3{font-size:17px;font-weight:700;line-height:1.2}
-  .modal-h .f{font-size:11.5px;color:var(--azul);font-weight:600}
-  .modal-s{flex:1;overflow-y:auto;min-height:0;padding:16px;padding-bottom:100px}
-  .modal-p{position:absolute;left:0;right:0;bottom:0;padding:12px 16px;
-    padding-bottom:calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--linea);display:flex;gap:9px}
-  .x{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--linea);background:#fff;cursor:pointer;
+  .modal-h{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fff;
+    border-bottom:1px solid var(--linea);flex:none;box-shadow:var(--sombra-sm);z-index:2}
+  .modal-h h3{font-size:18px;font-weight:700;line-height:1.15}
+  .modal-h .f{font-size:12px;color:var(--azul);font-weight:600}
+  .modal-s{flex:1;overflow-y:auto;min-height:0;padding:18px;padding-bottom:96px}
+  /* Dos columnas en pantallas anchas: datos a la izquierda, trabajo del rol a la derecha */
+  .det{max-width:1200px;margin:0 auto;display:grid;gap:14px;align-items:start}
+  @media(min-width:1000px){ .det{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)} }
+  .det-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .modal-p{position:absolute;left:0;right:0;bottom:0;padding:12px 20px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--linea);
+    display:flex;gap:9px;justify-content:flex-end;box-shadow:0 -4px 20px rgba(11,90,214,.07)}
+  .modal-p .btn{max-width:260px}
+  .x{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--linea);background:#fff;cursor:pointer;
     display:grid;place-items:center;flex:none;font-size:15px;color:var(--gris)}
   .x:hover{border-color:var(--error);color:var(--error)}
 
   .sec{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:18px;margin-bottom:12px}
+
+  /* Comprobantes de ingresos: filas de pago + panel de resultados */
+  .ing-wrap{display:grid;gap:0;border:1px solid var(--linea);border-radius:14px;overflow:hidden;background:#fff}
+  @media(min-width:760px){ .ing-wrap{grid-template-columns:minmax(0,1fr) 240px} }
+  .ing-left{padding:16px;min-width:0}
+  .ing-right{background:var(--fondo);border-top:1px solid var(--linea);padding:16px;display:flex;
+    flex-direction:column;gap:16px;justify-content:center}
+  @media(min-width:760px){ .ing-right{border-top:0;border-left:1px solid var(--linea)} }
+  .ing-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;
+    border-bottom:1px solid var(--linea);background:#fff}
+  .ing-h-t{font-family:'Poppins';font-weight:600;font-size:14px}
+  .ing-h-s{font-size:11.5px;color:var(--azul)}
+  .ing-lbl{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--gris);margin-bottom:6px}
+  .ing-sep{height:1px;background:var(--linea);margin:14px 0}
+  .pago-row{display:grid;grid-template-columns:150px minmax(0,1fr) 44px;gap:10px;align-items:center;margin-bottom:8px}
+  @media(max-width:560px){ .pago-row{grid-template-columns:1fr 1fr 44px} }
+  .pago-row input{padding:9px 11px;font-size:14px}
+  .pago-x{height:38px;border:1.5px solid var(--linea);background:#fff;color:var(--error);border-radius:9px;
+    cursor:pointer;font-size:16px;line-height:1;display:grid;place-items:center}
+  .pago-x:hover{background:var(--error-lt);border-color:var(--error)}
+  .ing-kpi-l{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--gris);
+    display:flex;align-items:center;gap:6px}
+  .ing-kpi-v{font-family:'Poppins';font-weight:800;font-size:30px;line-height:1.05;margin-top:4px}
+  .ing-kpi-v.azul{color:var(--azul-tinta)}
+  .ing-kpi-v.verde{color:var(--ok)}
+  .ing-kpi-v.rojo{color:var(--error)}
+  .ing-kpi-d{font-size:11.5px;color:var(--gris);margin-top:3px;line-height:1.35}
   .sec-h{display:flex;align-items:center;gap:9px;margin-bottom:14px}
   .sec-h h4{font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--azul)}
   .badge{margin-left:auto;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:7px}
@@ -281,6 +312,21 @@
   .callout.r{background:var(--error-lt);border-color:#F3C4C4}
   .callout b{font-family:'Poppins';font-weight:600}
 
+  /* Diálogo de asignación de verificador */
+  .asig{position:fixed;inset:0;z-index:150;display:none}
+  .asig.on{display:block}
+  .asig-bg{position:absolute;inset:0;background:rgba(10,42,102,.45)}
+  .asig-box{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,92vw);
+    max-height:82vh;background:#fff;border-radius:20px;box-shadow:var(--sombra);display:flex;
+    flex-direction:column;overflow:hidden}
+  .asig-h{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--linea)}
+  .asig-h h3{flex:1;font-size:17px;font-weight:700}
+  .asig-s{padding:16px 18px;overflow-y:auto}
+  .asig-op{display:flex;align-items:center;gap:11px;width:100%;padding:12px;background:#fff;
+    border:1.5px solid var(--linea);border-radius:13px;margin-bottom:9px;cursor:pointer;text-align:left}
+  .asig-op:hover{border-color:var(--azul);background:var(--cielo)}
+  .asig-op:last-child{margin-bottom:0}
+
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(90px);
     background:var(--azul-tinta);color:#fff;padding:13px 22px;border-radius:26px;
     font-family:'Poppins';font-weight:600;font-size:13.5px;z-index:300;opacity:0;
@@ -388,6 +434,17 @@
     </div>
     <div class="modal-s" id="m-body"></div>
     <div class="modal-p" id="m-pie"></div>
+  </div>
+</div>
+
+<div class="asig" id="asig">
+  <div class="asig-bg" id="asig-bg"></div>
+  <div class="asig-box">
+    <div class="asig-h">
+      <h3>Asignar verificador</h3>
+      <button class="x" id="asig-x">✕</button>
+    </div>
+    <div class="asig-s" id="asig-body"></div>
   </div>
 </div>
 
@@ -589,8 +646,9 @@ const ESTATUS_L={pendiente_revision:'Sin tomar',en_revision_asesor:'En revisión
   verificado:'Por decidir',aprobado:'Aprobada',denegado:'Denegada',desembolsado:'Entregada'};
 
 /* Las 3 columnas del kanban */
-const COL_PEND=['pendiente_revision','en_revision_asesor'];
-const COL_PROC=['en_analisis','por_verificar','en_verificacion','verificado'];
+/* Pendientes = nadie la ha tomado. En cuanto un asesor la toma, ya está en proceso. */
+const COL_PEND=['pendiente_revision'];
+const COL_PROC=['en_revision_asesor','en_analisis','por_verificar','en_verificacion','verificado'];
 const COL_FIN =['aprobado','denegado','desembolsado'];
 
 function esDeHoy(s){
@@ -1030,44 +1088,45 @@ function abrir(id){
 }
 function cerrarModal(){$('#modal').classList.remove('on');ACT=null;}
 $('#m-cerrar').addEventListener('click',cerrarModal);
-$('#modal-bg').addEventListener('click',cerrarModal);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classList.contains('on'))cerrarModal();});
 
 function detalle(){
   const s=ACT,d=s.datos_cliente||{};
   const esAse=['pendiente_revision','en_revision_asesor'].includes(s.estado)&&(rol('asesor')||esAdmin());
   const esAna=s.estado==='en_analisis'&&(rol('analista')||esAdmin());
-  let h='';
+  let izq='';   // Datos del cliente (referencia)
+  let der='';   // Lo que el rol tiene que trabajar
 
-  h+=`<div class="sec"><div class="sec-h"><h4>Operación</h4>
+  izq+=`<div class="sec"><div class="sec-h"><h4>Operación</h4>
       <span class="badge ${s.tipo_operacion==='nuevo'?'p':'a'}">${TIPO_L[s.tipo_operacion]}</span></div>`;
   if(esAse&&s.origen==='asesor'){
-    h+=`<div class="tipo-g" id="d-tipo">${Object.entries(TIPO_L).map(([k,v])=>
+    izq+=`<div class="tipo-g" id="d-tipo">${Object.entries(TIPO_L).map(([k,v])=>
         `<button type="button" class="${s.tipo_operacion===k?'on':''}" data-t="${k}">${v}</button>`).join('')}</div>
       <div class="fld ${s.tipo_operacion==='nuevo'?'hide':''}" id="d-fi-wrap" style="margin-top:12px">
         <label>Fecha de ingreso como cliente</label>
         <input type="date" id="d-fi" value="${s.fecha_ingreso_cliente||''}"></div>`;
   } else if(s.origen==='cliente'){
-    h+=`<div class="callout" style="margin-bottom:0">Vino del formulario público, así que es <b>nuevo ingreso</b>:
+    izq+=`<div class="callout" style="margin-bottom:0">Vino del formulario público, así que es <b>nuevo ingreso</b>:
         aplica al ${P.pctNuevo}% del ingreso, sin importar antigüedad.</div>`;
   }
   if(s.fecha_ingreso_cliente)
-    h+=`<dl class="dl" style="margin-top:11px"><dt>Cliente desde</dt>
+    izq+=`<dl class="dl" style="margin-top:11px"><dt>Cliente desde</dt>
         <dd>${new Date(s.fecha_ingreso_cliente+'T12:00:00').toLocaleDateString('es-HN')} · ${labelMeses(mesesCliente(s))}</dd></dl>`;
-  h+='</div>';
+  izq+='</div>';
 
-  h+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4></div><dl class="dl">
+  izq+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4></div><dl class="dl">
     <dt>Cédula</dt><dd>${esc(cedulaDe(d))}</dd>
-    <dt>Teléfono</dt><dd>${esc(d.telefono||'—')}</dd>
+    <dt>Teléfono</dt><dd>${d.telefono?`<a href="tel:${String(d.telefono).replace(/\D/g,'')}">${esc(d.telefono)}</a>`:'—'}</dd>
     ${d.nacimiento?`<dt>Nacimiento</dt><dd>${esc(d.nacimiento)}</dd>`:''}
-    ${d.monto?`<dt>Monto que pide</dt><dd style="color:var(--azul)">L${fmt(d.monto)}</dd>`:''}
+    ${d.monto?`<dt>Monto que pide</dt><dd style="color:var(--azul);font-weight:700">L${fmt(d.monto)}</dd>`:''}
     ${d.destino?`<dt>Destino</dt><dd>${esc(d.destino)}</dd>`:''}
+    ${d.metodo_pago?`<dt>Pagará por</dt><dd>${esc(d.metodo_pago)}</dd>`:''}
     ${d.canal?`<dt>Cómo nos conoció</dt><dd>${esc(d.canal)}</dd>`:''}
     ${d.refiere?`<dt>Referido por</dt><dd>${esc(d.refiere)} ${esc(d.refiere_tel||'')}${d.refiere_parentesco?' · '+esc(d.refiere_parentesco):''}</dd>`:''}
   </dl></div>`;
 
   const pr=perfilRubro(d.rubro);
-  h+=`<div class="sec"><div class="sec-h"><h4>Trabajo</h4>
+  izq+=`<div class="sec"><div class="sec-h"><h4>Trabajo</h4>
       ${d.rubro?`<span class="badge ${pr==='ideal'?'k':pr==='riesgo'?'m':'p'}">Perfil ${pr}</span>`:''}</div><dl class="dl">
     <dt>Empresa</dt><dd>${esc(d.empresa||'—')}</dd>
     ${d.rubro?`<dt>Rubro</dt><dd>${esc(d.rubro)}</dd>`:''}
@@ -1081,7 +1140,7 @@ function detalle(){
   </dl></div>`;
 
   if(d.direccion||d.direccion_casa){
-    h+=`<div class="sec"><div class="sec-h"><h4>Vivienda</h4></div><dl class="dl">
+    izq+=`<div class="sec"><div class="sec-h"><h4>Vivienda</h4></div><dl class="dl">
       ${d.ciudad_vivienda?`<dt>Ciudad</dt><dd>${esc(d.ciudad_vivienda)}</dd>`:''}
       <dt>Dirección</dt><dd>${esc(d.direccion||d.direccion_casa)}</dd>
       ${d.tiempo_vivienda?`<dt>Tiempo ahí</dt><dd>${esc(d.tiempo_vivienda)}</dd>`:''}
@@ -1089,9 +1148,19 @@ function detalle(){
     </dl></div>`;
   }
 
+  if(s.checklist_analista?.referencias?.items?.length&&!esAna){
+    izq+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4></div>
+      ${s.checklist_analista.referencias.items.map(r=>`
+      <div class="ref"><div class="ref-t">
+        <div><div class="ref-n">${esc(r.nombre||'—')}</div>
+          <div class="ref-d">${esc(r.telefono||'')}${r.parentesco?' · '+esc(r.parentesco):''}</div></div>
+        <span class="tag ${r.resultado==='ok'?'b':''}">${txtRes(r.resultado)}</span></div>
+        ${r.comentario?`<div style="font-size:12.5px;color:var(--gris)">${esc(r.comentario)}</div>`:''}</div>`).join('')}</div>`;
+  }
+
   if(d.comprobantes||d.archivos?.length){
     const arch=d.archivos||[];
-    h+=`<div class="sec"><div class="sec-h"><h4>Comprobantes</h4>
+    izq+=`<div class="sec"><div class="sec-h"><h4>Comprobantes</h4>
         <span class="badge ${arch.length?'k':'p'}">${arch.length?arch.length+' archivo'+(arch.length>1?'s':''):'por WhatsApp'}</span></div>
       ${d.comprobantes?`<p style="font-size:13.5px;margin-bottom:${arch.length?'12px':'0'}">${esc(d.comprobantes)}</p>`:''}
       ${arch.length?`<div id="arch-list">${arch.map((a,i)=>`
@@ -1108,37 +1177,72 @@ function detalle(){
 
   if(esAse){
     const ai=s.analisis_ingresos||{};
-    const cs=ai.comprobantes?.length?ai.comprobantes:[{monto:'',desc:''}];
-    h+=`<div class="sec"><div class="sec-h"><h4>Ingresos</h4>
+    const pagos=ai.pagos?.length?ai.pagos:[{fecha:'',monto:''}];
+    const frec=ai.frecuencia||frecuenciaSugerida(d.dias_pago);
+    der+=`<div class="sec"><div class="sec-h"><h4>Comprobantes de ingresos</h4>
         <span class="badge ${ai.ingreso_promedio?'k':'p'}">${ai.ingreso_promedio?'listo':'pendiente'}</span></div>
       ${d.salario?`<div class="callout">El cliente declaró <b>${fmtL(d.salario)}</b> al mes. Verificalo contra los comprobantes.</div>`:''}
-      <label>Comprobantes de salario</label>
-      <div id="cmp">${cs.map((c,i)=>cmpHTML(c,i)).join('')}</div>
-      <button class="add" id="add-cmp" style="margin:4px 0 13px">+ Agregar comprobante</button>
-      <div class="g2">
-        <div class="fld"><label>Ingreso promedio mensual (L)</label>
-          <input id="i-prom" inputmode="decimal" value="${ai.ingreso_promedio||''}"></div>
-        <div class="fld"><label>Deducciones (L)</label>
+      <div class="ing-wrap">
+        <div class="ing-h">
+          <div class="ing-h-t">Últimos salarios recibidos</div>
+          <div class="ing-h-s" id="ing-count">0 pagos</div>
+        </div>
+        <div class="ing-left">
+          <div class="ing-lbl">Frecuencia de pago de salario</div>
+          <select id="i-frec">
+            ${['Semanal','Quincenal','Mensual','Catorcenal'].map(f=>
+              `<option ${f===frec?'selected':''}>${f}</option>`).join('')}
+          </select>
+          <div class="ing-sep"></div>
+          <div class="pago-row" style="margin-bottom:6px">
+            <div class="ing-lbl" style="margin:0">Fecha de pago</div>
+            <div class="ing-lbl" style="margin:0">Monto recibido (L)</div><div></div>
+          </div>
+          <div id="pagos">${pagos.map((p,i)=>pagoHTML(p,i)).join('')}</div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-b btn-sm" id="add-pago" style="flex:none">+ Agregar pago</button>
+            <button class="btn btn-g btn-sm" id="clr-pagos" style="flex:none">Limpiar</button>
+          </div>
+        </div>
+        <div class="ing-right">
+          <div>
+            <div class="ing-kpi-l">$ Promedio mensual</div>
+            <div class="ing-kpi-v azul" id="kpi-prom">L 0</div>
+            <div class="ing-kpi-d" id="kpi-prom-d">—</div>
+          </div>
+          <div>
+            <div class="ing-kpi-l">▭ Límite de crédito</div>
+            <div class="ing-kpi-v verde" id="kpi-lim">L 0</div>
+            <div class="ing-kpi-d" id="kpi-lim-d">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="g2" style="margin-top:13px">
+        <div class="fld"><label>Deducciones (L)<small>Descuentos de ley u otros préstamos</small></label>
           <input id="i-ded" inputmode="decimal" value="${ai.deducciones||''}"></div>
+        <div class="fld"><label>Ingreso promedio mensual (L)<small>Se calcula solo; podés ajustarlo</small></label>
+          <input id="i-prom" inputmode="decimal" value="${ai.ingreso_promedio||''}"></div>
       </div>
       <div class="fld"><label>Notas</label><textarea id="i-notas">${esc(ai.notas||'')}</textarea></div>
-      <div id="prev"></div></div>`;
+    </div>`;
   } else if(s.analisis_ingresos?.ingreso_promedio){
     const ai=s.analisis_ingresos;
-    h+=`<div class="sec"><div class="sec-h"><h4>Ingresos</h4><span class="badge k">listo</span></div><dl class="dl">
-      <dt>Promedio mensual</dt><dd>${fmtL(ai.ingreso_promedio)}</dd>
+    izq+=`<div class="sec"><div class="sec-h"><h4>Ingresos</h4><span class="badge k">listo</span></div><dl class="dl">
+      ${ai.frecuencia?`<dt>Frecuencia</dt><dd>${esc(ai.frecuencia)}</dd>`:''}
+      <dt>Promedio mensual</dt><dd style="font-weight:700">${fmtL(ai.ingreso_promedio)}</dd>
       ${ai.deducciones?`<dt>Deducciones</dt><dd>${fmtL(ai.deducciones)}</dd>`:''}
+      ${ai.pagos?.length?`<dt>Pagos registrados</dt><dd>${ai.pagos.filter(p=>p.monto).length}</dd>`:''}
       ${ai.notas?`<dt>Notas</dt><dd>${esc(ai.notas)}</dd>`:''}</dl></div>`;
   }
 
   if(esAna){
     const ck=s.checklist_analista||{};
     if(s.tipo_operacion==='nuevo'){
-      h+=`<div class="sec"><div class="sec-h"><h4>Comportamiento de pago</h4>
+      der+=`<div class="sec"><div class="sec-h"><h4>Comportamiento de pago</h4>
           <span class="badge p">no aplica</span></div>
         <div class="callout" style="margin-bottom:0">Es un <b>nuevo ingreso</b>: el cliente no tiene historial con nosotros.</div></div>`;
     } else {
-      h+=`<div class="sec"><div class="sec-h"><h4>Comportamiento de pago</h4>
+      der+=`<div class="sec"><div class="sec-h"><h4>Comportamiento de pago</h4>
           <span class="badge ${ck.comportamiento_pago?.estado==='realizado'?'k':'p'}"
             >${ck.comportamiento_pago?.estado==='realizado'?'listo':'pendiente'}</span></div>
         <label>Pegar historial del sistema</label>
@@ -1153,7 +1257,7 @@ function detalle(){
         <div id="kpis-box" style="margin-top:12px"></div></div>`;
     }
     const cr=s.central_riesgo||{};
-    h+=`<div class="sec"><div class="sec-h"><h4>Central de riesgo</h4>
+    der+=`<div class="sec"><div class="sec-h"><h4>Central de riesgo</h4>
         <span class="badge ${cr.score?'k':'p'}">${cr.score?'consultada':'opcional'}</span></div>
       <div class="g2">
         <div class="fld"><label>Score Equifax</label><input id="cr-s" inputmode="numeric" value="${cr.score||''}" placeholder="300-850"></div>
@@ -1163,25 +1267,15 @@ function detalle(){
       <div class="callout w" style="margin:12px 0 0">La central <b>no deniega por sí sola</b>. Solo informa la decisión.</div></div>`;
 
     const its=ck.referencias?.items||[];
-    h+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4>
+    der+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4>
         <span class="badge ${ck.referencias?.estado==='realizado'?'k':ck.referencias?.estado==='rechazado'?'m':'p'}"
           >${its.filter(r=>r.resultado).length}/${its.length}</span></div>
       ${its.length?its.map(refHTML).join(''):'<p style="font-size:13.5px;color:var(--gris)">Este cliente no dio referencias.</p>'}
       <div class="callout r" style="margin:10px 0 0">Marcar una referencia como <b>falsa</b> deniega la solicitud de inmediato.</div></div>`;
-    h+=`<div class="sec"><div class="sec-h"><h4>Resultado</h4></div><div id="res"></div></div>`;
+    der+=`<div class="sec"><div class="sec-h"><h4>Resultado</h4></div><div id="res"></div></div>`;
   }
   else if(s.resultado_analisis?.monto_aprobado||s.resultado_analisis?.motivo_denegacion){
-    h+=`<div class="sec"><div class="sec-h"><h4>Resultado del análisis</h4></div>${resHTML(s.resultado_analisis)}</div>`;
-  }
-
-  if(!esAna&&s.checklist_analista?.referencias?.items?.length){
-    h+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4></div>
-      ${s.checklist_analista.referencias.items.map(r=>`
-      <div class="ref"><div class="ref-t">
-        <div><div class="ref-n">${esc(r.nombre||'—')}</div>
-          <div class="ref-d">${esc(r.telefono||'')}${r.parentesco?' · '+esc(r.parentesco):''}</div></div>
-        <span class="tag ${r.resultado==='ok'?'b':''}">${txtRes(r.resultado)}</span></div>
-        ${r.comentario?`<div style="font-size:12.5px;color:var(--gris)">${esc(r.comentario)}</div>`:''}</div>`).join('')}</div>`;
+    der+=`<div class="sec"><div class="sec-h"><h4>Resultado del análisis</h4></div>${resHTML(s.resultado_analisis)}</div>`;
   }
 
   // Verificación de campo: la ve el analista al decidir, y queda en el historial
@@ -1189,11 +1283,11 @@ function detalle(){
   if(rv.length&&['verificado','aprobado','denegado','desembolsado'].includes(s.estado)){
     const rvOk=rv.filter(x=>x.resultado==='si').length;
     const rvNo=rv.filter(x=>x.resultado==='no').length;
-    h+=`<div class="sec"><div class="sec-h"><h4>Verificación de campo</h4>
+    der+=`<div class="sec"><div class="sec-h"><h4>Verificación de campo</h4>
         <span class="badge ${rvNo?'m':'k'}">${rvOk} cumple · ${rvNo} no</span></div>
       ${s.resultado_verificacion?.verificador?`<p style="font-size:12.5px;color:var(--gris);margin-bottom:11px">Verificó ${esc(s.resultado_verificacion.verificador)}${s.resultado_verificacion.completada_en?' · '+new Date(s.resultado_verificacion.completada_en).toLocaleDateString('es-HN'):''}</p>`:''}
       ${rvNo?`<div class="callout r" style="margin-bottom:11px">Hay <b>${rvNo} punto(s) que no cumplen</b>. Considéralo en tu decisión.</div>`:''}
-      ${rv.map((c,i)=>`<div class="chk-line" style="display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--linea)">
+      ${rv.map(c=>`<div style="display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--linea)">
         <span style="flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;
           background:${c.resultado==='si'?'var(--ok-lt)':c.resultado==='no'?'var(--error-lt)':'var(--fondo)'};
           color:${c.resultado==='si'?'var(--ok)':c.resultado==='no'?'var(--error)':'var(--gris)'}">${c.resultado==='si'?'✓':c.resultado==='no'?'✕':'–'}</span>
@@ -1204,7 +1298,11 @@ function detalle(){
     </div>`;
   }
 
-  $('#m-body').innerHTML=h;
+  // Si el rol no tiene nada que trabajar, todo queda en una sola columna
+  $('#m-body').innerHTML = der
+    ? `<div class="det"><div class="det-col">${izq}</div><div class="det-col">${der}</div></div>`
+    : `<div class="det" style="grid-template-columns:minmax(0,1fr);max-width:760px">
+         <div class="det-col">${izq}</div></div>`;
   pie(); conectar(esAse,esAna); conectarArchivos();
 }
 
@@ -1223,10 +1321,21 @@ function conectarArchivos(){
   }));
 }
 
-const cmpHTML=(c,i)=>`<div class="row-d" data-c="${i}">
-  <input class="c-d" value="${esc(c.desc||'')}" placeholder="Periodo / concepto">
-  <input class="c-m" inputmode="decimal" value="${c.monto||''}" placeholder="Monto (L)">
-  <button class="del" data-dc="${i}">×</button></div>`;
+/* Pagos por frecuencia: cuántos hay en un mes */
+const VECES_MES={Semanal:4.33,Catorcenal:2.17,Quincenal:2,Mensual:1};
+function frecuenciaSugerida(diasPago){
+  const t=String(diasPago||'').toLowerCase();
+  if(t.includes('semanal')) return 'Semanal';
+  if(t.includes('catorcen')) return 'Catorcenal';
+  if(t.includes('quincen')) return 'Quincenal';
+  if(t.includes('mensual')) return 'Mensual';
+  return 'Quincenal';
+}
+const pagoHTML=(p,i)=>`<div class="pago-row" data-p="${i}">
+  <input type="date" class="p-f" value="${p.fecha||''}">
+  <input class="p-m" inputmode="decimal" value="${p.monto||''}" placeholder="Ej. 8,500">
+  <button class="pago-x" data-dp="${i}" title="Quitar">×</button></div>`;
+
 const txtRes=r=>({ok:'Confirmó',no_respondio:'No respondió',falsa:'FALSA',negativa:'Negativa'})[r]||'Sin llamar';
 function refHTML(r,i){
   const ops=[['ok','Confirmó'],['no_respondio','No respondió'],['negativa','Negativa'],['falsa','Falsa']];
@@ -1259,16 +1368,21 @@ function conectar(esAse,esAna){
       $$('#d-tipo button').forEach(x=>x.classList.remove('on'));
       b.classList.add('on');ACT.tipo_operacion=b.dataset.t;
       $('#d-fi-wrap')?.classList.toggle('hide',b.dataset.t==='nuevo');
-      preview();
+      recalcIngreso();
     }));
-    $('#d-fi')?.addEventListener('change',e=>{ACT.fecha_ingreso_cliente=e.target.value||null;preview();});
-    $('#add-cmp')?.addEventListener('click',()=>{
-      $('#cmp').insertAdjacentHTML('beforeend',cmpHTML({},$$('#cmp .row-d').length));
-      conectarCmp();recalcIngreso();
+    $('#d-fi')?.addEventListener('change',e=>{ACT.fecha_ingreso_cliente=e.target.value||null;recalcIngreso();});
+    $('#add-pago')?.addEventListener('click',()=>{
+      $('#pagos').insertAdjacentHTML('beforeend',pagoHTML({},$$('#pagos .pago-row').length));
+      conectarPagos();recalcIngreso();
     });
-    conectarCmp();
-    ['#i-prom','#i-ded'].forEach(x=>$(x)?.addEventListener('input',preview));
-    preview();
+    $('#clr-pagos')?.addEventListener('click',()=>{
+      $('#pagos').innerHTML=pagoHTML({},0); conectarPagos(); recalcIngreso();
+    });
+    $('#i-frec')?.addEventListener('change',recalcIngreso);
+    conectarPagos();
+    $('#i-prom')?.addEventListener('input',e=>{e.target.dataset.manual='1';recalcIngreso();});
+    $('#i-ded')?.addEventListener('input',recalcIngreso);
+    recalcIngreso();
   }
   if(esAna){
     $('#p-proc')?.addEventListener('click',procesarPegado);
@@ -1295,31 +1409,55 @@ function conectar(esAse,esAna){
     resultado();
   }
 }
-function conectarCmp(){
-  $$('.c-m').forEach(i=>i.addEventListener('input',recalcIngreso));
-  $$('[data-dc]').forEach(b=>b.addEventListener('click',()=>{
-    if($$('#cmp .row-d').length<=1) return;
-    b.closest('.row-d').remove();recalcIngreso();
+function conectarPagos(){
+  $$('.p-m').forEach(i=>i.addEventListener('input',recalcIngreso));
+  $$('.p-f').forEach(i=>i.addEventListener('change',recalcIngreso));
+  $$('[data-dp]').forEach(b=>b.addEventListener('click',()=>{
+    if($$('#pagos .pago-row').length<=1){
+      b.closest('.pago-row').querySelectorAll('input').forEach(i=>i.value='');
+    } else b.closest('.pago-row').remove();
+    recalcIngreso();
   }));
 }
+/* Promedio mensual = promedio de los pagos x veces que cobra al mes */
 function recalcIngreso(){
-  const ms=$$('.c-m').map(i=>parseFloat(i.value)).filter(n=>!isNaN(n)&&n>0);
-  if(ms.length) $('#i-prom').value=(ms.reduce((a,b)=>a+b,0)/ms.length).toFixed(2);
-  preview();
-}
-function preview(){
-  const el=$('#prev');if(!el)return;
-  const ing=parseFloat($('#i-prom')?.value);
-  if(!ing){el.innerHTML='';return;}
-  const r=calcLimite(ing,ACT.tipo_operacion,mesesCliente(ACT));
-  el.innerHTML=r.ok
-    ? `<div class="veredicto k" style="margin:0"><div class="v-l">${esc(r.regla)}</div>
-       <div class="v-v" style="font-size:28px;margin-top:4px">L${fmt(r.monto)}</div>
-       ${r.clamped?'<div class="v-d" style="margin-top:6px">Ajustado al rango permitido.</div>':''}</div>`
-    : `<div class="veredicto m" style="margin:0"><div class="v-t" style="font-size:15px">No califica</div>
-       <div class="v-d">${esc(r.motivo)}</div></div>`;
-}
+  const montos=$$('.p-m').map(i=>parseFloat(String(i.value).replace(/,/g,'')))
+    .filter(n=>!isNaN(n)&&n>0);
+  const frec=$('#i-frec')?.value||'Quincenal';
+  const veces=VECES_MES[frec]||2;
 
+  const cnt=$('#ing-count');
+  if(cnt) cnt.textContent=`${montos.length} pago${montos.length===1?'':'s'}`;
+
+  let prom=0;
+  if(montos.length){
+    const promPago=montos.reduce((a,b)=>a+b,0)/montos.length;
+    prom=Math.round(promPago*veces);
+    const inp=$('#i-prom');
+    // Solo autocompleta si el asesor no lo editó a mano
+    if(inp && (!inp.dataset.manual || inp.value==='')) inp.value=prom;
+  }
+  const usado=parseFloat($('#i-prom')?.value)||prom;
+
+  const kp=$('#kpi-prom'), kpd=$('#kpi-prom-d');
+  if(kp){
+    kp.textContent=usado?fmtL(usado):'L 0';
+    kpd.textContent=montos.length
+      ? `${montos.length} pago(s) ${frec.toLowerCase()} · x${veces} al mes`
+      : '—';
+  }
+  const kl=$('#kpi-lim'), kld=$('#kpi-lim-d');
+  if(kl){
+    const r=calcLimite(usado,ACT.tipo_operacion,mesesCliente(ACT));
+    if(r.ok){
+      kl.textContent='L '+fmt(r.monto); kl.className='ing-kpi-v verde';
+      kld.textContent=r.regla+(r.clamped?' · ajustado al rango':'');
+    } else {
+      kl.textContent='L 0'; kl.className='ing-kpi-v rojo';
+      kld.textContent=usado?r.motivo:'—';
+    }
+  }
+}
 /* ===== PEGADO DEL HISTORIAL (portado de analisis-credito.html) ===== */
 function procesarPegado(){
   const raw=$('#paste').value.trim();
@@ -1455,17 +1593,60 @@ function pie(){
   $('#a2')?.addEventListener('click',()=>guardar(datosAsesor()));
   $('#a3')?.addEventListener('click',()=>guardar({...datosAsesor(),estado:'en_analisis'}));
   $('#a4')?.addEventListener('click',()=>guardar(datosAnalista()));
-  $('#a5')?.addEventListener('click',()=>guardar({...datosAnalista(),estado:'por_verificar'}));
+  $('#a5')?.addEventListener('click',asignarYEnviar);
   $('#a6')?.addEventListener('click',()=>guardar(datosAnalista()));
   $('#a7')?.addEventListener('click',aprobar);
   $('#a8')?.addEventListener('click',denegar);
 }
+/* Al enviar a verificar, el analista elige a quién se lo asigna.
+   Puede dejarlo libre para que lo tome el primero que esté disponible. */
+async function asignarYEnviar(){
+  const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
+  const {data:vers,error}=await sb.rpc('verificadores_disponibles');
+  bs.forEach(b=>b.disabled=false);
+  if(error){toast(traducir(error.message),'m');return;}
+
+  const lista=vers||[];
+  $('#asig-body').innerHTML=`
+    <div class="callout">Elegí quién va a hacer la visita. El número indica cuántas verificaciones tiene en curso.</div>
+    <div id="asig-lista">
+      ${lista.length?lista.map(v=>`
+        <button class="asig-op" data-v="${v.id}" data-n="${esc(v.nombre)}">
+          <div class="u-av">${esc((v.nombre||'?').charAt(0).toUpperCase())}</div>
+          <div class="u-i"><div class="u-n">${esc(v.nombre)}</div>
+            <div class="u-m">${v.activos} en curso</div></div>
+          <span class="tag ${v.activos===0?'ok':''}">${v.activos===0?'libre':v.activos+' activa'+(v.activos>1?'s':'')}</span>
+        </button>`).join('')
+      :'<p style="font-size:13.5px;color:var(--gris)">No hay verificadores activos. Creá uno en Usuarios.</p>'}
+      <button class="asig-op" data-v="" data-n="sin asignar">
+        <div class="u-av" style="background:var(--fondo);color:var(--gris)">?</div>
+        <div class="u-i"><div class="u-n">Dejar libre</div>
+          <div class="u-m">La toma el primer verificador disponible</div></div>
+      </button>
+    </div>`;
+  $('#asig').classList.add('on');
+
+  $$('.asig-op').forEach(b=>b.addEventListener('click',async()=>{
+    const vid=b.dataset.v||null;
+    $('#asig').classList.remove('on');
+    const campos={...datosAnalista(),estado:'por_verificar'};
+    if(vid) campos.verificador_id=vid;
+    await guardar(campos);
+    toast(vid?`Asignada a ${b.dataset.n}`:'Enviada a verificar','k');
+  }));
+}
+$('#asig-x')?.addEventListener('click',()=>$('#asig').classList.remove('on'));
+$('#asig-bg')?.addEventListener('click',()=>$('#asig').classList.remove('on'));
+
 function datosAsesor(){
-  const cs=$$('#cmp .row-d').map(r=>({
-    desc:r.querySelector('.c-d').value.trim(),
-    monto:parseFloat(r.querySelector('.c-m').value)||0})).filter(c=>c.monto>0);
+  const pagos=$$('#pagos .pago-row').map(r=>({
+    fecha:r.querySelector('.p-f').value,
+    monto:parseFloat(String(r.querySelector('.p-m').value).replace(/,/g,''))||0
+  })).filter(p=>p.monto>0);
   const out={
-    analisis_ingresos:{comprobantes:cs,
+    analisis_ingresos:{
+      pagos,
+      frecuencia:$('#i-frec')?.value||'',
       ingreso_promedio:parseFloat($('#i-prom')?.value)||0,
       deducciones:parseFloat($('#i-ded')?.value)||0,
       notas:$('#i-notas')?.value.trim()||''},
