@@ -180,23 +180,35 @@
 
   /* Comprobantes de ingresos: filas de pago + panel de resultados */
   .ing-wrap{display:grid;gap:0;border:1px solid var(--linea);border-radius:14px;overflow:hidden;background:#fff}
-  @media(min-width:760px){ .ing-wrap{grid-template-columns:minmax(0,1fr) 240px} }
+  /* El panel de resultados solo va al lado si de verdad hay espacio */
+  @media(min-width:1180px){ .ing-wrap{grid-template-columns:minmax(0,1fr) 220px} }
   .ing-left{padding:16px;min-width:0}
-  .ing-right{background:var(--fondo);border-top:1px solid var(--linea);padding:16px;display:flex;
-    flex-direction:column;gap:16px;justify-content:center}
-  @media(min-width:760px){ .ing-right{border-top:0;border-left:1px solid var(--linea)} }
+  .ing-right{background:var(--fondo);border-top:1px solid var(--linea);padding:16px;display:grid;
+    grid-template-columns:1fr 1fr;gap:16px}
+  @media(min-width:1180px){ .ing-right{border-top:0;border-left:1px solid var(--linea);
+    grid-template-columns:1fr;align-content:center} }
   .ing-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;
-    border-bottom:1px solid var(--linea);background:#fff}
+    border-bottom:1px solid var(--linea);background:#fff;grid-column:1/-1}
   .ing-h-t{font-family:'Poppins';font-weight:600;font-size:14px}
   .ing-h-s{font-size:11.5px;color:var(--azul)}
   .ing-lbl{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--gris);margin-bottom:6px}
   .ing-sep{height:1px;background:var(--linea);margin:14px 0}
-  .pago-row{display:grid;grid-template-columns:150px minmax(0,1fr) 44px;gap:10px;align-items:center;margin-bottom:8px}
-  @media(max-width:560px){ .pago-row{grid-template-columns:1fr 1fr 44px} }
-  .pago-row input{padding:9px 11px;font-size:14px}
-  .pago-x{height:38px;border:1.5px solid var(--linea);background:#fff;color:var(--error);border-radius:9px;
-    cursor:pointer;font-size:16px;line-height:1;display:grid;place-items:center}
+  /* Fecha y monto con ancho mínimo garantizado; el monto nunca se aplasta */
+  .pago-row{display:grid;grid-template-columns:minmax(120px,140px) minmax(110px,1fr) 40px;
+    gap:9px;align-items:center;margin-bottom:8px}
+  .pago-row input{padding:9px 10px;font-size:14px;min-width:0;width:100%}
+  .pago-row input[type=date]{font-size:13px;padding:9px 8px}
+  .pago-x{height:38px;width:40px;border:1.5px solid var(--linea);background:#fff;color:var(--error);
+    border-radius:9px;cursor:pointer;font-size:16px;line-height:1;display:grid;place-items:center}
   .pago-x:hover{background:var(--error-lt);border-color:var(--error)}
+  /* Resumen de totales por mes */
+  .ing-tot{margin-top:12px;border-top:1px solid var(--linea);padding-top:11px}
+  .tot-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-size:13px;padding:5px 0}
+  .tot-row .m{color:var(--gris)}
+  .tot-row .v{font-family:'Poppins';font-weight:600}
+  .tot-row.gran{border-top:1px dashed var(--linea);margin-top:5px;padding-top:9px}
+  .tot-row.gran .v{font-size:15px;color:var(--azul-tinta);font-weight:800}
   .ing-kpi-l{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--gris);
     display:flex;align-items:center;gap:6px}
   .ing-kpi-v{font-family:'Poppins';font-weight:800;font-size:30px;line-height:1.05;margin-top:4px}
@@ -326,6 +338,20 @@
     border:1.5px solid var(--linea);border-radius:13px;margin-bottom:9px;cursor:pointer;text-align:left}
   .asig-op:hover{border-color:var(--azul);background:var(--cielo)}
   .asig-op:last-child{margin-bottom:0}
+
+  /* Tiempos por área */
+  .tm-barra{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--linea);margin-bottom:12px}
+  .tm-barra i{display:block;height:100%}
+  .tm-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--linea);font-size:13px}
+  .tm-row:last-child{border-bottom:0}
+  .tm-dot{width:10px;height:10px;border-radius:3px;flex:none}
+  .tm-n{flex:1;min-width:0}
+  .tm-v{font-family:'Poppins';font-weight:700;white-space:nowrap}
+  .tm-sub{font-size:11px;color:var(--gris)}
+  .tm-abierto{font-size:10px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.4px}
+  .tm-total{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;
+    padding-top:11px;border-top:1px dashed var(--linea)}
+  .tm-total .v{font-family:'Poppins';font-weight:800;font-size:19px}
 
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(90px);
     background:var(--azul-tinta);color:#fff;padding:13px 22px;border-radius:26px;
@@ -726,6 +752,7 @@ function pintarHistorial(){
   const cerr=SOLS.filter(s=>['aprobado','denegado','desembolsado'].includes(s.estado))
     .sort((a,b)=>new Date(b.cerrado_en||b.actualizado_en)-new Date(a.cerrado_en||a.actualizado_en));
   $('#cont').innerHTML=`
+  <div id="prom-box"></div>
   <div class="sec"><div class="sec-h"><h4>Buscar</h4></div>
     <div class="g2">
       <div class="fld"><label>Nombre, cédula o folio</label><input id="h-q" placeholder="Escribí para filtrar"></div>
@@ -760,19 +787,54 @@ function pintarHistorial(){
   };
   $('#h-q').addEventListener('input',render);
   $('#h-e').addEventListener('change',render);
-  $('#h-csv').addEventListener('click',()=>{
-    const rows=[['Folio','Fecha','Nombre','Cedula','Tipo','Estado','Monto','Tasa','Motivo']];
-    cerr.forEach(s=>{
+  $('#h-csv').addEventListener('click',async()=>{
+    const b=$('#h-csv'); b.disabled=true; b.innerHTML='<span class="sp d"></span>Generando';
+    const rows=[['Folio','Fecha','Nombre','Cedula','Tipo','Estado','Monto','Tasa','Motivo',
+      'Min asesor','Min analista revision','Min analista referencias','Min verificador','Min desembolso','Min total']];
+    for(const s of cerr){
       const d=s.datos_cliente||{},r=s.resultado_analisis||{};
+      const {data:t}=await sb.rpc('tiempos_solicitud',{p_id:s.id});
+      const j=t||{};
       rows.push([s.folio,new Date(s.cerrado_en||s.actualizado_en).toLocaleDateString('es-HN'),
-        nombreDe(d),cedulaDe(d),TIPO_L[s.tipo_operacion],s.estado,r.monto_aprobado||'',r.tasa||'',r.motivo_denegacion||'']);
-    });
+        nombreDe(d),cedulaDe(d),TIPO_L[s.tipo_operacion],s.estado,r.monto_aprobado||'',r.tasa||'',r.motivo_denegacion||'',
+        j.asesor?.minutos??'', j.analista_revision?.minutos??'', j.analista_referencias?.minutos??'',
+        j.verificador?.minutos??'', j.desembolso?.minutos??'', j.total?.minutos??'']);
+    }
+    b.disabled=false; b.textContent='Descargar CSV';
     const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
     a.download=`historial_${new Date().toISOString().slice(0,10)}.csv`;a.click();
   });
   render();
+  pintarPromedios();
+}
+
+/* Promedios por área: dónde se atora el proceso */
+async function pintarPromedios(){
+  const box=$('#prom-box'); if(!box) return;
+  const {data,error}=await sb.rpc('promedios_areas',{p_desde:null,p_hasta:null});
+  if(error||!data||!data.n){ box.innerHTML=''; return; }
+
+  const filas=AREAS.filter(a=>data[a.k]!=null).map(a=>({...a,minutos:+data[a.k]}));
+  if(!filas.length){ box.innerHTML=''; return; }
+  const suma=filas.reduce((t,f)=>t+f.minutos,0)||1;
+  const peor=filas.reduce((a,b)=>b.minutos>a.minutos?b:a,filas[0]);
+
+  box.innerHTML=`<div class="sec"><div class="sec-h"><h4>Tiempo promedio por área</h4>
+      <span class="badge p">${data.n} solicitud${data.n===1?'':'es'}</span></div>
+    <div class="tm-barra">
+      ${filas.map(f=>`<i style="width:${(f.minutos/suma*100).toFixed(1)}%;background:${f.c}"
+        title="${f.n}: ${dur(f.minutos)}"></i>`).join('')}
+    </div>
+    ${filas.map(f=>`<div class="tm-row">
+      <span class="tm-dot" style="background:${f.c}"></span>
+      <div class="tm-n">${f.n}${f.k===peor.k?' <span class="tm-abierto" style="color:var(--error)">más lento</span>':''}</div>
+      <span class="tm-v">${dur(f.minutos)}</span>
+    </div>`).join('')}
+    <div class="tm-total"><span>Promedio total del proceso</span>
+      <span class="v">${dur(data.total)}</span></div>
+  </div>`;
 }
 
 /* ===== PARÁMETROS ===== */
@@ -1203,6 +1265,7 @@ function detalle(){
             <button class="btn btn-b btn-sm" id="add-pago" style="flex:none">+ Agregar pago</button>
             <button class="btn btn-g btn-sm" id="clr-pagos" style="flex:none">Limpiar</button>
           </div>
+          <div class="ing-tot" id="ing-tot"></div>
         </div>
         <div class="ing-right">
           <div>
@@ -1300,10 +1363,55 @@ function detalle(){
 
   // Si el rol no tiene nada que trabajar, todo queda en una sola columna
   $('#m-body').innerHTML = der
-    ? `<div class="det"><div class="det-col">${izq}</div><div class="det-col">${der}</div></div>`
+    ? `<div class="det"><div class="det-col">${izq}</div><div class="det-col">${der}
+         <div id="tiempos-box"></div></div></div>`
     : `<div class="det" style="grid-template-columns:minmax(0,1fr);max-width:760px">
-         <div class="det-col">${izq}</div></div>`;
-  pie(); conectar(esAse,esAna); conectarArchivos();
+         <div class="det-col">${izq}<div id="tiempos-box"></div></div></div>`;
+  pie(); conectar(esAse,esAna); conectarArchivos(); pintarTiempos();
+}
+
+/* ===== TIEMPOS POR ÁREA ===== */
+const AREAS=[
+  {k:'asesor',              n:'Asesor',                 c:'#1877F2'},
+  {k:'analista_revision',   n:'Analista · revisión',    c:'#7C5CE0'},
+  {k:'analista_referencias',n:'Analista · referencias', c:'#B7791F'},
+  {k:'verificador',         n:'Verificador',            c:'#1F9D57'},
+  {k:'desembolso',          n:'Desembolso',             c:'#0E9BA8'}
+];
+function dur(min){
+  min=Math.max(0,Math.round(min||0));
+  if(min<60) return min+' min';
+  const h=Math.floor(min/60), m=min%60;
+  if(h<24) return m?`${h} h ${m} min`:`${h} h`;
+  const d=Math.floor(h/24), hr=h%24;
+  return hr?`${d} d ${hr} h`:`${d} d`;
+}
+async function pintarTiempos(){
+  const box=$('#tiempos-box'); if(!box||!ACT) return;
+  const {data,error}=await sb.rpc('tiempos_solicitud',{p_id:ACT.id});
+  if(error||!data){ box.innerHTML=''; return; }
+
+  const filas=AREAS.filter(a=>data[a.k]).map(a=>({...a,...data[a.k]}));
+  if(!filas.length){ box.innerHTML=''; return; }
+  const suma=filas.reduce((t,f)=>t+(f.minutos||0),0)||1;
+
+  box.innerHTML=`<div class="sec"><div class="sec-h"><h4>Tiempos por área</h4>
+      <span class="badge ${data.total?.abierto?'a':'k'}">${data.total?.abierto?'en curso':'cerrada'}</span></div>
+    <div class="tm-barra">
+      ${filas.map(f=>`<i style="width:${(f.minutos/suma*100).toFixed(1)}%;background:${f.c}"
+        title="${f.n}: ${dur(f.minutos)}"></i>`).join('')}
+    </div>
+    ${filas.map(f=>`<div class="tm-row">
+      <span class="tm-dot" style="background:${f.c}"></span>
+      <div class="tm-n"><div>${f.n}</div>
+        ${f.inicio?`<div class="tm-sub">${new Date(f.inicio).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${f.fin?' → '+new Date(f.fin).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</div>`:''}
+      </div>
+      ${f.abierto?'<span class="tm-abierto">en curso</span>':''}
+      <span class="tm-v">${dur(f.minutos)}</span>
+    </div>`).join('')}
+    <div class="tm-total"><span>Total del proceso</span>
+      <span class="v">${dur(data.total?.minutos)}</span></div>
+  </div>`;
 }
 
 
@@ -1419,32 +1527,79 @@ function conectarPagos(){
     recalcIngreso();
   }));
 }
-/* Promedio mensual = promedio de los pagos x veces que cobra al mes */
+/* Promedio mensual. Si hay pagos fechados, se agrupan por mes y se promedian
+   los meses COMPLETOS (los meses a medio llenar distorsionarían el promedio).
+   Si no hay fechas, se estima con la frecuencia declarada. */
 function recalcIngreso(){
-  const montos=$$('.p-m').map(i=>parseFloat(String(i.value).replace(/,/g,'')))
-    .filter(n=>!isNaN(n)&&n>0);
+  const filas=$$('#pagos .pago-row').map(r=>({
+    fecha:r.querySelector('.p-f').value,
+    monto:parseFloat(String(r.querySelector('.p-m').value).replace(/,/g,''))||0
+  })).filter(p=>p.monto>0);
+
   const frec=$('#i-frec')?.value||'Quincenal';
   const veces=VECES_MES[frec]||2;
 
   const cnt=$('#ing-count');
-  if(cnt) cnt.textContent=`${montos.length} pago${montos.length===1?'':'s'}`;
+  if(cnt) cnt.textContent=`${filas.length} pago${filas.length===1?'':'s'}`;
 
-  let prom=0;
-  if(montos.length){
-    const promPago=montos.reduce((a,b)=>a+b,0)/montos.length;
+  // Agrupar por mes
+  const meses={};
+  filas.forEach(p=>{
+    const k=p.fecha?p.fecha.slice(0,7):'sin-fecha';
+    (meses[k]=meses[k]||[]).push(p.monto);
+  });
+  const claves=Object.keys(meses).filter(k=>k!=='sin-fecha').sort();
+  const sinFecha=meses['sin-fecha']||[];
+
+  let prom=0, detalle='';
+  if(claves.length){
+    // Un mes se considera completo si tiene los pagos que corresponden a la frecuencia
+    const esperados=Math.round(veces);
+    const totales=claves.map(k=>({
+      mes:k, total:meses[k].reduce((a,b)=>a+b,0), n:meses[k].length,
+      completo: meses[k].length>=esperados
+    }));
+    const completos=totales.filter(m=>m.completo);
+    const base=completos.length?completos:totales;
+    prom=Math.round(base.reduce((a,m)=>a+m.total,0)/base.length);
+    detalle=completos.length
+      ? `Promedio de ${completos.length} mes(es) completo(s)`
+      : `Estimado con ${totales.length} mes(es) parcial(es)`;
+
+    // Render del desglose
+    const nombreMes=k=>{
+      const [y,m]=k.split('-');
+      return new Date(+y,+m-1,1).toLocaleDateString('es-HN',{month:'long',year:'numeric'});
+    };
+    $('#ing-tot').innerHTML=
+      totales.map(m=>`<div class="tot-row">
+        <span class="m">${nombreMes(m.mes)} · ${m.n} pago${m.n>1?'s':''}${m.completo?'':' <span style="color:var(--amber)">(incompleto)</span>'}</span>
+        <span class="v">${fmtL(m.total)}</span></div>`).join('')
+      + (sinFecha.length?`<div class="tot-row"><span class="m">Sin fecha · ${sinFecha.length} pago(s)</span>
+          <span class="v">${fmtL(sinFecha.reduce((a,b)=>a+b,0))}</span></div>`:'')
+      + `<div class="tot-row gran"><span class="m">Promedio mensual</span>
+          <span class="v">${fmtL(prom)}</span></div>`;
+  } else if(filas.length){
+    // Sin fechas: estimar por frecuencia
+    const promPago=filas.reduce((a,p)=>a+p.monto,0)/filas.length;
     prom=Math.round(promPago*veces);
-    const inp=$('#i-prom');
-    // Solo autocompleta si el asesor no lo editó a mano
-    if(inp && (!inp.dataset.manual || inp.value==='')) inp.value=prom;
+    detalle=`${filas.length} pago(s) ${frec.toLowerCase()} × ${veces} al mes`;
+    $('#ing-tot').innerHTML=`
+      <div class="tot-row"><span class="m">Promedio por pago</span><span class="v">${fmtL(promPago)}</span></div>
+      <div class="tot-row"><span class="m">Pagos al mes (${frec.toLowerCase()})</span><span class="v">× ${veces}</span></div>
+      <div class="tot-row gran"><span class="m">Promedio mensual</span><span class="v">${fmtL(prom)}</span></div>`;
+  } else {
+    $('#ing-tot').innerHTML='<div class="tot-row"><span class="m">Agregá los pagos para calcular</span></div>';
   }
+
+  const inp=$('#i-prom');
+  if(inp && prom && (!inp.dataset.manual || inp.value==='')) inp.value=prom;
   const usado=parseFloat($('#i-prom')?.value)||prom;
 
   const kp=$('#kpi-prom'), kpd=$('#kpi-prom-d');
   if(kp){
     kp.textContent=usado?fmtL(usado):'L 0';
-    kpd.textContent=montos.length
-      ? `${montos.length} pago(s) ${frec.toLowerCase()} · x${veces} al mes`
-      : '—';
+    kpd.textContent=detalle||'—';
   }
   const kl=$('#kpi-lim'), kld=$('#kpi-lim-d');
   if(kl){
@@ -1588,6 +1743,8 @@ function pie(){
   }
   else if(s.estado==='verificado'&&(rol('analista')||esAdmin()))
     h=`<button class="btn btn-r" id="a8">Denegar</button><button class="btn btn-b" id="a7">Aprobar</button>`;
+  else if(s.estado==='aprobado'&&(rol('asesor')||rol('analista')||esAdmin()))
+    h=`<button class="btn btn-b" id="a9">Marcar como entregada</button>`;
   $('#m-pie').innerHTML=h;
   $('#a1')?.addEventListener('click',()=>guardar({estado:'en_revision_asesor',asesor_id:YO.id}));
   $('#a2')?.addEventListener('click',()=>guardar(datosAsesor()));
@@ -1597,6 +1754,11 @@ function pie(){
   $('#a6')?.addEventListener('click',()=>guardar(datosAnalista()));
   $('#a7')?.addEventListener('click',aprobar);
   $('#a8')?.addEventListener('click',denegar);
+  $('#a9')?.addEventListener('click',async()=>{
+    const r=ACT.resultado_analisis||{};
+    if(!confirm(`¿Confirmar que ya se entregó el desembolso de L${fmt(r.monto_aprobado)}?`)) return;
+    await guardar({estado:'desembolsado'});
+  });
 }
 /* Al enviar a verificar, el analista elige a quién se lo asigna.
    Puede dejarlo libre para que lo tome el primero que esté disponible. */
