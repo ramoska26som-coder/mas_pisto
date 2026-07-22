@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --azul:#1877F2;
@@ -133,33 +132,6 @@
   .aviso-wa-t{font-family:'Poppins';font-weight:700;font-size:16px;color:#0E7A3C}
   .aviso-wa-d{font-size:13.5px;color:var(--gris);margin:5px 0 0;max-width:40ch;margin-inline:auto}
   .aviso-wa .wa{margin-top:14px}
-
-  /* Subida de archivos */
-  .drop{border:2px dashed var(--azul);border-radius:14px;background:var(--cielo);padding:24px 16px;
-    text-align:center;cursor:pointer;transition:background .15s,border-color .15s}
-  .drop:hover,.drop.over{background:#DFEEFF;border-color:var(--azul-oscuro)}
-  .drop svg{margin-bottom:8px}
-  .drop-t{font-family:'Poppins';font-weight:600;font-size:14.5px;color:var(--azul-tinta)}
-  .drop-s{font-size:12.5px;color:var(--gris);margin-top:3px}
-  .drop.err{border-color:var(--error);background:#FFF0F0}
-
-  .files{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
-  .file{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--linea);
-    border-radius:12px;padding:10px 12px}
-  .file-ic{width:36px;height:36px;border-radius:9px;flex:none;display:grid;place-items:center;
-    font-family:'Poppins';font-weight:700;font-size:10px;letter-spacing:.5px}
-  .file-ic.pdf{background:#FFF0F0;color:var(--error)}
-  .file-ic.img{background:var(--cielo);color:var(--azul)}
-  .file-i{flex:1;min-width:0}
-  .file-n{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .file-s{font-size:11.5px;color:var(--gris)}
-  .file-x{background:none;border:0;color:var(--gris);cursor:pointer;font-size:18px;
-    padding:4px 8px;border-radius:7px;line-height:1;flex:none}
-  .file-x:hover{color:var(--error);background:#FFF0F0}
-  .file.mal{border-color:var(--error);background:#FFF9F9}
-  .file-e{font-size:11.5px;color:var(--error);margin-top:1px}
-  .bar{height:4px;background:var(--linea);border-radius:3px;overflow:hidden;margin-top:5px}
-  .bar i{display:block;height:100%;background:var(--azul);width:0;transition:width .25s}
 
   /* Folio */
   .folio-box{display:none;background:var(--cielo);border:2px dashed var(--azul);border-radius:16px;padding:18px;margin:22px auto 0;max-width:360px}
@@ -463,33 +435,15 @@
 
             <div class="divider"><span>Comprobantes</span></div>
             <div class="callout">
-              Para analizar tu solicitud necesitamos <b>uno</b> de estos documentos: tus <b>últimos 4 comprobantes de pago</b> de salario, o tus <b>estados de cuenta bancaria de los últimos 3 meses</b>. Súbelos aquí mismo.
+              Para analizar tu solicitud necesitamos <b>uno</b> de estos documentos: tus <b>últimos 4 comprobantes de pago</b> de salario, o tus <b>estados de cuenta bancaria de los últimos 3 meses</b>. Los enviarás por <b>WhatsApp</b> al terminar.
             </div>
             <div class="field full">
-              <label>¿Qué vas a subir? <span class="req">*</span></label>
+              <label>¿Cuentas con alguno de estos documentos? <span class="req">*</span></label>
               <div class="radios">
-                <label><input type="radio" name="comprobantes" value="Sí, comprobantes de pago" required><s>Comprobantes de pago</s></label>
-                <label><input type="radio" name="comprobantes" value="Sí, estados de cuenta"><s>Estados de cuenta</s></label>
+                <label><input type="radio" name="comprobantes" value="Sí, comprobantes de pago" required><s>Sí, comprobantes de pago</s></label>
+                <label><input type="radio" name="comprobantes" value="Sí, estados de cuenta"><s>Sí, estados de cuenta</s></label>
                 <label><input type="radio" name="comprobantes" value="No los tengo aún"><s>No los tengo aún</s></label>
               </div><div class="msg">Selecciona una opción.</div>
-            </div>
-
-            <div class="field full conditional" id="subirWrap">
-              <label id="subirLabel">Sube tus documentos <span class="req">*</span></label>
-              <div class="hint" id="subirHint">Fotos o PDF. Máximo 10 MB cada uno.</div>
-
-              <div class="drop" id="drop">
-                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" multiple hidden>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1877F2" stroke-width="1.8">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <div class="drop-t">Toca para elegir archivos</div>
-                <div class="drop-s">Puedes tomar foto o elegir un PDF</div>
-              </div>
-
-              <ul class="files" id="files"></ul>
-              <div class="msg" data-for="archivos" id="filesMsg">Sube al menos un documento.</div>
             </div>
 
             <div class="field full conditional" id="sinDocsWrap">
@@ -518,8 +472,8 @@
         </div>
 
         <div class="aviso-wa">
-          <div class="aviso-wa-t">No olvides avisarnos</div>
-          <p class="aviso-wa-d">Escríbenos al WhatsApp de crédito para avisar que ya llenaste tu solicitud. Así la revisamos más rápido.</p>
+          <div class="aviso-wa-t" id="avisoTitulo">Envíanos tus comprobantes</div>
+          <p class="aviso-wa-d" id="avisoTexto">Escríbenos por WhatsApp y adjunta tus documentos en el chat.</p>
           <a class="wa" id="waAviso" href="#" target="_blank" rel="noopener">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.5 14.1c-.2.6-1.2 1.2-1.7 1.2-.5.1-1 .1-3-.8-2.5-1-4.1-3.6-4.2-3.8-.1-.2-1-1.3-1-2.5s.6-1.8.8-2c.2-.2.5-.3.6-.3h.5c.2 0 .4 0 .5.4l.7 1.7c.1.1.1.3 0 .5l-.3.4-.3.3c-.1.1-.2.3-.1.5.1.2.6 1 1.3 1.6.9.8 1.6 1 1.8 1.1.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.5-.1l1.6.8c.2.1.4.2.4.3.1.1.1.6-.1 1.2Z"/></svg>
             Avisar por WhatsApp
@@ -549,17 +503,6 @@
   const SUPABASE_URL  = "https://qmxkmslxydxjlojxhzhb.supabase.co";
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGttc2x4eWR4amxvanhoemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTM0NTYsImV4cCI6MjA5OTc4OTQ1Nn0.TF1Fvaa5B_eT_qHdM1NpVGMqOub758I0f7NGpm2_mfY";
   const WHATSAPP_CREDITO = "50496658360"; // WhatsApp de crédito (+504 9665-8360)
-  // Edge/Safari con "Tracking Prevention" bloquean localStorage para algunos
-  // dominios; el SDK de Supabase lo usa para la sesión y, si falla, manda el
-  // upload sin Authorization -> Storage responde 400. Como el formulario es
-  // público (solo anon), desactivamos la persistencia de sesión.
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-    auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false },
-    global: { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
-  });
-
-  const MAX_MB = 10;
-  const TIPOS_OK = ['image/jpeg','image/png','image/webp','image/heic','image/heif','application/pdf'];
 
   async function rpc(fn,args){
     const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
@@ -678,81 +621,10 @@
   })();
 
   /* =========== SUBIDA DE COMPROBANTES =========== */
-  let ARCHIVOS = [];   // {file, id, error}
-
-  const fmtBytes = b => b < 1048576 ? (b/1024).toFixed(0)+' KB' : (b/1048576).toFixed(1)+' MB';
-  const esPDF = f => f.type === 'application/pdf';
-
-  function validarArchivo(f){
-    if(!TIPOS_OK.includes(f.type)){
-      // Algunos Android mandan type vacío; caemos a la extensión.
-      const ext = (f.name.split('.').pop()||'').toLowerCase();
-      if(!['jpg','jpeg','png','webp','heic','heif','pdf'].includes(ext))
-        return 'Solo se aceptan imágenes o PDF.';
-    }
-    if(f.size > MAX_MB*1048576) return `Pesa ${fmtBytes(f.size)}. El máximo es ${MAX_MB} MB.`;
-    if(f.size === 0) return 'El archivo está vacío.';
-    return null;
-  }
-
-  function pintarArchivos(){
-    const ul = $('#files');
-    ul.innerHTML = ARCHIVOS.map(a=>`
-      <li class="file ${a.error?'mal':''}" data-id="${a.id}">
-        <div class="file-ic ${esPDF(a.file)?'pdf':'img'}">${esPDF(a.file)?'PDF':'IMG'}</div>
-        <div class="file-i">
-          <div class="file-n">${a.file.name.replace(/[<>]/g,'')}</div>
-          ${a.error ? `<div class="file-e">${a.error}</div>`
-                    : `<div class="file-s">${fmtBytes(a.file.size)}</div>`}
-          <div class="bar" id="bar-${a.id}" style="display:none"><i></i></div>
-        </div>
-        <button type="button" class="file-x" data-q="${a.id}" aria-label="Quitar">×</button>
-      </li>`).join('');
-    ul.querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click',()=>{
-      ARCHIVOS = ARCHIVOS.filter(x=>x.id !== b.dataset.q);
-      pintarArchivos();
-    }));
-    if(ARCHIVOS.length) $('#filesMsg').classList.remove('show');
-  }
-
-  function agregarArchivos(lista){
-    [...lista].forEach(f=>{
-      // Evitar duplicados por nombre+tamaño
-      if(ARCHIVOS.some(a=>a.file.name===f.name && a.file.size===f.size)) return;
-      ARCHIVOS.push({file:f, id:'f'+Date.now()+Math.random().toString(36).slice(2,7), error:validarArchivo(f)});
-    });
-    pintarArchivos();
-    $('#drop').classList.remove('err');
-  }
-
-  $('#drop').addEventListener('click',()=>$('#fileInput').click());
-  $('#fileInput').addEventListener('change',e=>{ agregarArchivos(e.target.files); e.target.value=''; });
-  ['dragenter','dragover'].forEach(ev=>$('#drop').addEventListener(ev,e=>{
-    e.preventDefault(); $('#drop').classList.add('over');
-  }));
-  ['dragleave','drop'].forEach(ev=>$('#drop').addEventListener(ev,e=>{
-    e.preventDefault(); $('#drop').classList.remove('over');
-  }));
-  $('#drop').addEventListener('drop',e=>{ if(e.dataTransfer?.files) agregarArchivos(e.dataTransfer.files); });
-
-  /* Mostrar la zona de subida según lo que elija */
+  /* Mostrar el aviso si el cliente no tiene los comprobantes todavía */
   $$('[name="comprobantes"]').forEach(r=>r.addEventListener('change',()=>{
-    const sinDocs = r.value.startsWith('No');
-    toggle($('#subirWrap'), !sinDocs);
-    toggle($('#sinDocsWrap'), sinDocs);
-    if(sinDocs){ ARCHIVOS=[]; pintarArchivos(); }
-    else {
-      const esEstados = r.value.includes('estados');
-      $('#subirLabel').innerHTML = esEstados
-        ? 'Sube tus estados de cuenta <span class="req">*</span>'
-        : 'Sube tus comprobantes de pago <span class="req">*</span>';
-      $('#subirHint').textContent = esEstados
-        ? 'Los últimos 3 meses. Fotos o PDF, máximo 10 MB cada uno.'
-        : 'Los últimos 4 comprobantes. Fotos o PDF, máximo 10 MB cada uno.';
-    }
+    toggle($('#sinDocsWrap'), r.value.startsWith('No'));
   }));
-
-
 
   const form=$('#form'),btnSubmit=$('#btnSubmit');
   function wrapOf(el){return el.closest('.field');}
@@ -783,23 +655,6 @@
       const bad=isRadio?!form.querySelector(`[name="${name}"]:checked`):!els[0].value.trim();
       setError(els[0],bad);if(bad&&!firstBad)firstBad=els[0];
     });
-    /* Comprobantes: si dijo que los tiene, debe subir al menos uno válido */
-    const comp = form.querySelector('[name="comprobantes"]:checked');
-    if(comp && !comp.value.startsWith('No')){
-      const validos = ARCHIVOS.filter(a=>!a.error);
-      if(validos.length === 0){
-        $('#filesMsg').textContent = ARCHIVOS.length
-          ? 'Ninguno de los archivos sirve. Revisá los errores de arriba.'
-          : 'Subí al menos un documento.';
-        $('#filesMsg').classList.add('show');
-        $('#drop').classList.add('err');
-        if(!firstBad) firstBad = $('#drop');
-      } else if(ARCHIVOS.some(a=>a.error)){
-        $('#filesMsg').textContent = 'Quitá los archivos con error antes de enviar.';
-        $('#filesMsg').classList.add('show');
-        if(!firstBad) firstBad = $('#drop');
-      }
-    }
 
     if(firstBad)firstBad.scrollIntoView({behavior:'smooth',block:'center'});
     return !firstBad;
@@ -870,51 +725,35 @@
       if(!res.ok) throw new Error(res.error||'No se pudo enviar la solicitud.');
 
       localStorage.setItem('mp_token',res.token);
-
-      /* 2. Subir los comprobantes y adjuntarlos */
-      const porSubir = ARCHIVOS.filter(a=>!a.error);
-      if(porSubir.length){
-        btnSubmit.textContent=`Subiendo documentos… 0/${porSubir.length}`;
-        let n=0;
-        const subidos=[];
-        for(const a of porSubir){
-          const bar=$('#bar-'+a.id);
-          if(bar){ bar.style.display='block'; bar.querySelector('i').style.width='40%'; }
-          const safe=a.file.name.replace(/[^\w.\-]/g,'_').slice(-60);
-          const path=`${res.token}/${Date.now()}_${safe}`;
-          // Algunos navegadores (o Tracking Prevention) dejan file.type vacío;
-          // inferimos el MIME de la extensión para no mandar el upload sin Content-Type.
-          const ext=(a.file.name.split('.').pop()||'').toLowerCase();
-          const mimePorExt={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',
-            webp:'image/webp',heic:'image/heic',heif:'image/heif',pdf:'application/pdf'};
-          const ctype=a.file.type||mimePorExt[ext]||'application/octet-stream';
-          const {error}=await sb.storage.from('comprobantes')
-            .upload(path,a.file,{contentType:ctype,upsert:true});
-          if(error) throw new Error(`No se pudo subir "${a.file.name}": ${error.message||error.error||'error desconocido'}.`);
-          if(bar) bar.querySelector('i').style.width='100%';
-          subidos.push({path,nombre:a.file.name,tipo:ctype,tamano:a.file.size,
-                        subido_en:new Date().toISOString()});
-          btnSubmit.textContent=`Subiendo documentos… ${++n}/${porSubir.length}`;
-        }
-        const adj=await rpc('adjuntar_comprobantes',{p_token:res.token,p_archivos:subidos});
-        if(!adj.ok) throw new Error(adj.error||'No se pudieron adjuntar los documentos.');
-      }
-
       history.replaceState(null,'',`${location.pathname}?t=${res.token}`);
 
-      /* 3. Pantalla final */
+      /* Pantalla final */
       $('#folioOut').textContent=res.folio;
       $('#folioBox').style.display='block';
 
-      const waMsg=`Hola, soy ${data.nombre}. Ya llené mi solicitud de crédito en Más Pisto. Mi folio es ${res.folio}.`;
+      const sinDocs=data.comprobantes.startsWith('No');
+      const tipoDoc=data.comprobantes.includes('estados')
+        ? 'mis estados de cuenta de los últimos 3 meses'
+        : 'mis últimos 4 comprobantes de pago';
+
+      // El mensaje cambia según si ya tiene los documentos o no
+      const waMsg = sinDocs
+        ? `Hola, soy ${data.nombre}. Ya llené mi solicitud de crédito en Más Pisto (folio ${res.folio}). Todavía no tengo mis comprobantes, quisiera consultar qué opciones tengo.`
+        : `Hola, soy ${data.nombre}. Ya llené mi solicitud de crédito en Más Pisto (folio ${res.folio}) y le envío ${tipoDoc}.`;
       $('#waAviso').href=`https://wa.me/${WHATSAPP_CREDITO}?text=${encodeURIComponent(waMsg)}`;
 
-      if(data.comprobantes.startsWith('No')){
+      if(sinDocs){
+        $('#avisoTitulo').textContent='Escríbenos por WhatsApp';
+        $('#avisoTexto').innerHTML='Avísanos que ya llenaste tu solicitud. Cuando tengas tus '+
+          '<b>comprobantes de pago</b> o <b>estados de cuenta</b>, envíaselos a la asesora por ese mismo chat.';
         $('#doneMsg').innerHTML='Recibimos tu solicitud, pero <b>todavía nos faltan tus comprobantes</b>. '+
-          'Una asesora se comunicará contigo para pedírtelos.';
+          'Una asesora se comunicará contigo.';
       } else {
-        $('#doneMsg').innerHTML=`Recibimos tu solicitud y tus <b>${porSubir.length} documento${porSubir.length>1?'s':''}</b>. `+
-          'Una asesora de crédito se comunicará contigo pronto.';
+        $('#avisoTitulo').textContent='Envíanos tus comprobantes';
+        $('#avisoTexto').innerHTML='Escríbenos por WhatsApp y <b>adjunta tus documentos</b> en el chat. '+
+          'Sin ellos no podemos analizar tu solicitud.';
+        $('#doneMsg').innerHTML='Recibimos tu solicitud. Ahora <b>envíanos tus comprobantes por WhatsApp</b> '+
+          'para que una asesora pueda analizarla.';
       }
       show('done',{e:'Listo',t:'¡Gracias por tu solicitud!',x:'Hemos recibido tu información correctamente.'});
 

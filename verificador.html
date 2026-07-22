@@ -135,14 +135,6 @@
     cursor:pointer;font-family:'Poppins';font-weight:600;font-size:12.5px;color:var(--gris)}
   .chk-btns button.si.on{background:var(--ok);border-color:var(--ok);color:#fff}
   .chk-btns button.no.on{background:var(--error);border-color:var(--error);color:#fff}
-  .chk-foto{margin-top:10px}
-  .foto-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .foto-thumb{width:70px;height:70px;border-radius:10px;object-fit:cover;border:1px solid var(--linea)}
-  .foto-add{width:70px;height:70px;border-radius:10px;border:1.5px dashed var(--azul);background:var(--cielo);
-    cursor:pointer;display:grid;place-items:center;color:var(--azul)}
-  .foto-wrap{position:relative}
-  .foto-del{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--error);
-    color:#fff;border:2px solid #fff;cursor:pointer;font-size:13px;line-height:1;display:grid;place-items:center}
   .chk textarea{width:100%;margin-top:9px;font-size:13px;padding:9px 11px;border:1.5px solid var(--linea);
     border-radius:10px;resize:vertical;min-height:38px}
   .chk textarea:focus{outline:none;border-color:var(--azul)}
@@ -331,12 +323,14 @@ $('#salir').addEventListener('click',async()=>{await sb.auth.signOut();location.
 
 /* ===== CARGA ===== */
 async function cargar(){
+  // Incluye los estados posteriores para que el historial no se vacíe cuando
+  // el analista aprueba o deniega una solicitud que este verificador visitó.
   const {data,error}=await sb.from('solicitudes').select('*')
-    .in('estado',['por_verificar','en_verificacion','verificado'])
-    .order('estado_desde',{ascending:true});
+    .in('estado',['por_verificar','en_verificacion','verificado','aprobado','denegado','desembolsado'])
+    .order('estado_desde',{ascending:false});
   if(error){toast('No se pudo cargar: '+error.message,'m');return;}
-  // El verificador solo ve las suyas o las libres (RLS ya filtra, esto es defensivo)
-  SOLS=(data||[]).filter(s=>s.estado==='por_verificar'||s.verificador_id===YO.id||YO.rol==='admin');
+  SOLS=(data||[]).filter(s=>
+    s.estado==='por_verificar' || s.verificador_id===YO.id || YO.rol==='admin');
   render();
 }
 function vivo(){
@@ -354,8 +348,12 @@ function ir(v){
   else { $('#rutaView').classList.add('hide'); $('#cont').classList.remove('hide'); render(); }
 }
 
+const YA_DECIDIDAS=['verificado','aprobado','denegado','desembolsado'];
 function estadoLista(){
-  if(VISTA==='hechas') return SOLS.filter(s=>s.estado==='verificado');
+  if(VISTA==='hechas')
+    return SOLS.filter(s=>YA_DECIDIDAS.includes(s.estado)&&s.verificador_id===YO.id)
+      .sort((a,b)=>new Date(b.resultado_verificacion?.completada_en||b.estado_desde)
+                  -new Date(a.resultado_verificacion?.completada_en||a.estado_desde));
   return SOLS.filter(s=>s.estado==='por_verificar'||s.estado==='en_verificacion');
 }
 function render(){
@@ -373,22 +371,34 @@ function render(){
   $('#pad').innerHTML=lista.map(cardHTML).join('');
   $$('#pad .card[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
 }
+const DESENLACE={verificado:['Enviada al analista','tag'],aprobado:['Aprobada','tag ok'],
+  denegado:['Denegada','tag no'],desembolsado:['Entregada','tag ok']};
 function cardHTML(s){
   const d=s.datos_cliente||{};
   const libre=s.estado==='por_verificar';
   const mia=s.estado==='en_verificacion'&&s.verificador_id===YO.id;
   const items=s.requisitos_verificacion?.items||[];
   const hechos=items.filter(i=>i.resultado).length;
+  const noCumple=items.filter(i=>i.resultado==='no').length;
+  const hecha=YA_DECIDIDAS.includes(s.estado);
+  const [etq,cls]=DESENLACE[s.estado]||['',''];
+  const fechaVerif=s.resultado_verificacion?.completada_en;
+
   return `<div class="card tap" data-id="${s.id}">
     <div class="c-top"><div style="min-width:0">
       <div class="c-nom">${esc(nombreDe(d))}</div>
       <div class="c-folio">${esc(s.folio)} · ${TIPO_L[s.tipo_operacion]||''}</div>
-    </div>${libre?'<span class="tag b">Libre</span>':mia?'<span class="tag ok">Tomada</span>':'<span class="tag">Verificada</span>'}</div>
+    </div>${libre?'<span class="tag b">Libre</span>'
+          :mia?'<span class="tag ok">Tomada</span>'
+          :hecha?`<span class="${cls}">${etq}</span>`:''}</div>
     <div class="c-meta">
-      ${d.direccion||d.direccion_casa?'<span class="tag">🏠 Domicilio</span>':''}
-      ${d.dir_empresa||d.direccion_trabajo?'<span class="tag">💼 Trabajo</span>':''}
-      ${d.ciudad_vivienda?`<span class="tag">${esc(d.ciudad_vivienda)}</span>`:''}
+      ${hecha&&fechaVerif
+        ? `<span class="tag">${new Date(fechaVerif).toLocaleDateString('es-HN',{day:'2-digit',month:'2-digit',year:'2-digit'})} · ${new Date(fechaVerif).toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'})}</span>`
+        : `${d.direccion||d.direccion_casa?'<span class="tag">🏠 Domicilio</span>':''}
+           ${d.dir_empresa||d.direccion_trabajo?'<span class="tag">💼 Trabajo</span>':''}
+           ${d.ciudad_vivienda?`<span class="tag">${esc(d.ciudad_vivienda)}</span>`:''}`}
       ${items.length?`<span class="tag ${hechos===items.length?'ok':''}">${hechos}/${items.length} puntos</span>`:''}
+      ${hecha&&noCumple?`<span class="tag no">${noCumple} no cumple</span>`:''}
     </div></div>`;
 }
 
@@ -421,7 +431,7 @@ function abrir(id){
     const reqs=REQS.filter(r=>r.tipo_credito===(ACT.tipo_credito||'general'));
     const base=reqs.length?reqs:REQS.filter(r=>r.tipo_credito==='general');
     CHK=base.map(r=>({clave:r.clave,etiqueta:r.etiqueta,obligatorio:r.obligatorio,
-      requiere_foto:r.requiere_foto,orden:r.orden,resultado:'',nota:'',fotos:[]}));
+      orden:r.orden,resultado:'',nota:''}));
   }
   const d=ACT.datos_cliente||{};
   $('#m-t').textContent=nombreDe(d);
@@ -473,7 +483,7 @@ function detalle(){
   } else {
     h+=`<div class="sec"><div class="sec-h"><h4>Puntos a verificar</h4>
         <span class="badge ${CHK.every(c=>!c.obligatorio||c.resultado)?'k':'p'}">${CHK.filter(c=>c.resultado).length}/${CHK.length}</span></div>
-      <div class="callout w" style="margin-bottom:12px">Marcá cada punto <b>en el sitio</b>. Los obligatorios llevan foto cuando se indica.</div>
+      <div class="callout w" style="margin-bottom:12px">Marcá cada punto <b>en el sitio</b> conforme lo vayas verificando.</div>
       ${CHK.map((c,i)=>chkHTML(c,i)).join('')}
     </div>`;
   }
@@ -493,21 +503,13 @@ function chkHTML(c,i,editable=true){
   return `<div class="chk ${cls}" data-i="${i}">
     <div class="chk-t">
       <div class="chk-n">${esc(c.etiqueta)}
-        <div class="chk-o">${c.obligatorio?'<span class="chk-req">Obligatorio</span>':'Opcional'}${c.requiere_foto?' · requiere foto':''}</div>
+        <div class="chk-o">${c.obligatorio?'<span class="chk-req">Obligatorio</span>':'Opcional'}</div>
       </div>
     </div>
     ${editable?`<div class="chk-btns">
       <button class="si ${c.resultado==='si'?'on':''}" data-r="si" data-i="${i}">✓ Cumple</button>
       <button class="no ${c.resultado==='no'?'on':''}" data-r="no" data-i="${i}">✕ No cumple</button>
     </div>`:`<div style="margin-top:8px"><span class="tag ${c.resultado==='si'?'ok':c.resultado==='no'?'no':''}">${c.resultado==='si'?'Cumple':c.resultado==='no'?'No cumple':'Sin marcar'}</span></div>`}
-    ${c.requiere_foto?`<div class="chk-foto">
-      <div class="foto-row" id="fotos-${i}">
-        ${(c.fotos||[]).map((f,j)=>`<div class="foto-wrap"><img class="foto-thumb" src="${f.url||f.preview||''}" alt="">
-          ${editable?`<button class="foto-del" data-df="${i}-${j}">×</button>`:''}</div>`).join('')}
-        ${editable?`<div class="foto-add" data-foto="${i}">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        </div>`:''}
-      </div></div>`:''}
     ${editable?`<textarea data-nota="${i}" placeholder="Observaciones (opcional)">${esc(c.nota||'')}</textarea>`:
       (c.nota?`<div style="font-size:12.5px;color:var(--gris);margin-top:8px">${esc(c.nota)}</div>`:'')}
   </div>`;
@@ -523,32 +525,11 @@ function conectarChecklist(){
     actualizarBadge();
   }));
   $$('[data-nota]').forEach(t=>t.addEventListener('input',e=>{CHK[+e.target.dataset.nota].nota=e.target.value;}));
-  $$('[data-foto]').forEach(b=>b.addEventListener('click',()=>tomarFoto(+b.dataset.foto)));
-  $$('[data-df]').forEach(b=>b.addEventListener('click',()=>{
-    const [i,j]=b.dataset.df.split('-').map(Number);
-    CHK[i].fotos.splice(j,1); detalle();
-  }));
 }
 function actualizarBadge(){
   const b=$('.sec-h .badge');
   if(b){ b.textContent=`${CHK.filter(c=>c.resultado).length}/${CHK.length}`;
     b.className='badge '+(CHK.every(c=>!c.obligatorio||c.resultado)?'k':'p'); }
-}
-
-/* Foto con la cámara del teléfono */
-function tomarFoto(i){
-  const inp=document.createElement('input');
-  inp.type='file'; inp.accept='image/*'; inp.capture='environment';
-  inp.onchange=async e=>{
-    const f=e.target.files[0]; if(!f) return;
-    if(f.size>10485760){ toast('La foto pesa más de 10 MB','m'); return; }
-    // Vista previa inmediata
-    const preview=URL.createObjectURL(f);
-    CHK[i].fotos=CHK[i].fotos||[];
-    CHK[i].fotos.push({file:f,preview,geo:POS?{lat:POS.lat,lng:POS.lng}:null});
-    detalle();
-  };
-  inp.click();
 }
 
 /* ===== ACCIONES ===== */
@@ -580,29 +561,14 @@ async function tomar(){
   await cargar(); ACT=SOLS.find(s=>s.id===ACT.id); detalle();
 }
 
-async function subirFotos(){
-  for(const c of CHK){
-    if(!c.fotos) continue;
-    for(const f of c.fotos){
-      if(f.url) continue;           // ya subida
-      if(!f.file) continue;
-      const path=`${ACT.id}/${c.clave}_${Date.now()}.jpg`;
-      const {error}=await sb.storage.from('verificaciones').upload(path,f.file,{contentType:f.file.type||'image/jpeg',upsert:false});
-      if(error) throw new Error('No se pudo subir una foto: '+error.message);
-      f.path=path; f.url=null; delete f.file; delete f.preview;
-    }
-  }
-}
 function limpiarChkParaGuardar(){
-  return CHK.map(c=>({clave:c.clave,etiqueta:c.etiqueta,obligatorio:c.obligatorio,requiere_foto:c.requiere_foto,
-    orden:c.orden,resultado:c.resultado,nota:c.nota||'',
-    fotos:(c.fotos||[]).filter(f=>f.path).map(f=>({path:f.path,geo:f.geo||null}))}));
+  return CHK.map(c=>({clave:c.clave,etiqueta:c.etiqueta,obligatorio:c.obligatorio,
+    orden:c.orden,resultado:c.resultado,nota:c.nota||''}));
 }
 
 async function guardar(cerrar){
   const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
   try{
-    await subirFotos();
     const {error}=await sb.from('solicitudes').update({
       requisitos_verificacion:{items:limpiarChkParaGuardar(),
         actualizado_en:new Date().toISOString(), gps_ultimo:POS||null}
@@ -620,10 +586,6 @@ async function finalizar(){
   // Validar obligatorios en el cliente antes de mandar
   const faltan=CHK.filter(c=>c.obligatorio&&!c.resultado);
   if(faltan.length){ toast(`Faltan ${faltan.length} punto(s) obligatorio(s)`,'m'); return; }
-  const sinFoto=CHK.filter(c=>c.obligatorio&&c.requiere_foto&&c.resultado==='si'&&!(c.fotos||[]).length);
-  if(sinFoto.length){
-    if(!confirm(`${sinFoto.length} punto(s) que requieren foto no la tienen. ¿Enviar de todos modos?`)) return;
-  }
   const rechazos=CHK.filter(c=>c.resultado==='no');
   const msg=rechazos.length
     ? `Hay ${rechazos.length} punto(s) que NO cumplen. El analista lo verá al decidir. ¿Finalizar la verificación?`
@@ -632,7 +594,6 @@ async function finalizar(){
 
   const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
   try{
-    await subirFotos();
     const items=limpiarChkParaGuardar();
     const resultado={
       completada_en:new Date().toISOString(),

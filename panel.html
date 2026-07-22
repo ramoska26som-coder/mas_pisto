@@ -1092,7 +1092,7 @@ function detalle(){
   if(d.comprobantes||d.archivos?.length){
     const arch=d.archivos||[];
     h+=`<div class="sec"><div class="sec-h"><h4>Comprobantes</h4>
-        <span class="badge ${arch.length?'k':'p'}">${arch.length?arch.length+' archivo'+(arch.length>1?'s':''):'sin subir'}</span></div>
+        <span class="badge ${arch.length?'k':'p'}">${arch.length?arch.length+' archivo'+(arch.length>1?'s':''):'por WhatsApp'}</span></div>
       ${d.comprobantes?`<p style="font-size:13.5px;margin-bottom:${arch.length?'12px':'0'}">${esc(d.comprobantes)}</p>`:''}
       ${arch.length?`<div id="arch-list">${arch.map((a,i)=>`
         <div class="u-row" style="padding:10px 12px">
@@ -1200,30 +1200,14 @@ function detalle(){
         <div style="flex:1;min-width:0">
           <div style="font-size:13.5px;font-weight:500">${esc(c.etiqueta)}${c.obligatorio?'':' <span style="font-size:10px;color:var(--gris)">(opcional)</span>'}</div>
           ${c.nota?`<div style="font-size:12px;color:var(--gris);margin-top:2px">${esc(c.nota)}</div>`:''}
-          ${(c.fotos||[]).length?`<button class="btn btn-g btn-sm" data-verfoto="${i}" style="margin-top:6px;width:auto">Ver ${c.fotos.length} foto(s)</button>`:''}
         </div></div>`).join('')}
     </div>`;
   }
 
   $('#m-body').innerHTML=h;
-  pie(); conectar(esAse,esAna); conectarArchivos(); conectarFotosVerif();
+  pie(); conectar(esAse,esAna); conectarArchivos();
 }
 
-/* Fotos de verificación: bucket privado, URL firmada de 5 min */
-function conectarFotosVerif(){
-  const rv=ACT.requisitos_verificacion?.items||[];
-  $$('[data-verfoto]').forEach(b=>b.addEventListener('click',async()=>{
-    const fotos=rv[+b.dataset.verfoto]?.fotos||[];
-    if(!fotos.length) return;
-    const t=b.textContent;b.disabled=true;b.textContent='…';
-    for(const f of fotos){
-      if(!f.path) continue;
-      const {data,error}=await sb.storage.from('verificaciones').createSignedUrl(f.path,300);
-      if(!error&&data?.signedUrl) window.open(data.signedUrl,'_blank','noopener');
-    }
-    b.disabled=false;b.textContent=t;
-  }));
-}
 
 /* Los comprobantes están en un bucket privado: se abren con URL firmada
    de 5 minutos, no con enlace permanente. */
