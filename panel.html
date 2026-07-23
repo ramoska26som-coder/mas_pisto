@@ -346,6 +346,16 @@
   .asig-op:hover{border-color:var(--azul);background:var(--cielo)}
   .asig-op:last-child{margin-bottom:0}
 
+  /* Bitácora de auditoría */
+  .bit-row{display:flex;gap:11px;padding:9px 0;position:relative}
+  .bit-row:not(:last-child)::before{content:"";position:absolute;left:4px;top:20px;bottom:-9px;
+    width:1px;background:var(--linea)}
+  .bit-pt{width:9px;height:9px;border-radius:50%;background:var(--azul);flex:none;margin-top:5px;z-index:1}
+  .bit-c{flex:1;min-width:0}
+  .bit-t{font-size:13px;line-height:1.4}
+  .bit-d{font-size:12px;color:var(--gris);margin-top:3px;line-height:1.45}
+  .bit-m{font-size:11.5px;color:var(--gris);margin-top:2px}
+
   /* Tiempos por área */
   .tm-barra{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--linea);margin-bottom:12px}
   .tm-barra i{display:block;height:100%}
@@ -528,8 +538,10 @@ function perfilRubro(nom){
   return r.riesgo?'riesgo':(r.ideal?'ideal':'normal');
 }
 async function cargarRubros(){
-  const {data}=await sb.from('rubros').select('*').order('orden').order('nombre');
-  RUBROS=data||[];
+  const {data}=await sb.from('rubros').select('*');
+  // Alfabético ignorando tildes, igual que en el formulario público
+  RUBROS=(data||[]).sort((a,b)=>
+    a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
 }
 /* Nombres del equipo para mostrar quién tiene cada solicitud */
 async function cargarEquipo(){
@@ -661,7 +673,7 @@ async function cargar(){
   if(error){toast('No se pudo cargar: '+error.message,'m');return;}
   SOLS=data||[];
   const c=$('#cnt-s');
-  if(c) c.textContent=SOLS.filter(s=>!['aprobado','denegado','desembolsado'].includes(s.estado)).length;
+  if(c) c.textContent=SOLS.filter(s=>!['aprobado','denegado','desembolsado','cancelado'].includes(s.estado)).length;
   if(VISTA==='solicitudes') pintarSolicitudes();
   else if(VISTA==='historial') pintarHistorial();
 }
@@ -679,11 +691,12 @@ function sla(s){
 }
 const ETQ={pendiente_revision:'Nuevas',en_revision_asesor:'En revisión',en_analisis:'Análisis',
   por_verificar:'Por verificar',en_verificacion:'Verificando',verificado:'Decidir',
-  aprobado:'Aprobadas',denegado:'Denegadas',desembolsado:'Entregadas'};
+  aprobado:'Aprobadas',denegado:'Rechazadas',desembolsado:'Entregadas',cancelado:'Canceladas'};
 const TIPO_L={nuevo:'Nuevo Préstamo',reingreso:'Reingreso',refinanciamiento:'Refinanciamiento'};
 const ESTATUS_L={pendiente_revision:'Sin tomar',en_revision_asesor:'En revisión',
   en_analisis:'En análisis',por_verificar:'Por verificar',en_verificacion:'En verificación',
-  verificado:'Por decidir',aprobado:'Aprobada',denegado:'Denegada',desembolsado:'Entregada'};
+  verificado:'Por decidir',aprobado:'Aprobada',denegado:'Rechazada',
+  desembolsado:'Entregada',cancelado:'Cancelada'};
 
 /* Las 3 columnas del kanban */
 /* Columnas por área responsable, no por etapa genérica */
@@ -691,7 +704,7 @@ const COL_PEND=['pendiente_revision'];
 const COL_ASE =['en_revision_asesor'];
 const COL_ANA =['en_analisis','verificado'];   // 'verificado' vuelve al analista a decidir
 const COL_VER =['por_verificar','en_verificacion'];
-const COL_FIN =['aprobado','denegado','desembolsado'];
+const COL_FIN =['aprobado','denegado','desembolsado','cancelado'];
 
 function esDeHoy(s){
   const f=new Date(s.cerrado_en||s.actualizado_en);
@@ -781,7 +794,7 @@ function kcardHTML(s){
 
 /* ===== HISTORIAL ===== */
 function pintarHistorial(){
-  const cerr=SOLS.filter(s=>['aprobado','denegado','desembolsado'].includes(s.estado))
+  const cerr=SOLS.filter(s=>['aprobado','denegado','desembolsado','cancelado'].includes(s.estado))
     .sort((a,b)=>new Date(b.cerrado_en||b.actualizado_en)-new Date(a.cerrado_en||a.actualizado_en));
   $('#cont').innerHTML=`
   <div id="prom-box"></div>
@@ -790,7 +803,7 @@ function pintarHistorial(){
       <div class="fld"><label>Nombre, cédula o folio</label><input id="h-q" placeholder="Escribí para filtrar"></div>
       <div class="fld"><label>Estado</label><select id="h-e">
         <option value="">Todos</option><option value="aprobado">Aprobadas</option>
-        <option value="denegado">Denegadas</option><option value="desembolsado">Entregadas</option></select></div>
+        <option value="denegado">Rechazadas</option><option value="cancelado">Canceladas</option><option value="desembolsado">Entregadas</option></select></div>
     </div>
     <button class="btn btn-g btn-sm" id="h-csv">Descargar CSV</button></div>
   <div id="h-list"></div>`;
@@ -804,7 +817,7 @@ function pintarHistorial(){
     });
     $('#h-list').innerHTML=f.length?f.map(s=>{
       const d=s.datos_cliente||{},r=s.resultado_analisis||{};
-      const cl={aprobado:'k',denegado:'m',desembolsado:'k'}[s.estado];
+      const cl={aprobado:'k',denegado:'m',desembolsado:'k',cancelado:'p'}[s.estado];
       return `<div class="card" data-id="${s.id}">
         <div class="c-top"><div style="min-width:0">
           <div class="c-nom">${esc(nombreDe(d))}</div>
@@ -1219,6 +1232,8 @@ function detalle(){
     ${d.metodo_pago?`<dt>Pagará por</dt><dd>${esc(d.metodo_pago)}</dd>`:''}
     ${d.canal?`<dt>Cómo nos conoció</dt><dd>${esc(d.canal)}</dd>`:''}
     ${d.refiere?`<dt>Referido por</dt><dd>${esc(d.refiere)} ${esc(d.refiere_tel||'')}${d.refiere_parentesco?' · '+esc(d.refiere_parentesco):''}</dd>`:''}
+    ${d.consentimiento_whatsapp?`<dt>Contacto por WhatsApp</dt>
+      <dd style="color:var(--ok);font-weight:600">Autorizado${d.consentimiento_en?' · '+new Date(d.consentimiento_en).toLocaleDateString('es-HN'):''}</dd>`:''}
   </dl></div>`;
 
   const pr=perfilRubro(d.rubro);
@@ -1371,7 +1386,7 @@ function detalle(){
 
   // Verificación de campo: la ve el analista al decidir, y queda en el historial
   const rv=s.requisitos_verificacion?.items||[];
-  if(rv.length&&['verificado','aprobado','denegado','desembolsado'].includes(s.estado)){
+  if(rv.length&&['verificado','aprobado','denegado','desembolsado','cancelado'].includes(s.estado)){
     const rvOk=rv.filter(x=>x.resultado==='si').length;
     const rvNo=rv.filter(x=>x.resultado==='no').length;
     der+=`<div class="sec"><div class="sec-h"><h4>Verificación de campo</h4>
@@ -1395,7 +1410,41 @@ function detalle(){
          <div id="tiempos-box"></div></div></div>`
     : `<div class="det" style="grid-template-columns:minmax(0,1fr);max-width:760px">
          <div class="det-col">${izq}<div id="tiempos-box"></div></div></div>`;
-  pie(); conectar(esAse,esAna); conectarArchivos(); pintarTiempos();
+  pie(); conectar(esAse,esAna); conectarArchivos(); pintarTiempos(); pintarBitacora();
+}
+
+/* Bitácora: quién hizo cada cambio y cuándo */
+async function pintarBitacora(){
+  const box=$('#tiempos-box'); if(!box||!ACT) return;
+  const {data,error}=await sb.rpc('historial_de',{p_id:ACT.id});
+  if(error||!data?.length) return;
+
+  const linea=h=>{
+    if(h.accion==='estado'){
+      const de=ESTATUS_L[h.estado_anterior]||h.estado_anterior||'—';
+      const a=ESTATUS_L[h.estado_nuevo]||h.estado_nuevo;
+      return `Pasó de <b>${esc(de)}</b> a <b>${esc(a)}</b>`
+        +(h.detalle?.motivo?`<div class="bit-d">${esc(h.detalle.motivo)}</div>`:'');
+    }
+    const cs=h.detalle?.cambios||[];
+    return (h.accion==='asignacion'?'Cambió la asignación':'Editó datos')
+      +(cs.length?`<div class="bit-d">${cs.map(c=>
+        `${esc(c.campo)}: ${c.antes?esc(c.antes):'vacío'} → <b>${c.despues?esc(c.despues):'vacío'}</b>`
+       ).join('<br>')}</div>`:'');
+  };
+
+  box.insertAdjacentHTML('beforeend',`
+    <div class="sec"><div class="sec-h"><h4>Bitácora</h4>
+      <span class="badge p">${data.length} movimiento${data.length===1?'':'s'}</span></div>
+      ${data.map(h=>`<div class="bit-row">
+        <div class="bit-pt"></div>
+        <div class="bit-c">
+          <div class="bit-t">${linea(h)}</div>
+          <div class="bit-m">${esc(h.quien)} · ${new Date(h.cuando).toLocaleString('es-HN',
+            {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+      </div>`).join('')}
+    </div>`);
 }
 
 /* ===== TIEMPOS POR ÁREA ===== */
@@ -1755,6 +1804,8 @@ function resultado(){
 }
 
 /* ===== ACCIONES ===== */
+const ABIERTOS=['pendiente_revision','en_revision_asesor','en_analisis',
+                'por_verificar','en_verificacion','verificado'];
 function pie(){
   const s=ACT;let h='';
   if(s.estado==='pendiente_revision'&&(rol('asesor')||esAdmin()))
@@ -1770,7 +1821,17 @@ function pie(){
     h=`<button class="btn btn-r" id="a8">Denegar</button><button class="btn btn-b" id="a7">Aprobar</button>`;
   else if(s.estado==='aprobado'&&(rol('asesor')||rol('analista')||esAdmin()))
     h=`<button class="btn btn-b" id="a9">Marcar como entregada</button>`;
-  $('#m-pie').innerHTML=h;
+
+  // Rechazar y cancelar están disponibles mientras la solicitud siga abierta
+  let extra='';
+  if(ABIERTOS.includes(s.estado)&&(rol('asesor')||rol('analista')||esAdmin())){
+    extra=`<button class="btn btn-g btn-sm" id="a-cancel" style="flex:none">Cancelar</button>
+           <button class="btn btn-g btn-sm" id="a-rechaza" style="flex:none;color:var(--error);border-color:#F3C4C4">Rechazar</button>`;
+  }
+  $('#m-pie').innerHTML = extra
+    ? `<div style="flex:1;display:flex;gap:8px">${extra}</div>${h}`
+    : h;
+
   $('#a1')?.addEventListener('click',()=>guardar({estado:'en_revision_asesor',asesor_id:YO.id}));
   $('#a2')?.addEventListener('click',()=>guardar(datosAsesor()));
   $('#a3')?.addEventListener('click',()=>guardar({...datosAsesor(),estado:'en_analisis'}));
@@ -1783,6 +1844,55 @@ function pie(){
     const r=ACT.resultado_analisis||{};
     if(!confirm(`¿Confirmar que ya se entregó el desembolso de L${fmt(r.monto_aprobado)}?`)) return;
     await guardar({estado:'desembolsado'});
+  });
+  $('#a-cancel')?.addEventListener('click',()=>cerrarSolicitud('cancelado'));
+  $('#a-rechaza')?.addEventListener('click',()=>cerrarSolicitud('denegado'));
+}
+
+/* Cerrar una solicitud antes de tiempo: cancelada (el cliente desiste) o
+   rechazada (no procede). Siempre queda registrado el motivo y quién lo hizo. */
+const MOTIVOS={
+  cancelado:['El cliente ya no quiere el préstamo','No contesta / no da seguimiento',
+             'Consiguió el dinero por otro lado','Solicitud duplicada','Otro motivo'],
+  denegado:['Documentos falsos o alterados','No cumple el ingreso mínimo',
+            'Datos que no coinciden con lo verificado','Referencias no confirman',
+            'Ya tiene deudas que no puede cubrir','Otro motivo']
+};
+function cerrarSolicitud(tipo){
+  const esCancelar=tipo==='cancelado';
+  $('#asig-body').innerHTML=`
+    <div class="callout ${esCancelar?'':'r'}">
+      ${esCancelar
+        ? 'La solicitud se cierra sin analizarla. Usalo cuando el cliente desiste o ya no responde.'
+        : '<b>La solicitud queda rechazada.</b> Usalo cuando no procede por un motivo concreto.'}
+    </div>
+    <div class="fld"><label>Motivo <span style="color:var(--error)">*</span></label>
+      <select id="cs-motivo">
+        <option value="">Selecciona…</option>
+        ${MOTIVOS[tipo].map(m=>`<option>${esc(m)}</option>`).join('')}
+      </select></div>
+    <div class="fld"><label>Detalle<small>Queda guardado en el historial</small></label>
+      <textarea id="cs-nota" placeholder="Contá brevemente qué pasó"></textarea></div>
+    <div class="callout r hide" id="cs-err"></div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-g" id="cs-x" style="flex:1">Volver</button>
+      <button class="btn ${esCancelar?'btn-b':'btn-r'}" id="cs-ok" style="flex:1">
+        ${esCancelar?'Cancelar solicitud':'Rechazar solicitud'}</button>
+    </div>`;
+  $('.asig-h h3').textContent = esCancelar?'Cancelar solicitud':'Rechazar solicitud';
+  $('#asig').classList.add('on');
+
+  $('#cs-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  $('#cs-ok').addEventListener('click',async()=>{
+    const m=$('#cs-motivo').value;
+    if(!m){ $('#cs-err').textContent='Elegí un motivo.'; $('#cs-err').classList.remove('hide'); return; }
+    const nota=$('#cs-nota').value.trim();
+    const texto=nota?`${m} — ${nota}`:m;
+    $('#asig').classList.remove('on');
+    await guardar({estado:tipo,
+      resultado_analisis:{...ACT.resultado_analisis,
+        motivo_denegacion:texto, cerrado_por:YO.nombre, cerrado_en:new Date().toISOString()}});
+    toast(esCancelar?'Solicitud cancelada':'Solicitud rechazada','k');
   });
 }
 /* Al enviar a verificar, el analista elige a quién se lo asigna.
