@@ -185,6 +185,21 @@
   .rl-n{font-family:'Poppins';font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rl-d{font-size:11.5px;color:var(--gris)}
 
+  /* Avisos */
+  #avisos-v{position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;z-index:400;
+    display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .aviso-v{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--linea);
+    border-left:4px solid var(--amarillo);border-radius:13px;padding:12px;box-shadow:var(--sombra);
+    transform:translateY(-130%);opacity:0;transition:transform .32s cubic-bezier(.2,.8,.3,1),opacity .32s;
+    pointer-events:auto;cursor:pointer}
+  .aviso-v.on{transform:translateY(0);opacity:1}
+  .av-ic{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;
+    font-size:15px;background:#FFF4C2}
+  .av-c{flex:1;min-width:0}
+  .av-t{font-family:'Poppins';font-weight:600;font-size:13.5px;line-height:1.25}
+  .av-x{font-size:12.5px;color:var(--gris);margin-top:2px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+
   .toast{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(90px);
     background:var(--azul-tinta);color:#fff;padding:12px 20px;border-radius:24px;font-family:'Poppins';font-weight:600;
     font-size:13px;z-index:300;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.3,1),opacity .28s;
@@ -269,6 +284,7 @@
   </div>
 </div>
 
+<div id="avisos-v"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -318,6 +334,8 @@ async function arrancar(session){
   $('#app').style.display='flex';
   $('#top-s').textContent=YO.nombre;
   await cargar(); vivo(); iniciarGPS();
+  try{ AUDIO_CTX = AUDIO_CTX || new (window.AudioContext||window.webkitAudioContext)();
+       if(AUDIO_CTX.state==='suspended') AUDIO_CTX.resume(); }catch(e){}
 }
 $('#salir').addEventListener('click',async()=>{await sb.auth.signOut();location.reload();});
 
@@ -334,7 +352,55 @@ async function cargar(){
   render();
 }
 function vivo(){
-  sb.channel('verif').on('postgres_changes',{event:'*',schema:'public',table:'solicitudes'},cargar).subscribe();
+  sb.channel('verif')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'solicitudes'},
+      p=>{ cargar(); avisarVerif(p.old,p.new); })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'solicitudes'},cargar)
+    .subscribe();
+}
+
+/* ===== AVISOS ===== */
+let AUDIO_CTX=null, SONIDO_ON=localStorage.getItem('mp_sonido')!=='0';
+function tono(notas){
+  if(!SONIDO_ON) return;
+  try{
+    AUDIO_CTX = AUDIO_CTX || new (window.AudioContext||window.webkitAudioContext)();
+    if(AUDIO_CTX.state==='suspended') AUDIO_CTX.resume();
+    notas.forEach(([hz,ini,dur,vol])=>{
+      const o=AUDIO_CTX.createOscillator(), g=AUDIO_CTX.createGain();
+      o.type='sine'; o.frequency.value=hz; o.connect(g); g.connect(AUDIO_CTX.destination);
+      const t0=AUDIO_CTX.currentTime+ini;
+      g.gain.setValueAtTime(0,t0);
+      g.gain.linearRampToValueAtTime(vol??.18,t0+.02);
+      g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+      o.start(t0); o.stop(t0+dur+.02);
+    });
+  }catch(e){}
+}
+const sonidoAsignada=()=>tono([[660,0,.16],[880,.14,.30]]);
+
+function avisarVerif(ant,nue){
+  if(ant.estado===nue.estado && ant.verificador_id===nue.verificador_id) return;
+  // Solo me interesa lo que me asignan a mí o lo que queda libre para tomar
+  const esMia = nue.verificador_id===YO.id;
+  const quedaLibre = nue.estado==='por_verificar' && !nue.verificador_id;
+  if(!esMia && !quedaLibre) return;
+  if(!['por_verificar','en_verificacion'].includes(nue.estado)) return;
+
+  const d=nue.datos_cliente||{};
+  sonidoAsignada();
+  const el=document.createElement('div');
+  el.className='aviso-v';
+  el.innerHTML=`<div class="av-ic">📍</div>
+    <div class="av-c"><div class="av-t">${esMia?'Te asignaron una visita':'Nueva visita disponible'}</div>
+    <div class="av-x">${esc(nombreDe(d))} · ${esc(nue.folio)}</div></div>`;
+  $('#avisos-v').prepend(el);
+  requestAnimationFrame(()=>el.classList.add('on'));
+  el.addEventListener('click',()=>{el.remove(); abrir(nue.id);});
+  setTimeout(()=>{el.classList.remove('on');setTimeout(()=>el.remove(),300);},9000);
+  while($('#avisos-v').children.length>3) $('#avisos-v').lastElementChild.remove();
+
+  if(navigator.vibrate) navigator.vibrate([120,60,120]);   // en el teléfono
 }
 
 /* ===== TABS ===== */

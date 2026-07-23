@@ -370,6 +370,37 @@
     padding-top:11px;border-top:1px dashed var(--linea)}
   .tm-total .v{font-family:'Poppins';font-weight:800;font-size:19px}
 
+  /* Notificaciones */
+  #avisos{position:fixed;top:14px;right:14px;z-index:400;display:flex;flex-direction:column;
+    gap:9px;width:min(330px,calc(100vw - 28px));pointer-events:none}
+  .aviso{display:flex;align-items:flex-start;gap:11px;background:#fff;border:1px solid var(--linea);
+    border-left:4px solid var(--azul);border-radius:13px;padding:12px 13px;box-shadow:var(--sombra);
+    transform:translateX(115%);opacity:0;transition:transform .32s cubic-bezier(.2,.8,.3,1),opacity .32s;
+    pointer-events:auto;cursor:pointer}
+  .aviso.on{transform:translateX(0);opacity:1}
+  .aviso:hover{border-color:var(--azul)}
+  .aviso.nueva{border-left-color:var(--amarillo);background:#FFFDF0}
+  .aviso.ok{border-left-color:var(--ok)}
+  .aviso.no{border-left-color:var(--error)}
+  .aviso-ic{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;
+    font-size:15px;background:var(--cielo)}
+  .aviso.nueva .aviso-ic{background:#FFF4C2}
+  .aviso.ok .aviso-ic{background:var(--ok-lt);color:var(--ok)}
+  .aviso.no .aviso-ic{background:var(--error-lt);color:var(--error)}
+  .aviso-c{flex:1;min-width:0}
+  .aviso-t{font-family:'Poppins';font-weight:600;font-size:13.5px;line-height:1.25}
+  .aviso-x{font-size:12.5px;color:var(--gris);margin-top:2px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .aviso-cerrar{border:0;background:none;color:var(--gris);cursor:pointer;font-size:17px;
+    line-height:1;padding:2px 4px;flex:none;border-radius:6px}
+  .aviso-cerrar:hover{background:var(--fondo);color:var(--error)}
+  @media(max-width:520px){
+    #avisos{top:auto;bottom:14px;left:14px;right:14px;width:auto}
+    .aviso{transform:translateY(115%)}
+  }
+  /* Botón de sonido en la barra superior */
+  .snd-off{opacity:.45}
+
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(90px);
     background:var(--azul-tinta);color:#fff;padding:13px 22px;border-radius:26px;
     font-family:'Poppins';font-weight:600;font-size:13.5px;z-index:300;opacity:0;
@@ -461,6 +492,13 @@
           </svg>
         </button>
         <h2 id="titulo">Solicitudes</h2>
+        <button class="icon-btn" id="btn-sonido" title="Sonido de avisos" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--linea);background:#fff;cursor:pointer;display:grid;place-items:center;flex:none;color:var(--gris)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.5 8.5a5 5 0 0 1 0 7" class="onda"/>
+            <path d="M19 5a10 10 0 0 1 0 14" class="onda"/>
+          </svg>
+        </button>
         <button class="btn btn-b btn-sm hide" id="btn-nueva" style="flex:none">+ Nueva</button>
       </div>
       <div class="cont"><div class="cont-in" id="cont"></div></div>
@@ -479,6 +517,8 @@
     <div class="modal-p" id="m-pie"></div>
   </div>
 </div>
+
+<div id="avisos"></div>
 
 <div class="asig" id="asig">
   <div class="asig-bg" id="asig-bg"></div>
@@ -634,6 +674,14 @@ async function arrancar(session){
   $('#yo-n').textContent=YO.nombre;
   $('#yo-r').textContent=roles.join(' · ');
   pintarNav(); await cargar(); vivo();
+  pintarBotonSonido();
+  pedirPermisoNotif();
+  // Los navegadores bloquean el audio hasta que hay una interacción del usuario.
+  // El clic del login cuenta, así que dejamos el contexto listo desde aquí.
+  try{
+    AUDIO_CTX = AUDIO_CTX || new (window.AudioContext||window.webkitAudioContext)();
+    if(AUDIO_CTX.state==='suspended') AUDIO_CTX.resume();
+  }catch(e){}
 }
 $('#salir').addEventListener('click',async()=>{await sb.auth.signOut();location.reload();});
 
@@ -678,9 +726,139 @@ async function cargar(){
   else if(VISTA==='historial') pintarHistorial();
 }
 function vivo(){
-  sb.channel('sols').on('postgres_changes',{event:'*',schema:'public',table:'solicitudes'},cargar).subscribe();
+  sb.channel('sols')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'solicitudes'},
+      p=>{ cargar(); notificarNueva(p.new); })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'solicitudes'},
+      p=>{ cargar(); notificarCambio(p.old,p.new); })
+    .subscribe();
   setInterval(()=>{if(!$('#modal').classList.contains('on')&&VISTA==='solicitudes')pintarSolicitudes();},60000);
 }
+
+/* ===== NOTIFICACIONES ===== */
+let AUDIO_CTX=null, SONIDO_ON=localStorage.getItem('mp_sonido')!=='0';
+
+/* Genero los tonos con el navegador: no dependemos de archivos externos
+   ni de que el hosting los sirva bien. */
+function tono(notas){
+  if(!SONIDO_ON) return;
+  try{
+    AUDIO_CTX = AUDIO_CTX || new (window.AudioContext||window.webkitAudioContext)();
+    if(AUDIO_CTX.state==='suspended') AUDIO_CTX.resume();
+    notas.forEach(([hz,inicio,dur,vol])=>{
+      const o=AUDIO_CTX.createOscillator(), g=AUDIO_CTX.createGain();
+      o.type='sine'; o.frequency.value=hz;
+      o.connect(g); g.connect(AUDIO_CTX.destination);
+      const t0=AUDIO_CTX.currentTime+inicio;
+      g.gain.setValueAtTime(0,t0);
+      g.gain.linearRampToValueAtTime(vol??.18,t0+.02);
+      g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+      o.start(t0); o.stop(t0+dur+.02);
+    });
+  }catch(e){}
+}
+// Solicitud nueva: dos notas ascendentes, llama la atención
+const sonidoNueva  = ()=>tono([[660,0,.16],[880,.14,.30]]);
+// Cambio de estado: una nota corta y discreta
+const sonidoCambio = ()=>tono([[520,0,.14,.12]]);
+// Cierre negativo: nota descendente
+const sonidoCierre = ()=>tono([[440,0,.16,.14],[330,.15,.28,.14]]);
+
+/* Aviso visual que se apila en pantalla */
+function aviso({titulo,texto,tipo='info',id}){
+  const cont=$('#avisos');
+  const el=document.createElement('div');
+  el.className='aviso '+tipo;
+  el.innerHTML=`
+    <div class="aviso-ic">${tipo==='nueva'?'📥':tipo==='ok'?'✓':tipo==='no'?'✕':'↻'}</div>
+    <div class="aviso-c">
+      <div class="aviso-t">${esc(titulo)}</div>
+      <div class="aviso-x">${esc(texto)}</div>
+    </div>
+    <button class="aviso-cerrar" aria-label="Cerrar">×</button>`;
+  cont.prepend(el);
+  requestAnimationFrame(()=>el.classList.add('on'));
+
+  const quitar=()=>{ el.classList.remove('on');
+    setTimeout(()=>el.remove(),300); };
+  el.querySelector('.aviso-cerrar').addEventListener('click',e=>{e.stopPropagation();quitar();});
+  if(id) el.addEventListener('click',()=>{ quitar(); abrir(id); });
+  setTimeout(quitar,9000);
+
+  // Máximo 4 avisos en pantalla
+  while(cont.children.length>4) cont.lastElementChild.remove();
+}
+
+/* Título de la pestaña: muestra cuántas hay sin leer si no estás mirando */
+let SIN_LEER=0;
+const TITULO_BASE='Panel de Crédito · Más Pisto';
+function marcarPestana(n){
+  SIN_LEER = n===0 ? 0 : SIN_LEER+n;
+  document.title = SIN_LEER>0 ? `(${SIN_LEER}) ${TITULO_BASE}` : TITULO_BASE;
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) marcarPestana(0); });
+window.addEventListener('focus',()=>marcarPestana(0));
+
+function notificarNueva(s){
+  const d=s.datos_cliente||{};
+  sonidoNueva();
+  aviso({tipo:'nueva', id:s.id,
+    titulo:'Nueva solicitud',
+    texto:`${nombreDe(d)} · ${s.folio}`});
+  if(document.hidden) marcarPestana(1);
+  notificarSistema('Nueva solicitud de crédito', `${nombreDe(d)} · ${s.folio}`);
+}
+
+function notificarCambio(ant,nue){
+  if(ant.estado===nue.estado) return;   // solo avisamos cambios de estado
+  const d=nue.datos_cliente||{};
+  const etq=ESTATUS_L[nue.estado]||nue.estado;
+
+  // ¿Me toca a mí ahora? Entonces el aviso es más notorio.
+  const meToca =
+    (nue.estado==='pendiente_revision' && (rol('asesor')||esAdmin())) ||
+    (nue.estado==='en_analisis'        && (rol('analista')||esAdmin())) ||
+    (nue.estado==='verificado'         && (rol('analista')||esAdmin())) ||
+    (COL_VER.includes(nue.estado)      && (rol('verificador')||esAdmin()));
+
+  const cerrada=['aprobado','denegado','desembolsado','cancelado'].includes(nue.estado);
+  if(cerrada) sonidoCierre(); else if(meToca) sonidoNueva(); else sonidoCambio();
+
+  aviso({
+    tipo: nue.estado==='aprobado'||nue.estado==='desembolsado' ? 'ok'
+        : nue.estado==='denegado'||nue.estado==='cancelado' ? 'no' : 'info',
+    id:nue.id,
+    titulo: meToca ? `Te toca: ${etq}` : etq,
+    texto:`${nombreDe(d)} · ${nue.folio}`});
+  if(document.hidden) marcarPestana(1);
+  if(meToca) notificarSistema(`Te toca: ${etq}`, `${nombreDe(d)} · ${nue.folio}`);
+}
+
+/* Notificación del sistema operativo (fuera del navegador) */
+function notificarSistema(titulo,texto){
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  if(!document.hidden) return;   // si ya estás viendo el panel, no hace falta
+  try{ new Notification(titulo,{body:texto,tag:'mp-panel'}); }catch(e){}
+}
+function pedirPermisoNotif(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='default') Notification.requestPermission();
+}
+
+/* Botón para silenciar. La preferencia queda guardada en el navegador. */
+function pintarBotonSonido(){
+  const b=$('#btn-sonido'); if(!b) return;
+  b.classList.toggle('snd-off',!SONIDO_ON);
+  b.querySelectorAll('.onda').forEach(o=>o.style.display=SONIDO_ON?'':'none');
+  b.title=SONIDO_ON?'Sonido activado':'Sonido silenciado';
+}
+$('#btn-sonido')?.addEventListener('click',()=>{
+  SONIDO_ON=!SONIDO_ON;
+  localStorage.setItem('mp_sonido',SONIDO_ON?'1':'0');
+  pintarBotonSonido();
+  if(SONIDO_ON) sonidoCambio();   // confirmación audible
+  toast(SONIDO_ON?'Sonido activado':'Sonido silenciado','k');
+});
 function sla(s){
   const hrs=(Date.now()-new Date(s.estado_desde))/36e5;
   const lim=(P.sla_horas||{})[s.estado]||24;
