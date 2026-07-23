@@ -98,23 +98,27 @@
   .chip .n{margin-left:6px;font-size:11px;opacity:.85}
 
   /* Kanban */
-  .kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
-  @media(max-width:820px){
+  .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;align-items:start}
+  @media(max-width:1100px){
     .kanban{display:flex;overflow-x:auto;gap:11px;scroll-snap-type:x mandatory;
       margin:0 -18px;padding:0 18px 8px;scrollbar-width:none}
     .kanban::-webkit-scrollbar{display:none}
-    .kcol{flex:0 0 82vw;scroll-snap-align:start}
+    .kcol{flex:0 0 78vw;scroll-snap-align:start;max-width:300px}
   }
-  .kcol{background:var(--fondo);border:1px solid var(--linea);border-radius:16px;padding:10px;min-height:120px}
+  .kcol{background:var(--fondo);border:1px solid var(--linea);border-radius:16px;padding:10px;min-height:110px}
   .kcol-h{display:flex;align-items:center;gap:8px;padding:5px 8px 11px}
   .kcol-t{font-family:'Poppins';font-weight:700;font-size:13.5px}
   .kcol-n{margin-left:auto;font-family:'Poppins';font-weight:700;font-size:12px;color:#fff;
     min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 7px}
   .kdot{width:9px;height:9px;border-radius:50%;flex:none}
   .kcol.pend .kdot,.kcol.pend .kcol-n{background:var(--amber)}
-  .kcol.proc .kdot,.kcol.proc .kcol-n{background:var(--azul)}
+  .kcol.ase  .kdot,.kcol.ase  .kcol-n{background:var(--azul)}
+  .kcol.ana  .kdot,.kcol.ana  .kcol-n{background:#7C5CE0}
+  .kcol.ver  .kdot,.kcol.ver  .kcol-n{background:#0E9BA8}
   .kcol.fin  .kdot,.kcol.fin  .kcol-n{background:var(--ok)}
-  .kempty{text-align:center;padding:26px 10px;color:var(--gris);font-size:12.5px}
+  .kempty{text-align:center;padding:22px 10px;color:var(--gris);font-size:12.5px}
+  /* Las finalizadas van abajo, en rejilla */
+  .fin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
 
   /* Tarjeta kanban */
   .kcard{background:#fff;border:1px solid var(--linea);border-radius:13px;box-shadow:var(--sombra-sm);
@@ -130,6 +134,9 @@
   .kc-tipo.nuevo{background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
   .kc-tipo.reingreso{background:#FFF8DC;color:#8A6D00;border:1px solid #F2E08A}
   .kc-tipo.refinanciamiento{background:#F0E9FF;color:#6D4AB5;border:1px solid #D9C9F5}
+  .kc-resp{font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;
+    background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
+  .kc-resp.libre{background:var(--amber-lt);color:var(--amber);border-color:#F2E08A}
   .kc-transc{margin-left:auto;font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap}
   .kc-transc.ok{background:var(--ok-lt);color:var(--ok)}
   .kc-transc.md{background:var(--amber-lt);color:var(--amber)}
@@ -482,7 +489,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 
-let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[],RUBROS=[];
+let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[],RUBROS=[],EQUIPO={};
 
 const fmt=n=>new Intl.NumberFormat('es-HN',{maximumFractionDigits:0}).format(n||0);
 const fmtL=n=>'L '+new Intl.NumberFormat('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);
@@ -524,6 +531,12 @@ async function cargarRubros(){
   const {data}=await sb.from('rubros').select('*').order('orden').order('nombre');
   RUBROS=data||[];
 }
+/* Nombres del equipo para mostrar quién tiene cada solicitud */
+async function cargarEquipo(){
+  const {data}=await sb.from('usuarios').select('id,nombre');
+  EQUIPO={}; (data||[]).forEach(u=>EQUIPO[u.id]=u.nombre);
+}
+const quien=id=>id?(EQUIPO[id]||'—'):null;
 function catEquifax(s){
   if(!s) return null;
   const r=(P.equifax_rangos||[]).find(x=>s>=x.min&&s<=x.max);
@@ -601,6 +614,7 @@ async function arrancar(session){
   const {data:par}=await sb.from('parametros_sistema').select('valores').eq('id',1).single();
   P=par.valores;
   await cargarRubros();
+  await cargarEquipo();
   $('#login').style.display='none';
   $('#app').style.display='block';
   const roles=[...new Set([YO.rol,...(YO.roles_extra||[])])];
@@ -672,9 +686,11 @@ const ESTATUS_L={pendiente_revision:'Sin tomar',en_revision_asesor:'En revisión
   verificado:'Por decidir',aprobado:'Aprobada',denegado:'Denegada',desembolsado:'Entregada'};
 
 /* Las 3 columnas del kanban */
-/* Pendientes = nadie la ha tomado. En cuanto un asesor la toma, ya está en proceso. */
+/* Columnas por área responsable, no por etapa genérica */
 const COL_PEND=['pendiente_revision'];
-const COL_PROC=['en_revision_asesor','en_analisis','por_verificar','en_verificacion','verificado'];
+const COL_ASE =['en_revision_asesor'];
+const COL_ANA =['en_analisis','verificado'];   // 'verificado' vuelve al analista a decidir
+const COL_VER =['por_verificar','en_verificacion'];
 const COL_FIN =['aprobado','denegado','desembolsado'];
 
 function esDeHoy(s){
@@ -703,10 +719,12 @@ function transcurrido(s){
 
 /* ===== SOLICITUDES (KANBAN) ===== */
 function pintarSolicitudes(){
+  const porFecha=(a,b)=>new Date(a.estado_desde)-new Date(b.estado_desde);
   const pend=SOLS.filter(s=>COL_PEND.includes(s.estado))
     .sort((a,b)=>new Date(a.creado_en)-new Date(b.creado_en));
-  const proc=SOLS.filter(s=>COL_PROC.includes(s.estado))
-    .sort((a,b)=>new Date(a.estado_desde)-new Date(b.estado_desde));
+  const ase=SOLS.filter(s=>COL_ASE.includes(s.estado)).sort(porFecha);
+  const ana=SOLS.filter(s=>COL_ANA.includes(s.estado)).sort(porFecha);
+  const ver=SOLS.filter(s=>COL_VER.includes(s.estado)).sort(porFecha);
   const fin=SOLS.filter(s=>COL_FIN.includes(s.estado)&&esDeHoy(s))
     .sort((a,b)=>new Date(b.cerrado_en||b.actualizado_en)-new Date(a.cerrado_en||a.actualizado_en));
 
@@ -718,10 +736,17 @@ function pintarSolicitudes(){
     </div>`;
 
   $('#cont').innerHTML=`<div class="kanban">
-    ${col('pend','Pendientes',pend,'Nada pendiente')}
-    ${col('proc','En proceso',proc,'Nada en proceso')}
-    ${col('fin','Finalizadas hoy',fin,'Nada finalizado hoy')}
-  </div>`;
+    ${col('pend','Pendiente',pend,'Nada pendiente')}
+    ${col('ase','Asesor(a)',ase,'Nada con el asesor')}
+    ${col('ana','Analista',ana,'Nada con el analista')}
+    ${col('ver','Verificador',ver,'Nada en verificación')}
+  </div>
+  ${fin.length?`<div style="max-width:100%;margin-top:16px">
+    <div class="kcol fin" style="background:transparent;border:0;padding:0">
+      <div class="kcol-h" style="padding-left:2px"><span class="kdot"></span>
+        <span class="kcol-t">Finalizadas hoy</span><span class="kcol-n">${fin.length}</span></div>
+      <div class="fin-grid">${fin.map(kcardHTML).join('')}</div>
+    </div></div>`:''}`;
   $$('.kcard[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
 }
 
@@ -729,6 +754,11 @@ function kcardHTML(s){
   const d=s.datos_cliente||{};
   const t=transcurrido(s);
   const tipo=s.tipo_operacion||'nuevo';
+  // Responsable según la etapa donde está
+  let resp=null;
+  if(COL_ASE.includes(s.estado)) resp=quien(s.asesor_id);
+  else if(COL_ANA.includes(s.estado)) resp=quien(s.analista_id);
+  else if(COL_VER.includes(s.estado)) resp=quien(s.verificador_id);
   return `<div class="kcard" data-id="${s.id}">
     <div class="kc-nom">${esc(nombreDe(d))}</div>
     <div class="kc-folio">${esc(s.folio)}</div>
@@ -742,6 +772,8 @@ function kcardHTML(s){
     </div>
     <div class="kc-row">
       <span class="kc-estado">${ESTATUS_L[s.estado]||s.estado}</span>
+      ${resp?`<span class="kc-resp">${esc(resp)}</span>`
+             :(COL_VER.includes(s.estado)?'<span class="kc-resp libre">sin asignar</span>':'')}
       ${s.origen==='cliente'?'<span class="kc-tipo nuevo">del formulario</span>':''}
     </div>
   </div>`;
@@ -949,13 +981,15 @@ function renderRubros(){
     const {error}=await sb.from('rubros')
       .update({ideal:v==='ideal',riesgo:v==='riesgo'}).eq('id',id);
     if(error){toast(traducir(error.message),'m');return;}
-    await cargarRubros(); toast('Perfil actualizado','k');
+    await cargarRubros();
+  await cargarEquipo(); toast('Perfil actualizado','k');
   }));
   $$('[data-rd]').forEach(b=>b.addEventListener('click',async()=>{
     if(!confirm(`¿Quitar el rubro "${b.dataset.nom}"?`)) return;
     const {error}=await sb.from('rubros').delete().eq('id',+b.dataset.rd);
     if(error){toast(traducir(error.message),'m');return;}
-    await cargarRubros(); renderRubros(); toast('Rubro eliminado','k');
+    await cargarRubros();
+  await cargarEquipo(); renderRubros(); toast('Rubro eliminado','k');
   }));
 }
 async function guardarParams(){
@@ -1280,13 +1314,7 @@ function detalle(){
           </div>
         </div>
       </div>
-      <div class="g2" style="margin-top:13px">
-        <div class="fld"><label>Deducciones (L)<small>Descuentos de ley u otros préstamos</small></label>
-          <input id="i-ded" inputmode="decimal" value="${ai.deducciones||''}"></div>
-        <div class="fld"><label>Ingreso promedio mensual (L)<small>Se calcula solo; podés ajustarlo</small></label>
-          <input id="i-prom" inputmode="decimal" value="${ai.ingreso_promedio||''}"></div>
-      </div>
-      <div class="fld"><label>Notas</label><textarea id="i-notas">${esc(ai.notas||'')}</textarea></div>
+      <div class="fld" style="margin-top:13px"><label>Notas</label><textarea id="i-notas">${esc(ai.notas||'')}</textarea></div>
     </div>`;
   } else if(s.analisis_ingresos?.ingreso_promedio){
     const ai=s.analisis_ingresos;
@@ -1488,8 +1516,6 @@ function conectar(esAse,esAna){
     });
     $('#i-frec')?.addEventListener('change',recalcIngreso);
     conectarPagos();
-    $('#i-prom')?.addEventListener('input',e=>{e.target.dataset.manual='1';recalcIngreso();});
-    $('#i-ded')?.addEventListener('input',recalcIngreso);
     recalcIngreso();
   }
   if(esAna){
@@ -1592,24 +1618,23 @@ function recalcIngreso(){
     $('#ing-tot').innerHTML='<div class="tot-row"><span class="m">Agregá los pagos para calcular</span></div>';
   }
 
-  const inp=$('#i-prom');
-  if(inp && prom && (!inp.dataset.manual || inp.value==='')) inp.value=prom;
-  const usado=parseFloat($('#i-prom')?.value)||prom;
+  // El promedio calculado es el que manda; ya no hay campo manual
+  ACT._ingresoCalculado = prom;
 
   const kp=$('#kpi-prom'), kpd=$('#kpi-prom-d');
   if(kp){
-    kp.textContent=usado?fmtL(usado):'L 0';
+    kp.textContent=prom?fmtL(prom):'L 0';
     kpd.textContent=detalle||'—';
   }
   const kl=$('#kpi-lim'), kld=$('#kpi-lim-d');
   if(kl){
-    const r=calcLimite(usado,ACT.tipo_operacion,mesesCliente(ACT));
+    const r=calcLimite(prom,ACT.tipo_operacion,mesesCliente(ACT));
     if(r.ok){
       kl.textContent='L '+fmt(r.monto); kl.className='ing-kpi-v verde';
       kld.textContent=r.regla+(r.clamped?' · ajustado al rango':'');
     } else {
       kl.textContent='L 0'; kl.className='ing-kpi-v rojo';
-      kld.textContent=usado?r.motivo:'—';
+      kld.textContent=prom?r.motivo:'—';
     }
   }
 }
@@ -1809,8 +1834,7 @@ function datosAsesor(){
     analisis_ingresos:{
       pagos,
       frecuencia:$('#i-frec')?.value||'',
-      ingreso_promedio:parseFloat($('#i-prom')?.value)||0,
-      deducciones:parseFloat($('#i-ded')?.value)||0,
+      ingreso_promedio:ACT._ingresoCalculado||0,
       notas:$('#i-notas')?.value.trim()||''},
     asesor_id:ACT.asesor_id||YO.id,
     tipo_operacion:ACT.tipo_operacion};
