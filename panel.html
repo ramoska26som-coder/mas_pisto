@@ -132,6 +132,14 @@
   .kcard.est-cancelado:hover{border-color:#C3CAD3}
   .kcard.est-aprobado,.kcard.est-desembolsado{background:#F1FAF4;border-color:#C4E7D2}
   .kcard.est-aprobado:hover,.kcard.est-desembolsado:hover{border-color:#98D3AE}
+  /* Referencias que no respondieron: morado suave */
+  .kcard.est-noresp{background:#F6F2FD;border-color:#DDCEF5}
+  .kcard.est-noresp:hover{border-color:#C3A9EC}
+  /* En espera por cliente: ámbar muy tenue con borde punteado */
+  .kcard.est-espera{background:#FFFBF2;border-color:#EBD9AE;border-style:dashed}
+  .kcard.est-espera:hover{border-color:#DBBE73}
+  .kc-espera{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;
+    background:#FBF0D6;color:#8A6D00;border:1px solid #EBD9AE}
   .kc-nom{font-family:'Poppins';font-weight:600;font-size:14.5px;line-height:1.25}
   .kc-folio{font-size:11px;color:var(--azul);font-weight:600;margin-top:1px}
   .kc-fecha{font-size:11.5px;color:var(--gris);margin-top:8px;display:flex;align-items:center;gap:5px}
@@ -899,12 +907,16 @@ function sla(s){
 }
 const ETQ={pendiente_revision:'Nuevas',en_revision_asesor:'En revisión',en_analisis:'Análisis',
   por_verificar:'Por verificar',en_verificacion:'Verificando',verificado:'Decidir',
+  en_espera_cliente:'En espera',
   aprobado:'Aprobadas',denegado:'Rechazadas',desembolsado:'Entregadas',cancelado:'Canceladas'};
 const TIPO_L={nuevo:'Nuevo Préstamo',reingreso:'Reingreso',refinanciamiento:'Refinanciamiento'};
 const ESTATUS_L={pendiente_revision:'Sin tomar',en_revision_asesor:'En revisión',
   en_analisis:'En análisis',por_verificar:'Por verificar',en_verificacion:'En verificación',
-  verificado:'Por decidir',aprobado:'Aprobada',denegado:'Rechazada',
+  verificado:'Por decidir',en_espera_cliente:'En espera por cliente',aprobado:'Aprobada',denegado:'Rechazada',
   desembolsado:'Entregada',cancelado:'Cancelada'};
+
+/* Etapa efectiva para ubicar en el kanban: si está en espera, usa el estado previo. */
+const etapaDe=s=>s.estado==='en_espera_cliente'?(s.estado_previo||'en_analisis'):s.estado;
 
 /* Las 3 columnas del kanban */
 /* Columnas por área responsable, no por etapa genérica */
@@ -941,11 +953,11 @@ function transcurrido(s){
 /* ===== SOLICITUDES (KANBAN) ===== */
 function pintarSolicitudes(){
   const porFecha=(a,b)=>new Date(a.estado_desde)-new Date(b.estado_desde);
-  const pend=SOLS.filter(s=>COL_PEND.includes(s.estado))
+  const pend=SOLS.filter(s=>COL_PEND.includes(etapaDe(s)))
     .sort((a,b)=>new Date(a.creado_en)-new Date(b.creado_en));
-  const ase=SOLS.filter(s=>COL_ASE.includes(s.estado)).sort(porFecha);
-  const ana=SOLS.filter(s=>COL_ANA.includes(s.estado)).sort(porFecha);
-  const ver=SOLS.filter(s=>COL_VER.includes(s.estado)).sort(porFecha);
+  const ase=SOLS.filter(s=>COL_ASE.includes(etapaDe(s))).sort(porFecha);
+  const ana=SOLS.filter(s=>COL_ANA.includes(etapaDe(s))).sort(porFecha);
+  const ver=SOLS.filter(s=>COL_VER.includes(etapaDe(s))).sort(porFecha);
   const fin=SOLS.filter(s=>COL_FIN.includes(s.estado)&&esDeHoy(s))
     .sort((a,b)=>new Date(b.cerrado_en||b.actualizado_en)-new Date(a.cerrado_en||a.actualizado_en));
 
@@ -971,16 +983,29 @@ function pintarSolicitudes(){
   $$('.kcard[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
 }
 
+/* Clase de color de la tarjeta según desenlace / señales.
+   Prioridad: cerradas (rojo/gris/verde) > en espera > referencias sin responder (morado). */
+function claseTarjeta(s){
+  if(s.estado==='denegado') return 'est-denegado';
+  if(s.estado==='cancelado') return 'est-cancelado';
+  if(s.estado==='aprobado'||s.estado==='desembolsado') return 'est-'+s.estado;
+  if(s.estado==='en_espera_cliente') return 'est-espera';
+  const refs=s.checklist_analista?.referencias?.items||[];
+  if(refs.some(r=>r.resultado==='no_respondio')) return 'est-noresp';
+  return '';
+}
 function kcardHTML(s){
   const d=s.datos_cliente||{};
   const t=transcurrido(s);
   const tipo=s.tipo_operacion||'nuevo';
-  // Responsable según la etapa donde está
+  const et=etapaDe(s);
+  // Responsable según la etapa efectiva (contando la espera)
   let resp=null;
-  if(COL_ASE.includes(s.estado)) resp=quien(s.asesor_id);
-  else if(COL_ANA.includes(s.estado)) resp=quien(s.analista_id);
-  else if(COL_VER.includes(s.estado)) resp=quien(s.verificador_id);
-  return `<div class="kcard est-${s.estado}" data-id="${s.id}">
+  if(COL_ASE.includes(et)) resp=quien(s.asesor_id);
+  else if(COL_ANA.includes(et)) resp=quien(s.analista_id);
+  else if(COL_VER.includes(et)) resp=quien(s.verificador_id);
+  const enEspera=s.estado==='en_espera_cliente';
+  return `<div class="kcard ${claseTarjeta(s)}" data-id="${s.id}">
     <div class="kc-nom">${esc(nombreDe(d))}</div>
     <div class="kc-folio">${esc(s.folio)}</div>
     <div class="kc-fecha">
@@ -992,9 +1017,10 @@ function kcardHTML(s){
       <span class="kc-transc ${t.cls}">${t.txt}</span>
     </div>
     <div class="kc-row">
-      <span class="kc-estado">${ESTATUS_L[s.estado]||s.estado}</span>
+      <span class="kc-estado">${enEspera?'En espera':(ESTATUS_L[s.estado]||s.estado)}</span>
+      ${enEspera?'<span class="kc-espera">⏸ cliente</span>':''}
       ${resp?`<span class="kc-resp">${esc(resp)}</span>`
-             :(COL_VER.includes(s.estado)?'<span class="kc-resp libre">sin asignar</span>':'')}
+             :(COL_VER.includes(et)?'<span class="kc-resp libre">sin asignar</span>':'')}
       ${s.origen==='cliente'?'<span class="kc-tipo nuevo">del formulario</span>':''}
     </div>
   </div>`;
@@ -1411,8 +1437,24 @@ function detalle(){
   const s=ACT,d=s.datos_cliente||{};
   const esAse=['pendiente_revision','en_revision_asesor'].includes(s.estado)&&(rol('asesor')||esAdmin());
   const esAna=s.estado==='en_analisis'&&(rol('analista')||esAdmin());
+  // Estados abiertos donde todavía tiene sentido sumar referencias
+  const REF_ABIERTOS=['pendiente_revision','en_revision_asesor','en_analisis',
+    'por_verificar','en_verificacion','verificado','en_espera_cliente'];
+  // El asesor puede agregar referencias aunque la solicitud ya esté en análisis.
+  const puedeAgregarRef=REF_ABIERTOS.includes(s.estado)&&(rol('asesor')||rol('analista')||esAdmin());
+  const abierta=!['aprobado','denegado','desembolsado','cancelado'].includes(s.estado);
+  const puedeEspera=abierta&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin());
   let izq='';   // Datos del cliente (referencia)
   let der='';   // Lo que el rol tiene que trabajar
+
+  if(s.estado==='en_espera_cliente'){
+    izq+=`<div class="sec" style="border-color:#EBD9AE;background:#FFFBF2">
+      <div class="sec-h"><h4>⏸ En espera por cliente</h4>
+        <span class="badge a">${ESTATUS_L[s.estado_previo]||'—'}</span></div>
+      ${s.espera_cliente_motivo?`<div class="callout w" style="margin-bottom:8px">${esc(s.espera_cliente_motivo)}</div>`:''}
+      <p style="font-size:13px;color:var(--gris)">En pausa desde ${s.en_espera_desde?fechaHora(s.en_espera_desde):'—'}. Al reanudar vuelve a <b>${esc(ESTATUS_L[s.estado_previo]||'su etapa')}</b>.</p>
+    </div>`;
+  }
 
   izq+=`<div class="sec"><div class="sec-h"><h4>Operación</h4>
       <span class="badge ${s.tipo_operacion==='nuevo'?'p':'a'}">${TIPO_L[s.tipo_operacion]}</span></div>`;
@@ -1431,7 +1473,7 @@ function detalle(){
         <dd>${new Date(s.fecha_ingreso_cliente+'T12:00:00').toLocaleDateString('es-HN')} · ${labelMeses(mesesCliente(s))}</dd></dl>`;
   izq+='</div>';
 
-  const puedeEditarNom=(esAse||esAna);
+  const puedeEditarNom=abierta&&(rol('asesor')||rol('analista')||esAdmin());
   izq+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4>
       ${puedeEditarNom?`<button class="btn btn-g btn-sm" id="edit-nom" style="flex:none">Editar nombre</button>`:''}</div><dl class="dl">
     <dt>Nombre</dt><dd>${esc(nombreDe(d))}</dd>
@@ -1471,14 +1513,18 @@ function detalle(){
     </dl></div>`;
   }
 
-  if(s.checklist_analista?.referencias?.items?.length&&!esAna){
-    izq+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4></div>
-      ${s.checklist_analista.referencias.items.map(r=>`
+  const refItems=s.checklist_analista?.referencias?.items||[];
+  if((refItems.length||puedeAgregarRef)&&!esAna&&!esAse){
+    izq+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4>
+        <span class="badge p">${refItems.filter(r=>r.resultado).length}/${refItems.length}</span></div>
+      ${refItems.length?refItems.map(r=>`
       <div class="ref"><div class="ref-t">
         <div><div class="ref-n">${esc(r.nombre||'—')}</div>
           <div class="ref-d">${esc(r.telefono||'')}${r.parentesco?' · '+esc(r.parentesco):''}</div></div>
-        <span class="tag ${r.resultado==='ok'?'b':''}">${txtRes(r.resultado)}</span></div>
-        ${r.comentario?`<div style="font-size:12.5px;color:var(--gris)">${esc(r.comentario)}</div>`:''}</div>`).join('')}</div>`;
+        <span class="tag ${r.resultado==='ok'?'b':r.resultado==='no_respondio'?'':''}">${txtRes(r.resultado)}</span></div>
+        ${r.comentario?`<div style="font-size:12.5px;color:var(--gris)">${esc(r.comentario)}</div>`:''}</div>`).join('')
+        :'<p style="font-size:13.5px;color:var(--gris)">Sin referencias todavía.</p>'}
+      ${puedeAgregarRef?`<button class="btn btn-g btn-sm" id="add-ref" style="flex:none;margin-top:10px">+ Agregar referencia</button>`:''}</div>`;
   }
 
   if(d.comprobantes||d.archivos?.length){
@@ -1561,6 +1607,9 @@ function detalle(){
           <div class="ref-d">${esc(r.telefono||'')}${r.parentesco?' · '+esc(r.parentesco):''}</div></div></div></div>`).join('')
         :'<p style="font-size:13.5px;color:var(--gris)">El cliente aún no dio referencias.</p>'}
       <button class="btn btn-g btn-sm" id="add-ref" style="flex:none;margin-top:10px">+ Agregar referencia</button></div>`;
+  } else if(s.analisis_ingresos?.ingreso_promedio && esAna){
+    // El analista ve el análisis de ingresos completo, en SOLO LECTURA.
+    izq+=ingresosLecturaHTML(s);
   } else if(s.analisis_ingresos?.ingreso_promedio){
     const ai=s.analisis_ingresos;
     izq+=`<div class="sec"><div class="sec-h"><h4>Ingresos</h4><span class="badge k">listo</span></div><dl class="dl">
@@ -1636,7 +1685,7 @@ function detalle(){
   }
 
   // Notas (bitácora): asesor y analista pueden escribir; todos las ven.
-  const puedeNotas=(esAse||esAna);
+  const puedeNotas=abierta&&(rol('asesor')||rol('analista')||esAdmin());
   const notasSec=`<div class="sec"><div class="sec-h"><h4>Notas</h4></div>
       ${puedeNotas?`<div class="fld"><textarea id="nota-txt" placeholder="Escribí una nota sobre esta solicitud (queda con tu nombre y la fecha)"></textarea></div>
       <button class="btn btn-b btn-sm" id="nota-add" style="flex:none;margin-bottom:12px">Agregar nota</button>`:''}
@@ -1693,6 +1742,7 @@ const AREAS=[
   {k:'analista_revision',   n:'Analista · revisión',    c:'#7C5CE0'},
   {k:'analista_referencias',n:'Analista · referencias', c:'#B7791F'},
   {k:'verificador',         n:'Verificador',            c:'#1F9D57'},
+  {k:'espera_cliente',      n:'Espera por cliente',     c:'#D9A441'},
   {k:'desembolso',          n:'Desembolso',             c:'#0E9BA8'}
 ];
 function dur(min){
@@ -1788,12 +1838,11 @@ function resHTML(r){
 }
 
 function conectar(esAse,esAna){
-  // Controles comunes de asesor y analista
-  if(esAse||esAna){
-    $('#edit-nom')?.addEventListener('click',abrirEditarNombre);
-    $('#add-ref')?.addEventListener('click',abrirAgregarReferencia);
-    $('#nota-add')?.addEventListener('click',guardarNota);
-  }
+  // Controles comunes: existen según capacidad, no según columna de trabajo.
+  // (p.ej. el asesor puede agregar referencia aunque la solicitud esté en análisis)
+  $('#edit-nom')?.addEventListener('click',abrirEditarNombre);
+  $('#add-ref')?.addEventListener('click',abrirAgregarReferencia);
+  $('#nota-add')?.addEventListener('click',guardarNota);
   if(esAse){
     $('#conf-docs')?.addEventListener('click',confirmarDocs);
   }
@@ -1850,6 +1899,56 @@ function conectarPagos(){
     } else b.closest('.pago-row').remove();
     recalcIngreso();
   }));
+}
+/* Vista de SOLO LECTURA del análisis de ingresos, para el analista.
+   Muestra lo mismo que ve el asesor (pagos, promedio, límite) sin poder editar. */
+function ingresosLecturaHTML(s){
+  const ai=s.analisis_ingresos||{};
+  const d=s.datos_cliente||{};
+  const pagos=(ai.pagos||[]).filter(p=>p.monto);
+  const frec=ai.frecuencia||'Quincenal';
+  const prom=ai.ingreso_promedio||0;
+  const lim=calcLimite(prom,s.tipo_operacion,mesesCliente(s));
+
+  // Desglose por mes (misma lógica que recalcIngreso, en estático)
+  const meses={};
+  pagos.forEach(p=>{ const k=p.fecha?String(p.fecha).slice(0,7):'sin-fecha';
+    (meses[k]=meses[k]||[]).push(parseFloat(String(p.monto).replace(/,/g,''))||0); });
+  const nombreMes=k=>{ if(k==='sin-fecha') return 'Sin fecha';
+    const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('es-HN',{month:'long',year:'numeric'}); };
+  const claves=Object.keys(meses).sort();
+
+  const filasPago=pagos.length
+    ? pagos.map(p=>`<div class="tot-row">
+        <span class="m">${p.fecha?esc(p.fecha):'sin fecha'}</span>
+        <span class="v">${fmtL(parseFloat(String(p.monto).replace(/,/g,''))||0)}</span></div>`).join('')
+    : '<p style="font-size:13px;color:var(--gris)">Sin pagos registrados.</p>';
+
+  return `<div class="sec"><div class="sec-h"><h4>Análisis de ingresos</h4>
+      <span class="badge k">del asesor</span></div>
+    <div class="callout" style="margin-bottom:12px">Capturado por el asesor. Lo ves como referencia; no se edita desde acá.</div>
+    <dl class="dl">
+      <dt>Frecuencia</dt><dd>${esc(frec)}</dd>
+      ${d.salario?`<dt>Salario declarado</dt><dd>${fmtL(d.salario)}</dd>`:''}
+      <dt>Pagos registrados</dt><dd>${pagos.length}</dd>
+    </dl>
+    <div class="ing-tot" style="margin-top:10px">
+      ${filasPago}
+      ${claves.length>1||claves[0]!=='sin-fecha'?claves.map(k=>`
+        <div class="tot-row"><span class="m">${nombreMes(k)} · ${meses[k].length} pago${meses[k].length>1?'s':''}</span>
+          <span class="v">${fmtL(meses[k].reduce((a,b)=>a+b,0))}</span></div>`).join(''):''}
+      <div class="tot-row gran"><span class="m">Promedio mensual</span><span class="v">${fmtL(prom)}</span></div>
+    </div>
+    <div class="g2" style="margin-top:12px">
+      <div><div class="ing-kpi-l">$ Promedio mensual</div>
+        <div class="ing-kpi-v azul">${fmtL(prom)}</div></div>
+      <div><div class="ing-kpi-l">▭ Límite de crédito</div>
+        <div class="ing-kpi-v ${lim.ok?'verde':'rojo'}">${lim.ok?'L '+fmt(lim.monto):'L 0'}</div>
+        <div class="ing-kpi-d">${lim.ok?esc(lim.regla):(prom?esc(lim.motivo):'—')}</div></div>
+    </div>
+    ${ai.notas?`<div class="fld" style="margin-top:12px"><label>Notas del asesor</label>
+      <div class="callout" style="margin:0">${esc(ai.notas)}</div></div>`:''}
+  </div>`;
 }
 /* Promedio mensual. Si hay pagos fechados, se agrupan por mes y se promedian
    los meses COMPLETOS (los meses a medio llenar distorsionarían el promedio).
@@ -2054,10 +2153,12 @@ function resultado(){
 
 /* ===== ACCIONES ===== */
 const ABIERTOS=['pendiente_revision','en_revision_asesor','en_analisis',
-                'por_verificar','en_verificacion','verificado'];
+                'por_verificar','en_verificacion','verificado','en_espera_cliente'];
 function pie(){
   const s=ACT;let h='';
-  if(s.estado==='pendiente_revision'&&(rol('asesor')||esAdmin()))
+  if(s.estado==='en_espera_cliente'&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin()))
+    h=`<button class="btn btn-b" id="a-reanudar">Reanudar solicitud</button>`;
+  else if(s.estado==='pendiente_revision'&&(rol('asesor')||esAdmin()))
     h=`<button class="btn btn-b" id="a1">Tomar solicitud</button>`;
   else if(s.estado==='en_revision_asesor'&&(rol('asesor')||esAdmin()))
     h=`<button class="btn btn-g" id="a2">Guardar</button><button class="btn btn-y" id="a3">Enviar a análisis</button>`;
@@ -2071,14 +2172,20 @@ function pie(){
   else if(s.estado==='aprobado'&&(rol('asesor')||rol('analista')||esAdmin()))
     h=`<button class="btn btn-b" id="a9">Marcar como entregada</button>`;
 
-  // Rechazar y cancelar están disponibles mientras la solicitud siga abierta
+  // Cancelar, rechazar y poner en espera: disponibles mientras siga abierta.
   let extra='';
-  if(ABIERTOS.includes(s.estado)&&(rol('asesor')||rol('analista')||esAdmin())){
+  const abiertaNoEspera=ABIERTOS.includes(s.estado)&&s.estado!=='en_espera_cliente';
+  if(abiertaNoEspera&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin())){
+    extra=`<button class="btn btn-g btn-sm" id="a-espera" style="flex:none">Poner en espera</button>
+           <button class="btn btn-g btn-sm" id="a-cancel" style="flex:none">Cancelar</button>
+           <button class="btn btn-g btn-sm" id="a-rechaza" style="flex:none;color:var(--error);border-color:#F3C4C4">Rechazar</button>`;
+  } else if(s.estado==='en_espera_cliente'&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin())){
+    // Desde la espera también se puede cancelar/rechazar
     extra=`<button class="btn btn-g btn-sm" id="a-cancel" style="flex:none">Cancelar</button>
            <button class="btn btn-g btn-sm" id="a-rechaza" style="flex:none;color:var(--error);border-color:#F3C4C4">Rechazar</button>`;
   }
   $('#m-pie').innerHTML = extra
-    ? `<div style="flex:1;display:flex;gap:8px">${extra}</div>${h}`
+    ? `<div style="flex:1;display:flex;gap:8px;flex-wrap:wrap">${extra}</div>${h}`
     : h;
 
   $('#a1')?.addEventListener('click',()=>guardar({estado:'en_revision_asesor',asesor_id:YO.id}));
@@ -2094,8 +2201,55 @@ function pie(){
     if(!confirm(`¿Confirmar que ya se entregó el desembolso de L${fmt(r.monto_aprobado)}?`)) return;
     await guardar({estado:'desembolsado'});
   });
+  $('#a-espera')?.addEventListener('click',abrirPonerEnEspera);
+  $('#a-reanudar')?.addEventListener('click',reanudar);
   $('#a-cancel')?.addEventListener('click',()=>cerrarSolicitud('cancelado'));
   $('#a-rechaza')?.addEventListener('click',()=>cerrarSolicitud('denegado'));
+}
+
+const MOTIVOS_ESPERA=['El cliente no responde','Falta documentación por entregar',
+  'Falta un requisito por cumplir','El cliente pidió más tiempo','Otro motivo'];
+function abrirPonerEnEspera(){
+  $('.asig-h h3').textContent='Poner en espera por cliente';
+  $('#asig-body').innerHTML=`
+    <div class="callout">La solicitud se pausa sin perder su lugar. El reloj de espera corre aparte y no afecta el tiempo de gestión. Reanudala cuando el cliente responda o cumpla el requisito.</div>
+    <div class="fld"><label>Motivo <span style="color:var(--error)">*</span></label>
+      <select id="pe-motivo">
+        <option value="">Selecciona…</option>
+        ${MOTIVOS_ESPERA.map(m=>`<option>${esc(m)}</option>`).join('')}
+      </select></div>
+    <div class="fld"><label>Detalle<small>Opcional, queda en la bitácora</small></label>
+      <textarea id="pe-nota" placeholder="Ej. quedó de traer la colilla el lunes"></textarea></div>
+    <div class="callout r hide" id="pe-err"></div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-g" id="pe-x" style="flex:1">Volver</button>
+      <button class="btn btn-b" id="pe-ok" style="flex:1">Poner en espera</button>
+    </div>`;
+  $('#asig').classList.add('on');
+  $('#pe-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  $('#pe-ok').addEventListener('click',async()=>{
+    const m=$('#pe-motivo').value;
+    if(!m){ $('#pe-err').textContent='Elegí un motivo.'; $('#pe-err').classList.remove('hide'); return; }
+    const nota=$('#pe-nota').value.trim();
+    const texto=nota?`${m} — ${nota}`:m;
+    const b=$('#pe-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Guardando';
+    const {error}=await sb.rpc('poner_en_espera',{p_id:ACT.id,p_motivo:texto});
+    if(error){ b.disabled=false; b.textContent='Poner en espera';
+      $('#pe-err').textContent=traducir(error.message); $('#pe-err').classList.remove('hide'); return; }
+    await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`En espera por cliente: ${texto}`});
+    $('#asig').classList.remove('on');
+    toast('Solicitud en espera','k');
+    await cargar(); cerrarModal();
+  });
+}
+async function reanudar(){
+  if(!confirm('¿Reanudar la solicitud? Volverá al punto donde estaba antes de la pausa.')) return;
+  const bs=$$('#m-pie .btn'); bs.forEach(b=>b.disabled=true);
+  const {error}=await sb.rpc('reanudar_solicitud',{p_id:ACT.id});
+  if(error){ bs.forEach(b=>b.disabled=false); toast(traducir(error.message),'m'); return; }
+  await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:'Solicitud reanudada.'});
+  toast('Solicitud reanudada','k');
+  await cargar(); cerrarModal();
 }
 
 /* Cerrar una solicitud antes de tiempo: cancelada (el cliente desiste) o
@@ -2291,18 +2445,11 @@ function abrirAgregarReferencia(){
     const n=$('#ar-n').value.trim(), t=$('#ar-t').value.trim(), p=$('#ar-p').value.trim();
     const err=m=>{ $('#ar-err').textContent=m; $('#ar-err').classList.remove('hide'); };
     if(!n||!t) return err('Nombre y teléfono son obligatorios.');
-    const d=ACT.datos_cliente||{};
-    const refs=Array.isArray(d.referencias)?d.referencias.slice():[];
-    // Evitar duplicado exacto (nombre+teléfono)
-    const norm=x=>String(x||'').toLowerCase().trim();
-    const tel=x=>String(x||'').replace(/\D/g,'');
-    if(refs.some(r=>norm(r.nombre)===norm(n)&&tel(r.telefono)===tel(t)))
-      return err('Esa referencia ya está registrada.');
-    refs.push({nombre:n,telefono:t,parentesco:p});
     const b=$('#ar-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Agregando';
-    // El trigger sembrar_referencias propaga la nueva al checklist del analista
-    const {error}=await sb.from('solicitudes')
-      .update({datos_cliente:{...d,referencias:refs}}).eq('id',ACT.id);
+    // RPC: agrega en cualquier estado (incluye análisis) sin tocar el resto.
+    // El trigger sembrar_referencias propaga la nueva al checklist del analista.
+    const {error}=await sb.rpc('agregar_referencia',
+      {p_id:ACT.id,p_nombre:n,p_telefono:t,p_parentesco:p});
     if(error){ b.disabled=false; b.textContent='Agregar referencia';
       return err(traducir(error.message)); }
     await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`Referencia agregada: ${n} (${t})`});
