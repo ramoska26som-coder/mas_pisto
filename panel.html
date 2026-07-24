@@ -231,6 +231,10 @@
   .badge.m{background:var(--error-lt);color:var(--error)}
   .badge.a{background:var(--amber-lt);color:var(--amber)}
 
+  .edad{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:7px;
+    background:var(--fondo);color:var(--gris);border:1px solid var(--linea);white-space:nowrap}
+  .edad.alerta{background:var(--error-lt);color:var(--error);border-color:#F3C4C4}
+
   .dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13.5px}
   .dl dt{color:var(--gris);white-space:nowrap}
   .dl dd{text-align:right;word-break:break-word;font-weight:500}
@@ -570,6 +574,25 @@ function labelMeses(m){
   if(a<=0) return m+' mes'+(m===1?'':'es');
   return `${m} meses (${a} año${a>1?'s':''}${r>0?` y ${r} mes${r>1?'es':''}`:''})`;
 }
+/* Edad del cliente. Fuera del rango 21-60 se marca en rojo:
+   son los extremos donde el riesgo cambia y conviene que salte a la vista. */
+function edadDe(iso){
+  if(!iso) return null;
+  const n=new Date(String(iso).slice(0,10)+'T12:00:00'); if(isNaN(n)) return null;
+  const h=new Date();
+  let e=h.getFullYear()-n.getFullYear();
+  const m=h.getMonth()-n.getMonth();
+  if(m<0||(m===0&&h.getDate()<n.getDate())) e--;
+  return e;
+}
+function edadHTML(d){
+  const e = d.edad!=null ? +d.edad : edadDe(d.nacimiento);
+  if(e==null||isNaN(e)) return '';
+  const alerta = e<21 || e>60;
+  return ` <span class="edad${alerta?' alerta':''}">${e} años${
+    alerta?` · ${e<21?'menor de 21':'mayor de 60'}`:''}</span>`;
+}
+
 function perfilRubro(nom){
   if(!nom||!RUBROS.length) return 'normal';
   const b=String(nom).replace(/\s*\(otro\)$/i,'').trim().toLowerCase();
@@ -1404,7 +1427,7 @@ function detalle(){
   izq+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4></div><dl class="dl">
     <dt>Cédula</dt><dd>${esc(cedulaDe(d))}</dd>
     <dt>Teléfono</dt><dd>${d.telefono?`<a href="tel:${String(d.telefono).replace(/\D/g,'')}">${esc(d.telefono)}</a>`:'—'}</dd>
-    ${d.nacimiento?`<dt>Nacimiento</dt><dd>${esc(d.nacimiento)}</dd>`:''}
+    ${d.nacimiento?`<dt>Nacimiento</dt><dd>${esc(d.nacimiento)}${edadHTML(d)}</dd>`:''}
     ${d.monto?`<dt>Monto que pide</dt><dd style="color:var(--azul);font-weight:700">L${fmt(d.monto)}</dd>`:''}
     ${d.destino?`<dt>Destino</dt><dd>${esc(d.destino)}</dd>`:''}
     ${d.metodo_pago?`<dt>Pagará por</dt><dd>${esc(d.metodo_pago)}</dd>`:''}
@@ -1425,6 +1448,7 @@ function detalle(){
     ${d.prestaciones?`<dt>Prestaciones</dt><dd>${esc(d.prestaciones)}</dd>`:''}
     ${d.dias_pago?`<dt>Recibe pago</dt><dd>${esc(d.dias_pago)}</dd>`:''}
     ${d.otros_ingresos&&d.otros_ingresos!=='No'?`<dt>Otros ingresos</dt><dd>${esc(d.otros_ingresos)}</dd>`:''}
+    ${d.ciudad_empresa?`<dt>Ciudad</dt><dd>${esc(d.ciudad_empresa)}</dd>`:''}
     <dt>Dirección</dt><dd>${esc(d.dir_empresa||d.direccion_trabajo||'—')}</dd>
   </dl></div>`;
 
