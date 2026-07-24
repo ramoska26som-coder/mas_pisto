@@ -125,6 +125,13 @@
     padding:13px;margin-bottom:9px;cursor:pointer;transition:border-color .15s,transform .1s}
   .kcard:hover{border-color:var(--azul)}
   .kcard:active{transform:scale(.99)}
+  /* Color suave de fondo según el desenlace de la solicitud */
+  .kcard.est-denegado{background:#FDF3F3;border-color:#F1C9C9}
+  .kcard.est-denegado:hover{border-color:#E39A9A}
+  .kcard.est-cancelado{background:#F5F6F8;border-color:#DDE1E7}
+  .kcard.est-cancelado:hover{border-color:#C3CAD3}
+  .kcard.est-aprobado,.kcard.est-desembolsado{background:#F1FAF4;border-color:#C4E7D2}
+  .kcard.est-aprobado:hover,.kcard.est-desembolsado:hover{border-color:#98D3AE}
   .kc-nom{font-family:'Poppins';font-weight:600;font-size:14.5px;line-height:1.25}
   .kc-folio{font-size:11px;color:var(--azul);font-weight:600;margin-top:1px}
   .kc-fecha{font-size:11.5px;color:var(--gris);margin-top:8px;display:flex;align-items:center;gap:5px}
@@ -973,7 +980,7 @@ function kcardHTML(s){
   if(COL_ASE.includes(s.estado)) resp=quien(s.asesor_id);
   else if(COL_ANA.includes(s.estado)) resp=quien(s.analista_id);
   else if(COL_VER.includes(s.estado)) resp=quien(s.verificador_id);
-  return `<div class="kcard" data-id="${s.id}">
+  return `<div class="kcard est-${s.estado}" data-id="${s.id}">
     <div class="kc-nom">${esc(nombreDe(d))}</div>
     <div class="kc-folio">${esc(s.folio)}</div>
     <div class="kc-fecha">
@@ -1424,7 +1431,10 @@ function detalle(){
         <dd>${new Date(s.fecha_ingreso_cliente+'T12:00:00').toLocaleDateString('es-HN')} · ${labelMeses(mesesCliente(s))}</dd></dl>`;
   izq+='</div>';
 
-  izq+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4></div><dl class="dl">
+  const puedeEditarNom=(esAse||esAna);
+  izq+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4>
+      ${puedeEditarNom?`<button class="btn btn-g btn-sm" id="edit-nom" style="flex:none">Editar nombre</button>`:''}</div><dl class="dl">
+    <dt>Nombre</dt><dd>${esc(nombreDe(d))}</dd>
     <dt>Cédula</dt><dd>${esc(cedulaDe(d))}</dd>
     <dt>Teléfono</dt><dd>${d.telefono?`<a href="tel:${String(d.telefono).replace(/\D/g,'')}">${esc(d.telefono)}</a>`:'—'}</dd>
     ${d.nacimiento?`<dt>Nacimiento</dt><dd>${esc(d.nacimiento)}${edadHTML(d)}</dd>`:''}
@@ -1489,6 +1499,14 @@ function detalle(){
   }
 
   if(esAse){
+    const recibidos=!!s.docs_recibidos_en;
+    der+=`<div class="sec"><div class="sec-h"><h4>Recepción de documentos</h4>
+        <span class="badge ${recibidos?'k':'a'}">${recibidos?'recibidos':'en espera'}</span></div>
+      ${recibidos
+        ? `<div class="callout">Documentos confirmados el <b>${fechaHora(s.docs_recibidos_en)}</b>. Tu tiempo de gestión cuenta desde ese momento.</div>`
+        : `<div class="callout w" style="margin-bottom:11px">Mientras esperás los documentos del cliente, el reloj corre como <b>espera de documentos</b> y no afecta tu tiempo. Confirmá cuando ya los tengás.</div>
+           <button class="btn btn-b btn-sm" id="conf-docs" style="flex:none">Confirmar recepción de documentos</button>`}
+    </div>`;
     const ai=s.analisis_ingresos||{};
     const pagos=ai.pagos?.length?ai.pagos:[{fecha:'',monto:''}];
     const frec=ai.frecuencia||frecuenciaSugerida(d.dias_pago);
@@ -1533,6 +1551,16 @@ function detalle(){
       </div>
       <div class="fld" style="margin-top:13px"><label>Notas</label><textarea id="i-notas">${esc(ai.notas||'')}</textarea></div>
     </div>`;
+    // Referencias visibles para el asesor, con opción de agregar
+    const refsAse=(s.datos_cliente?.referencias)||[];
+    der+=`<div class="sec"><div class="sec-h"><h4>Referencias del cliente</h4>
+        <span class="badge p">${refsAse.length}</span></div>
+      ${refsAse.length?refsAse.map(r=>`
+        <div class="ref"><div class="ref-t"><div>
+          <div class="ref-n">${esc(r.nombre||'—')}</div>
+          <div class="ref-d">${esc(r.telefono||'')}${r.parentesco?' · '+esc(r.parentesco):''}</div></div></div></div>`).join('')
+        :'<p style="font-size:13.5px;color:var(--gris)">El cliente aún no dio referencias.</p>'}
+      <button class="btn btn-g btn-sm" id="add-ref" style="flex:none;margin-top:10px">+ Agregar referencia</button></div>`;
   } else if(s.analisis_ingresos?.ingreso_promedio){
     const ai=s.analisis_ingresos;
     izq+=`<div class="sec"><div class="sec-h"><h4>Ingresos</h4><span class="badge k">listo</span></div><dl class="dl">
@@ -1579,6 +1607,7 @@ function detalle(){
         <span class="badge ${ck.referencias?.estado==='realizado'?'k':ck.referencias?.estado==='rechazado'?'m':'p'}"
           >${its.filter(r=>r.resultado).length}/${its.length}</span></div>
       ${its.length?its.map(refHTML).join(''):'<p style="font-size:13.5px;color:var(--gris)">Este cliente no dio referencias.</p>'}
+      <button class="btn btn-g btn-sm" id="add-ref" style="flex:none;margin-top:10px">+ Agregar referencia</button>
       <div class="callout r" style="margin:10px 0 0">Marcar una referencia como <b>falsa</b> deniega la solicitud de inmediato.</div></div>`;
     der+=`<div class="sec"><div class="sec-h"><h4>Resultado</h4></div><div id="res"></div></div>`;
   }
@@ -1606,13 +1635,21 @@ function detalle(){
     </div>`;
   }
 
+  // Notas (bitácora): asesor y analista pueden escribir; todos las ven.
+  const puedeNotas=(esAse||esAna);
+  const notasSec=`<div class="sec"><div class="sec-h"><h4>Notas</h4></div>
+      ${puedeNotas?`<div class="fld"><textarea id="nota-txt" placeholder="Escribí una nota sobre esta solicitud (queda con tu nombre y la fecha)"></textarea></div>
+      <button class="btn btn-b btn-sm" id="nota-add" style="flex:none;margin-bottom:12px">Agregar nota</button>`:''}
+      <div id="notas-lista"></div></div>`;
+  if(der) der+=notasSec; else izq+=notasSec;
+
   // Si el rol no tiene nada que trabajar, todo queda en una sola columna
   $('#m-body').innerHTML = der
     ? `<div class="det"><div class="det-col">${izq}</div><div class="det-col">${der}
          <div id="tiempos-box"></div></div></div>`
     : `<div class="det" style="grid-template-columns:minmax(0,1fr);max-width:760px">
          <div class="det-col">${izq}<div id="tiempos-box"></div></div></div>`;
-  pie(); conectar(esAse,esAna); conectarArchivos(); pintarTiempos(); pintarBitacora();
+  pie(); conectar(esAse,esAna); conectarArchivos(); pintarTiempos(); pintarBitacora(); pintarNotas();
 }
 
 /* Bitácora: quién hizo cada cambio y cuándo */
@@ -1651,6 +1688,7 @@ async function pintarBitacora(){
 
 /* ===== TIEMPOS POR ÁREA ===== */
 const AREAS=[
+  {k:'asesor_espera_docs',  n:'Espera de documentos',   c:'#B0B7C3'},
   {k:'asesor',              n:'Asesor',                 c:'#1877F2'},
   {k:'analista_revision',   n:'Analista · revisión',    c:'#7C5CE0'},
   {k:'analista_referencias',n:'Analista · referencias', c:'#B7791F'},
@@ -1750,6 +1788,15 @@ function resHTML(r){
 }
 
 function conectar(esAse,esAna){
+  // Controles comunes de asesor y analista
+  if(esAse||esAna){
+    $('#edit-nom')?.addEventListener('click',abrirEditarNombre);
+    $('#add-ref')?.addEventListener('click',abrirAgregarReferencia);
+    $('#nota-add')?.addEventListener('click',guardarNota);
+  }
+  if(esAse){
+    $('#conf-docs')?.addEventListener('click',confirmarDocs);
+  }
   if(esAse){
     $$('#d-tipo button').forEach(b=>b.addEventListener('click',()=>{
       $$('#d-tipo button').forEach(x=>x.classList.remove('on'));
@@ -2183,6 +2230,131 @@ function datosAnalista(){
   }
   return out;
 }
+/* ===== EDITAR NOMBRE DEL CLIENTE (asesor / analista) ===== */
+function abrirEditarNombre(){
+  const d=ACT.datos_cliente||{};
+  $('.asig-h h3').textContent='Editar nombre del cliente';
+  $('#asig-body').innerHTML=`
+    <div class="callout">Usalo cuando el cliente no puso su nombre completo. El cambio queda en la bitácora.</div>
+    <div class="fld"><label>Nombre completo <span style="color:var(--error)">*</span></label>
+      <input id="en-nom" value="${esc(nombreDe(d))}" placeholder="Nombre y apellidos"></div>
+    <div class="callout r hide" id="en-err"></div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-g" id="en-x" style="flex:1">Volver</button>
+      <button class="btn btn-b" id="en-ok" style="flex:1">Guardar nombre</button>
+    </div>`;
+  $('#asig').classList.add('on');
+  $('#en-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  $('#en-ok').addEventListener('click',async()=>{
+    const nom=$('#en-nom').value.trim();
+    if(!nom){ $('#en-err').textContent='Escribí el nombre.'; $('#en-err').classList.remove('hide'); return; }
+    const antes=nombreDe(d);
+    if(nom===antes){ $('#asig').classList.remove('on'); return; }
+    const b=$('#en-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Guardando';
+    // Reconstruyo datos_cliente preservando todo lo demás; unifico en el campo 'nombre'
+    const nuevo={...d,nombre:nom};
+    delete nuevo.nombres; delete nuevo.apellidos;
+    const {error}=await sb.from('solicitudes')
+      .update({datos_cliente:nuevo}).eq('id',ACT.id);
+    if(error){ b.disabled=false; b.textContent='Guardar nombre';
+      $('#en-err').textContent=traducir(error.message); $('#en-err').classList.remove('hide'); return; }
+    // Nota en bitácora del cambio de nombre
+    await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`Nombre corregido: "${antes}" → "${nom}"`});
+    $('#asig').classList.remove('on');
+    toast('Nombre actualizado','k');
+    await cargar(); ACT=SOLS.find(s=>s.id===ACT.id)||ACT;
+    $('#m-t').textContent=nombreDe(ACT.datos_cliente||{}); detalle();
+  });
+}
+
+/* ===== AGREGAR REFERENCIA (asesor / analista) ===== */
+function abrirAgregarReferencia(){
+  $('.asig-h h3').textContent='Agregar referencia';
+  $('#asig-body').innerHTML=`
+    <div class="callout">La referencia se suma a las del cliente. El analista la verá para llamarla. No se borran las existentes.</div>
+    <div class="fld"><label>Nombre <span style="color:var(--error)">*</span></label>
+      <input id="ar-n" placeholder="Nombre completo"></div>
+    <div class="g2">
+      <div class="fld"><label>Teléfono <span style="color:var(--error)">*</span></label>
+        <input id="ar-t" placeholder="0000-0000"></div>
+      <div class="fld"><label>Parentesco</label>
+        <input id="ar-p" placeholder="Ej. Hermano(a)"></div>
+    </div>
+    <div class="callout r hide" id="ar-err"></div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-g" id="ar-x" style="flex:1">Volver</button>
+      <button class="btn btn-b" id="ar-ok" style="flex:1">Agregar referencia</button>
+    </div>`;
+  $('#asig').classList.add('on');
+  $('#ar-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  $('#ar-ok').addEventListener('click',async()=>{
+    const n=$('#ar-n').value.trim(), t=$('#ar-t').value.trim(), p=$('#ar-p').value.trim();
+    const err=m=>{ $('#ar-err').textContent=m; $('#ar-err').classList.remove('hide'); };
+    if(!n||!t) return err('Nombre y teléfono son obligatorios.');
+    const d=ACT.datos_cliente||{};
+    const refs=Array.isArray(d.referencias)?d.referencias.slice():[];
+    // Evitar duplicado exacto (nombre+teléfono)
+    const norm=x=>String(x||'').toLowerCase().trim();
+    const tel=x=>String(x||'').replace(/\D/g,'');
+    if(refs.some(r=>norm(r.nombre)===norm(n)&&tel(r.telefono)===tel(t)))
+      return err('Esa referencia ya está registrada.');
+    refs.push({nombre:n,telefono:t,parentesco:p});
+    const b=$('#ar-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Agregando';
+    // El trigger sembrar_referencias propaga la nueva al checklist del analista
+    const {error}=await sb.from('solicitudes')
+      .update({datos_cliente:{...d,referencias:refs}}).eq('id',ACT.id);
+    if(error){ b.disabled=false; b.textContent='Agregar referencia';
+      return err(traducir(error.message)); }
+    await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`Referencia agregada: ${n} (${t})`});
+    $('#asig').classList.remove('on');
+    toast('Referencia agregada','k');
+    await cargar(); ACT=SOLS.find(s=>s.id===ACT.id)||ACT;
+    CUOTAS=ACT.comportamiento_pago?.cuotas||CUOTAS; detalle();
+  });
+}
+
+/* ===== NOTAS (bitácora, asesor / analista) ===== */
+async function guardarNota(){
+  const ta=$('#nota-txt'); if(!ta) return;
+  const txt=ta.value.trim();
+  if(!txt){ toast('Escribí la nota primero','m'); return; }
+  const b=$('#nota-add'); b.disabled=true;
+  const {error}=await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:txt});
+  b.disabled=false;
+  if(error){ toast(traducir(error.message),'m'); return; }
+  ta.value='';
+  toast('Nota guardada','k');
+  pintarNotas();
+}
+async function pintarNotas(){
+  const box=$('#notas-lista'); if(!box||!ACT) return;
+  const {data,error}=await sb.rpc('notas_de',{p_id:ACT.id});
+  if(error){ box.innerHTML=''; return; }
+  const rolL={asesor:'Asesor',analista:'Analista',admin:'Admin',verificador:'Verificador'};
+  box.innerHTML=(data||[]).length
+    ? data.map(n=>`<div class="bit-row">
+        <div class="bit-pt"></div>
+        <div class="bit-c">
+          <div class="bit-t">${esc(n.texto)}</div>
+          <div class="bit-m">${esc(n.quien)}${n.rol?' · '+esc(rolL[n.rol]||n.rol):''} · ${new Date(n.creada_en).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+        </div></div>`).join('')
+    : '<p style="font-size:13px;color:var(--gris)">Sin notas todavía.</p>';
+}
+
+/* ===== CONFIRMAR RECEPCIÓN DE DOCUMENTOS (asesor) ===== */
+async function confirmarDocs(){
+  if(ACT.docs_recibidos_en) return;
+  if(!confirm('¿Confirmás que ya recibiste los documentos del cliente?\n\nEsto detiene el reloj de espera de documentos y empieza a contar tu tiempo de gestión.')) return;
+  const b=$('#conf-docs'); if(b){ b.disabled=true; b.innerHTML='<span class="sp"></span>Confirmando'; }
+  const {error}=await sb.from('solicitudes')
+    .update({docs_recibidos_en:new Date().toISOString()}).eq('id',ACT.id);
+  if(error){ if(b){ b.disabled=false; b.textContent='Confirmar recepción de documentos'; }
+    toast(traducir(error.message),'m'); return; }
+  await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:'Recepción de documentos confirmada.'});
+  toast('Documentos confirmados','k');
+  await cargar(); ACT=SOLS.find(s=>s.id===ACT.id)||ACT; detalle();
+}
+
 async function guardar(campos){
   const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
   const {error}=await sb.from('solicitudes').update(campos).eq('id',ACT.id);
