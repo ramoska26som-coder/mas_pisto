@@ -1632,7 +1632,8 @@ function pintarParametros(){
       </div>
     </div></div>
   <div class="sec"><div class="sec-h"><h4>Ingresos y límites</h4></div><div class="g2">
-    ${n('p-min','Ingreso mínimo (L)',P.minIngreso,'Debajo de esto se deniega')}
+    ${n('p-min','Ingreso mínimo (L)',P.minIngreso,'Debajo de esto se rechaza automáticamente')}
+    ${n('p-edad','Edad mínima (años)',P.edadMin??21,'Debajo de esto se rechaza automáticamente')}
     ${n('p-pref','Ingreso para preferencial (L)',P.ingresoPref,'Con perfil ideal baja la tasa')}
     ${n('p-lmin','Límite mínimo (L)',P.limiteMin)}
     ${n('p-lmax','Límite máximo (L)',P.limiteMax)}
@@ -1857,7 +1858,7 @@ async function renderFeriadosEditor(box){
 }
 async function guardarParams(){
   const g=id=>parseFloat($('#'+id).value)||0;
-  const v={...P,minIngreso:g('p-min'),ingresoPref:g('p-pref'),limiteMin:g('p-lmin'),limiteMax:g('p-lmax'),
+  const v={...P,minIngreso:g('p-min'),edadMin:g('p-edad')||21,ingresoPref:g('p-pref'),limiteMin:g('p-lmin'),limiteMax:g('p-lmax'),
     redondeo:g('p-red')||1000,pctNuevo:g('p-pn'),mesMedio:g('p-mm'),pctMedio:g('p-pm'),mesAlto:g('p-ma'),
     pctAlto:g('p-pa'),tasaStd:g('p-ts'),tasaPref:g('p-tp'),tasaSuper:g('p-tsu'),spAntig:g('p-sa'),
     spCuotas:g('p-sc'),spMaxLeves:g('p-sl'),spDiasGrave:g('p-sg'),diasTarde:g('p-dt')};
@@ -2065,6 +2066,21 @@ function detalle(){
 
   izq+='<div id="coinc-box"></div>';   // Advertencias de cruce de datos
 
+  const ra=s.resultado_analisis||{};
+  if(s.estado==='denegado' && ra.denegado_automaticamente){
+    izq+=`<div class="sec" style="border-color:#F3C4C4;background:#FFF6F6">
+      <div class="sec-h"><h4 style="color:#A82121">🚫 Rechazo automático</h4></div>
+      <div class="callout r" style="margin-bottom:0">${esc(ra.motivo_denegacion||'No cumple los requisitos mínimos.')}</div>
+      <p style="font-size:12.5px;color:var(--gris);margin-top:10px">Esta solicitud se rechazó sola por una regla del negocio. Un analista puede reabrirla si el caso lo amerita.</p>
+    </div>`;
+  } else if(ra.excepcion_automatica && ra.motivo_reapertura){
+    izq+=`<div class="sec" style="border-color:#EBD9AE;background:#FFFBF2">
+      <div class="sec-h"><h4>↩ Solicitud reabierta</h4></div>
+      <div class="callout w" style="margin-bottom:0">${esc(ra.motivo_reapertura)}</div>
+      <p style="font-size:12.5px;color:var(--gris);margin-top:10px">Se reabrió tras un rechazo automático${ra.reabierta_en?' el '+fechaHora(ra.reabierta_en):''}. Las reglas automáticas ya no aplican a este caso.</p>
+    </div>`;
+  }
+
   if(s.estado==='en_espera_cliente'){
     izq+=`<div class="sec" style="border-color:#EBD9AE;background:#FFFBF2">
       <div class="sec-h"><h4>⏸ En espera por cliente</h4>
@@ -2213,6 +2229,7 @@ function detalle(){
           </div>
         </div>
       </div>
+      <div class="callout r hide" id="ing-auto" style="margin-top:12px"></div>
       <div class="fld" style="margin-top:13px"><label>Notas</label><textarea id="i-notas">${esc(ai.notas||'')}</textarea></div>
     </div>`;
     // Referencias visibles para el asesor, con opción de agregar
@@ -2653,6 +2670,13 @@ function recalcIngreso(){
       kld.textContent=prom?r.motivo:'—';
     }
   }
+  // Aviso: si el ingreso queda bajo el mínimo, al guardar se rechaza sola
+  const av=$('#ing-auto');
+  if(av){
+    const bajo = prom>0 && prom < (P.minIngreso||13000);
+    av.classList.toggle('hide',!bajo);
+    if(bajo) av.innerHTML=`<b>Ojo:</b> ${fmtL(prom)} está por debajo del mínimo de ${fmtL(P.minIngreso||13000)}. Si guardás con este ingreso, la solicitud <b>se rechazará automáticamente</b>.`;
+  }
 }
 /* ===== PEGADO DEL HISTORIAL (portado de analisis-credito.html) ===== */
 function procesarPegado(){
@@ -2775,7 +2799,10 @@ const ABIERTOS=['pendiente_revision','en_revision_asesor','en_analisis',
                 'por_verificar','en_verificacion','verificado','en_espera_cliente'];
 function pie(){
   const s=ACT;let h='';
-  if(s.estado==='en_espera_cliente'&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin()))
+  if(s.estado==='denegado' && (s.resultado_analisis||{}).denegado_automaticamente
+     && (rol('analista')||esAdmin()))
+    h=`<button class="btn btn-b" id="a-reabrir">Reabrir solicitud</button>`;
+  else if(s.estado==='en_espera_cliente'&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin()))
     h=`<button class="btn btn-b" id="a-reanudar">Reanudar solicitud</button>`;
   else if(s.estado==='pendiente_revision'&&(rol('asesor')||esAdmin()))
     h=`<button class="btn btn-b" id="a1">Tomar solicitud</button>`;
@@ -2821,6 +2848,7 @@ function pie(){
     await guardar({estado:'desembolsado'});
   });
   $('#a-espera')?.addEventListener('click',abrirPonerEnEspera);
+  $('#a-reabrir')?.addEventListener('click',abrirReabrir);
   $('#a-reanudar')?.addEventListener('click',reanudar);
   $('#a-cancel')?.addEventListener('click',()=>cerrarSolicitud('cancelado'));
   $('#a-rechaza')?.addEventListener('click',()=>cerrarSolicitud('denegado'));
@@ -2861,6 +2889,36 @@ function abrirPonerEnEspera(){
     await cargar(); cerrarModal();
   });
 }
+/* Reabrir un rechazo automático (analista o admin) */
+function abrirReabrir(){
+  const ra=ACT.resultado_analisis||{};
+  $('.asig-h h3').textContent='Reabrir solicitud';
+  $('#asig-body').innerHTML=`
+    <div class="callout r">Se rechazó automáticamente por: <b>${esc(ra.motivo_denegacion||'—')}</b></div>
+    <div class="callout">Al reabrirla, las reglas automáticas dejan de aplicar a este caso y vuelve al flujo normal. Queda registrado quién la reabrió y por qué.</div>
+    <div class="fld"><label>Motivo de la reapertura <span style="color:var(--error)">*</span></label>
+      <textarea id="rb-motivo" placeholder="Ej. el cliente comprobó ingresos adicionales con estados de cuenta"></textarea></div>
+    <div class="callout r hide" id="rb-err"></div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-g" id="rb-x" style="flex:1">Volver</button>
+      <button class="btn btn-b" id="rb-ok" style="flex:1">Reabrir</button>
+    </div>`;
+  $('#asig').classList.add('on');
+  $('#rb-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  $('#rb-ok').addEventListener('click',async()=>{
+    const m=$('#rb-motivo').value.trim();
+    if(!m){ $('#rb-err').textContent='Escribí el motivo.'; $('#rb-err').classList.remove('hide'); return; }
+    const b=$('#rb-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Reabriendo';
+    const {error}=await sb.rpc('reabrir_solicitud',{p_id:ACT.id,p_motivo:m});
+    if(error){ b.disabled=false; b.textContent='Reabrir';
+      $('#rb-err').textContent=traducir(error.message); $('#rb-err').classList.remove('hide'); return; }
+    await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`Solicitud reabierta tras rechazo automático: ${m}`});
+    $('#asig').classList.remove('on');
+    toast('Solicitud reabierta','k');
+    await cargar(); cerrarModal();
+  });
+}
+
 async function reanudar(){
   if(!confirm('¿Reanudar la solicitud? Volverá al punto donde estaba antes de la pausa.')) return;
   const bs=$$('#m-pie .btn'); bs.forEach(b=>b.disabled=true);
