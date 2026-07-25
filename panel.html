@@ -1500,7 +1500,8 @@ function dashBodyHTML(M,T,sols,desde,hasta){
   // Tiempos por área (dónde nos tardamos)
   const areasT=[
     {k:'asesor',n:'Asesor'},{k:'analista_revision',n:'Analista · revisión'},
-    {k:'analista_referencias',n:'Analista · referencias'},{k:'verificador',n:'Verificador'},
+    {k:'analista_referencias',n:'Analista · referencias'},
+    {k:'verificacion_cola',n:'Cola de verificación'},{k:'verificador',n:'Verificador'},
     {k:'espera_cliente',n:'Espera por cliente'},{k:'asesor_espera_docs',n:'Espera de documentos'},
     {k:'desembolso',n:'Desembolso'}
   ].map(a=>({...a,min:+T[a.k]||0})).filter(a=>a.min>0).sort((a,b)=>b.min-a.min);
@@ -2376,6 +2377,7 @@ const AREAS=[
   {k:'asesor',              n:'Asesor',                 c:'#1877F2'},
   {k:'analista_revision',   n:'Analista · revisión',    c:'#7C5CE0'},
   {k:'analista_referencias',n:'Analista · referencias', c:'#B7791F'},
+  {k:'verificacion_cola',   n:'Cola de verificación',   c:'#8FB9A8'},
   {k:'verificador',         n:'Verificador',            c:'#1F9D57'},
   {k:'espera_cliente',      n:'Espera por cliente',     c:'#D9A441'},
   {k:'desembolso',          n:'Desembolso',             c:'#0E9BA8'}
