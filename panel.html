@@ -225,6 +225,8 @@
   .sec{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:18px;margin-bottom:12px}
 
   /* Comprobantes de ingresos: filas de pago + panel de resultados */
+  .ing-cli{font-family:'Poppins';font-weight:600;font-size:15px;color:var(--azul-tinta);
+    margin:-4px 0 12px;padding-bottom:10px;border-bottom:1px solid var(--linea)}
   .ing-wrap{display:grid;gap:0;border:1px solid var(--linea);border-radius:14px;overflow:hidden;background:#fff}
   /* El panel de resultados solo va al lado si de verdad hay espacio */
   @media(min-width:1180px){ .ing-wrap{grid-template-columns:minmax(0,1fr) 220px} }
@@ -2193,6 +2195,7 @@ function detalle(){
     const frec=ai.frecuencia||frecuenciaSugerida(d.dias_pago);
     der+=`<div class="sec"><div class="sec-h"><h4>Comprobantes de ingresos</h4>
         <span class="badge ${ai.ingreso_promedio?'k':'p'}">${ai.ingreso_promedio?'listo':'pendiente'}</span></div>
+      <div class="ing-cli">${esc(nombreDe(d))}</div>
       ${d.salario?`<div class="callout">El cliente declaró <b>${fmtL(d.salario)}</b> al mes. Verificalo contra los comprobantes.</div>`:''}
       <div class="ing-wrap">
         <div class="ing-h">
@@ -2564,6 +2567,7 @@ function ingresosLecturaHTML(s){
 
   return `<div class="sec"><div class="sec-h"><h4>Análisis de ingresos</h4>
       <span class="badge k">del asesor</span></div>
+    <div class="ing-cli">${esc(nombreDe(d))}</div>
     <div class="callout" style="margin-bottom:12px">Capturado por el asesor. Lo ves como referencia; no se edita desde acá.</div>
     <dl class="dl">
       <dt>Frecuencia</dt><dd>${esc(frec)}</dd>
