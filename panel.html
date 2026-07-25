@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1877F2">
+<link rel="manifest" href="manifest-panel.webmanifest">
+<link rel="icon" href="icono-192.png">
+<link rel="apple-touch-icon" href="icono-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Panel MP">
 <title>Panel de Crédito · Más Pisto</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -445,6 +451,80 @@
   .u-n{font-family:'Poppins';font-weight:600;font-size:14.5px}
   .u-m{font-size:12px;color:var(--gris);word-break:break-all}
   .u-off{opacity:.5}
+
+  /* ===== DASHBOARD / MÉTRICAS ===== */
+  .dash-filtros{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:18px}
+  .dash-filtros select,.dash-filtros input[type=date]{width:auto;padding:9px 12px;font-size:13.5px;min-width:120px}
+  .dash-seg{display:inline-flex;background:#fff;border:1.5px solid var(--linea);border-radius:11px;padding:3px;gap:2px}
+  .dash-seg button{border:0;background:transparent;padding:7px 14px;border-radius:8px;font-size:13px;
+    font-weight:600;color:var(--gris);cursor:pointer;font-family:inherit}
+  .dash-seg button.on{background:var(--azul);color:#fff}
+  .dash-rango{display:flex;gap:7px;align-items:center}
+  .dash-rango span{font-size:12.5px;color:var(--gris)}
+  .kpis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
+  .kpi-card{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:16px 18px;
+    box-shadow:var(--sombra-sm);position:relative;overflow:hidden}
+  .kpi-card .kpi-ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;margin-bottom:11px}
+  .kpi-card .kpi-ico svg{width:18px;height:18px}
+  .kpi-card .kpi-t{font-size:12.5px;color:var(--gris);font-weight:500}
+  .kpi-card .kpi-big{font-family:'Poppins';font-weight:700;font-size:25px;line-height:1.15;margin-top:3px}
+  .kpi-card .kpi-sub{font-size:11.5px;color:var(--gris);margin-top:4px}
+  .kpi-i-azul{background:var(--cielo);color:var(--azul)}
+  .kpi-i-ok{background:var(--ok-lt);color:var(--ok)}
+  .kpi-i-err{background:var(--error-lt);color:var(--error)}
+  .kpi-i-amber{background:var(--amber-lt);color:var(--amber)}
+  .kpi-i-viol{background:#F3EEFE;color:#7C5CE0}
+  .dash-row{display:grid;gap:14px;margin-bottom:16px}
+  .dash-2{grid-template-columns:1.4fr 1fr}
+  .dash-2b{grid-template-columns:1fr 1fr}
+  @media(max-width:900px){.dash-2,.dash-2b{grid-template-columns:1fr}}
+  .panel-card{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:18px;box-shadow:var(--sombra-sm)}
+  .panel-card h3{font-family:'Poppins';font-size:15px;font-weight:600;margin-bottom:3px}
+  .panel-card .pc-sub{font-size:12px;color:var(--gris);margin-bottom:16px}
+  /* Barras apiladas semanales */
+  .semana{display:flex;align-items:flex-end;gap:10px;height:180px;padding-top:10px}
+  .sem-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%}
+  .sem-bar{width:100%;max-width:34px;flex:1;display:flex;flex-direction:column;justify-content:flex-end;
+    border-radius:7px 7px 0 0;overflow:hidden;background:#F0F4FA}
+  .sem-seg-ok{background:var(--ok)}
+  .sem-seg-no{background:var(--error)}
+  .sem-lbl{font-size:11.5px;color:var(--gris);font-weight:600}
+  .sem-tot{font-size:11px;color:var(--gris)}
+  /* Barras horizontales (rubro, tiempos) */
+  .hbar{margin-bottom:11px}
+  .hbar-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px}
+  .hbar-top .l{color:var(--tinta);font-weight:500}.hbar-top .v{color:var(--gris)}
+  .hbar-track{height:9px;background:#F0F4FA;border-radius:6px;overflow:hidden}
+  .hbar-fill{height:100%;border-radius:6px}
+  /* Pastel (donut) */
+  .donut-wrap{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .donut{width:150px;height:150px;flex:none}
+  .donut-leg{flex:1;min-width:140px;display:flex;flex-direction:column;gap:8px}
+  .leg-i{display:flex;align-items:center;gap:8px;font-size:12.5px}
+  .leg-dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .leg-i .lv{margin-left:auto;color:var(--gris);font-weight:600}
+  /* Embudo */
+  .fun-row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+  .fun-lbl{width:120px;font-size:12.5px;color:var(--gris);flex:none}
+  .fun-track{flex:1;height:30px;background:#F0F4FA;border-radius:8px;overflow:hidden;position:relative}
+  .fun-fill{height:100%;display:flex;align-items:center;padding-left:11px;color:#fff;font-size:12.5px;font-weight:600;border-radius:8px}
+  .dash-empty{text-align:center;padding:36px 16px;color:var(--gris);font-size:13.5px}
+  .tiempo-hint{background:var(--amber-lt);border:1px solid #F0E2BC;border-radius:11px;padding:11px 14px;
+    font-size:12.5px;color:#7A5B12;margin-top:12px}
+  /* Historial agrupado por fecha */
+  .h-grupo{margin-bottom:10px}
+  .h-gh{width:100%;display:flex;align-items:center;gap:10px;background:#fff;
+    border:1px solid var(--linea);border-radius:13px;padding:12px 15px;cursor:pointer;
+    font-family:inherit;font-size:14px;text-align:left;box-shadow:var(--sombra-sm)}
+  .h-grupo.on .h-gh{border-radius:13px 13px 0 0;border-bottom-color:transparent}
+  .h-flecha{color:var(--gris);font-size:12px;flex:none;width:14px}
+  .h-fecha{font-family:'Poppins';font-weight:600;text-transform:capitalize}
+  .h-resumen{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .h-n{background:var(--cielo);color:var(--azul);font-weight:700;font-size:12px;
+    padding:3px 10px;border-radius:9px}
+  .h-gc{background:#fff;border:1px solid var(--linea);border-top:0;
+    border-radius:0 0 13px 13px;padding:11px 13px 5px}
+  .h-gc .card{box-shadow:none;border:1px solid var(--linea)}
 </style>
 </head>
 <body>
@@ -558,7 +638,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 
-let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[],RUBROS=[],EQUIPO={};
+let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[],RUBROS=[],EQUIPO={},CAUSAS=[];
 
 const fmt=n=>new Intl.NumberFormat('es-HN',{maximumFractionDigits:0}).format(n||0);
 const fmtL=n=>'L '+new Intl.NumberFormat('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);
@@ -620,6 +700,19 @@ async function cargarRubros(){
   // Alfabético ignorando tildes, igual que en el formulario público
   RUBROS=(data||[]).sort((a,b)=>
     a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
+}
+/* Catálogo editable de causas de rechazo/cancelación */
+async function cargarCausas(){
+  const {data}=await sb.from('causas_cierre').select('*')
+    .order('tipo').order('orden').order('id');
+  CAUSAS=data||[];
+}
+/* Textos activos de un tipo, para el selector del analista */
+function causasDe(tipo){
+  const l=CAUSAS.filter(c=>c.tipo===tipo&&c.activo).map(c=>c.texto);
+  return l.length?l:(tipo==='denegado'
+    ? ['No cumple el ingreso mínimo','Otro motivo']
+    : ['El cliente ya no quiere el préstamo','Otro motivo']);
 }
 /* Nombres del equipo para mostrar quién tiene cada solicitud */
 async function cargarEquipo(){
@@ -704,6 +797,7 @@ async function arrancar(session){
   const {data:par}=await sb.from('parametros_sistema').select('valores').eq('id',1).single();
   P=par.valores;
   await cargarRubros();
+  await cargarCausas();
   await cargarEquipo();
   $('#login').style.display='none';
   $('#app').style.display='block';
@@ -712,6 +806,7 @@ async function arrancar(session){
   $('#yo-n').textContent=YO.nombre;
   $('#yo-r').textContent=roles.join(' · ');
   pintarNav(); await cargar(); vivo();
+  registrarSW();
   pintarBotonSonido();
   pedirPermisoNotif();
   // Los navegadores bloquean el audio hasta que hay una interacción del usuario.
@@ -728,11 +823,14 @@ const ICO={
  solicitudes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
  historial:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
  parametros:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
- usuarios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>'};
+ usuarios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+ metricas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'};
 
 function pintarNav(){
   let h=`<button class="nav-i" data-v="solicitudes">${ICO.solicitudes}Solicitudes<span class="cnt" id="cnt-s">0</span></button>
          <button class="nav-i" data-v="historial">${ICO.historial}Historial</button>`;
+  if(rol('analista')||esAdmin())
+    h+=`<button class="nav-i" data-v="metricas">${ICO.metricas}Métricas</button>`;
   if(esAdmin()) h+=`<div class="nav-sep">Administración</div>
     <button class="nav-i" data-v="parametros">${ICO.parametros}Parámetros</button>
     <button class="nav-i" data-v="usuarios">${ICO.usuarios}Usuarios</button>`;
@@ -743,9 +841,9 @@ function pintarNav(){
 function ir(v){
   VISTA=v;
   $$('.nav-i').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  $('#titulo').textContent={solicitudes:'Solicitudes',historial:'Historial',parametros:'Parámetros',usuarios:'Usuarios'}[v];
+  $('#titulo').textContent={solicitudes:'Solicitudes',historial:'Historial',metricas:'Métricas',parametros:'Parámetros',usuarios:'Usuarios'}[v];
   $('#btn-nueva').classList.toggle('hide',v!=='solicitudes'||!(rol('asesor')||esAdmin()));
-  ({solicitudes:pintarSolicitudes,historial:pintarHistorial,parametros:pintarParametros,usuarios:pintarUsuarios})[v]();
+  ({solicitudes:pintarSolicitudes,historial:pintarHistorial,metricas:pintarMetricas,parametros:pintarParametros,usuarios:pintarUsuarios})[v]();
 }
 const abrirSide=()=>{$('#side').classList.remove('hide');if(innerWidth<=820)$('#scrim').classList.add('on');};
 const cerrarSide=()=>{$('#side').classList.add('hide');$('#scrim').classList.remove('on');};
@@ -762,15 +860,42 @@ async function cargar(){
   if(c) c.textContent=SOLS.filter(s=>!['aprobado','denegado','desembolsado','cancelado'].includes(s.estado)).length;
   if(VISTA==='solicitudes') pintarSolicitudes();
   else if(VISTA==='historial') pintarHistorial();
+  else if(VISTA==='metricas') pintarMetricas();
 }
 function vivo(){
   sb.channel('sols')
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'solicitudes'},
       p=>{ cargar(); notificarNueva(p.new); })
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'solicitudes'},
-      p=>{ cargar(); notificarCambio(p.old,p.new); })
+      p=>{ cargar(); notificarCambio(p.old,p.new); refrescarModalSiAplica(p.new); })
+    .subscribe();
+  // Notas: si alguien más agrega una nota a la solicitud que tenés abierta, aparece sola.
+  sb.channel('notas')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'notas_solicitud'},
+      p=>{ if(ACT&&$('#modal').classList.contains('on')&&p.new.solicitud_id===ACT.id) pintarNotas(); })
+    .subscribe();
+  // Catálogo de causas: se mantiene al día sin refrescar.
+  sb.channel('causas')
+    .on('postgres_changes',{event:'*',schema:'public',table:'causas_cierre'},
+      ()=>cargarCausas())
     .subscribe();
   setInterval(()=>{if(!$('#modal').classList.contains('on')&&VISTA==='solicitudes')pintarSolicitudes();},60000);
+}
+
+/* Si tenés abierta la solicitud que cambió, el detalle se actualiza solo.
+   Solo se redibuja cuando cambió el ESTADO (para no pisar lo que estés escribiendo);
+   si cambió otra cosa, se actualiza ACT en memoria sin tocar la pantalla. */
+function refrescarModalSiAplica(nue){
+  if(!ACT||!$('#modal').classList.contains('on')||nue.id!==ACT.id) return;
+  const cambioEstado=nue.estado!==ACT.estado;
+  ACT={...ACT,...nue};
+  const i=SOLS.findIndex(s=>s.id===nue.id); if(i>=0) SOLS[i]=ACT;
+  if(cambioEstado){
+    CUOTAS=ACT.comportamiento_pago?.cuotas||CUOTAS;
+    $('#m-t').textContent=nombreDe(ACT.datos_cliente||{});
+    detalle();
+    toast('Esta solicitud acaba de cambiar de estado','k');
+  }
 }
 
 /* ===== NOTIFICACIONES ===== */
@@ -844,7 +969,7 @@ function notificarNueva(s){
     titulo:'Nueva solicitud',
     texto:`${nombreDe(d)} · ${s.folio}`});
   if(document.hidden) marcarPestana(1);
-  notificarSistema('Nueva solicitud de crédito', `${nombreDe(d)} · ${s.folio}`);
+  notificarSistema('Nueva solicitud de crédito', `${nombreDe(d)} · ${s.folio}`, s.id);
 }
 
 function notificarCambio(ant,nue){
@@ -869,18 +994,36 @@ function notificarCambio(ant,nue){
     titulo: meToca ? `Te toca: ${etq}` : etq,
     texto:`${nombreDe(d)} · ${nue.folio}`});
   if(document.hidden) marcarPestana(1);
-  if(meToca) notificarSistema(`Te toca: ${etq}`, `${nombreDe(d)} · ${nue.folio}`);
+  // Notificación del sistema en CADA cambio de estado
+  notificarSistema(meToca?`Te toca: ${etq}`:etq, `${nombreDe(d)} · ${nue.folio}`, nue.id);
 }
 
-/* Notificación del sistema operativo (fuera del navegador) */
-function notificarSistema(titulo,texto){
+/* Notificación del sistema operativo (la de la barra de tareas / pantalla del cel).
+   En Android el navegador exige usarla a través del service worker; en escritorio
+   funciona directa. Probamos SW primero y caemos a la directa si no hay. */
+let SW_REG=null;
+async function notificarSistema(titulo,texto,id){
   if(!('Notification' in window) || Notification.permission!=='granted') return;
-  if(!document.hidden) return;   // si ya estás viendo el panel, no hace falta
-  try{ new Notification(titulo,{body:texto,tag:'mp-panel'}); }catch(e){}
+  const ops={body:texto, tag:'mp-'+(id||'panel'), renotify:true,
+    icon:'icono-192.png', badge:'icono-192.png',
+    data:{id:id||null}};
+  try{
+    const reg=SW_REG||await navigator.serviceWorker?.getRegistration();
+    if(reg&&reg.showNotification){ reg.showNotification(titulo,ops); return; }
+  }catch(e){}
+  try{ new Notification(titulo,ops); }catch(e){}
 }
 function pedirPermisoNotif(){
   if(!('Notification' in window)) return;
   if(Notification.permission==='default') Notification.requestPermission();
+}
+
+/* Registrar el service worker: habilita instalar la app en el celular
+   y las notificaciones del sistema en Android. */
+async function registrarSW(){
+  if(!('serviceWorker' in navigator)) return;
+  try{ SW_REG=await navigator.serviceWorker.register('sw.js'); }
+  catch(e){ /* p.ej. abriendo el archivo local sin servidor */ }
 }
 
 /* Botón para silenciar. La preferencia queda guardada en el navegador. */
@@ -1041,6 +1184,7 @@ function pintarHistorial(){
     </div>
     <button class="btn btn-g btn-sm" id="h-csv">Descargar CSV</button></div>
   <div id="h-list"></div>`;
+  const abiertos=new Set();   // fechas expandidas (la más reciente arranca abierta)
   const render=()=>{
     const q=($('#h-q').value||'').toLowerCase().trim(), e=$('#h-e').value;
     const f=cerr.filter(s=>{
@@ -1049,19 +1193,70 @@ function pintarHistorial(){
       const d=s.datos_cliente||{};
       return [nombreDe(d),cedulaDe(d),s.folio].join(' ').toLowerCase().includes(q);
     });
-    $('#h-list').innerHTML=f.length?f.map(s=>{
-      const d=s.datos_cliente||{},r=s.resultado_analisis||{};
-      const cl={aprobado:'k',denegado:'m',desembolsado:'k',cancelado:'p'}[s.estado];
-      return `<div class="card" data-id="${s.id}">
-        <div class="c-top"><div style="min-width:0">
-          <div class="c-nom">${esc(nombreDe(d))}</div>
-          <div class="c-folio">${esc(s.folio)} · ${new Date(s.cerrado_en||s.actualizado_en).toLocaleDateString('es-HN')}</div>
-        </div><span class="badge ${cl}" style="margin:0">${ETQ[s.estado]}</span></div>
-        <div class="c-meta"><span class="tag">${TIPO_L[s.tipo_operacion]}</span>
-          ${r.monto_aprobado?`<span class="tag b">L${fmt(r.monto_aprobado)} · ${r.tasa}%</span>`:''}
-          ${r.motivo_denegacion?`<span class="tag" style="color:var(--error)">${esc(r.motivo_denegacion)}</span>`:''}
-        </div></div>`;
-    }).join(''):'<div class="vacio"><p>Sin resultados.</p></div>';
+    if(!f.length){ $('#h-list').innerHTML='<div class="vacio"><p>Sin resultados.</p></div>'; return; }
+
+    // Agrupar por fecha de cierre (día)
+    const grupos={};
+    f.forEach(s=>{
+      const k=(s.cerrado_en||s.actualizado_en||'').slice(0,10)||'Sin fecha';
+      (grupos[k]=grupos[k]||[]).push(s);
+    });
+    const fechas=Object.keys(grupos).sort().reverse();
+    if(!abiertos.size&&fechas.length) abiertos.add(fechas[0]);   // la más reciente abierta
+    // Si hay búsqueda activa, se expande todo para ver los resultados
+    const expandirTodo=!!q||!!e;
+
+    const fechaLarga=k=>{
+      if(k==='Sin fecha') return k;
+      const [y,m,d]=k.split('-').map(Number);
+      const dt=new Date(y,m-1,d);
+      const hoy=new Date(); hoy.setHours(0,0,0,0);
+      const ayer=new Date(hoy); ayer.setDate(hoy.getDate()-1);
+      if(dt.getTime()===hoy.getTime()) return 'Hoy';
+      if(dt.getTime()===ayer.getTime()) return 'Ayer';
+      return dt.toLocaleDateString('es-HN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    };
+
+    $('#h-list').innerHTML=fechas.map(k=>{
+      const lista=grupos[k];
+      const on=expandirTodo||abiertos.has(k);
+      const nOk=lista.filter(s=>['aprobado','desembolsado'].includes(s.estado)).length;
+      const nNo=lista.filter(s=>s.estado==='denegado').length;
+      const nCa=lista.filter(s=>s.estado==='cancelado').length;
+      return `<div class="h-grupo ${on?'on':''}" data-f="${k}">
+        <button class="h-gh" data-toggle="${k}">
+          <span class="h-flecha">${on?'▾':'▸'}</span>
+          <span class="h-fecha">${fechaLarga(k)}</span>
+          <span class="h-resumen">
+            ${nOk?`<span class="tag b">${nOk} aprobada${nOk>1?'s':''}</span>`:''}
+            ${nNo?`<span class="tag" style="color:var(--error)">${nNo} rechazada${nNo>1?'s':''}</span>`:''}
+            ${nCa?`<span class="tag">${nCa} cancelada${nCa>1?'s':''}</span>`:''}
+            <span class="h-n">${lista.length}</span>
+          </span>
+        </button>
+        <div class="h-gc" ${on?'':'hidden'}>
+        ${lista.map(s=>{
+          const d=s.datos_cliente||{},r=s.resultado_analisis||{};
+          const cl={aprobado:'k',denegado:'m',desembolsado:'k',cancelado:'p'}[s.estado];
+          return `<div class="card" data-id="${s.id}">
+            <div class="c-top"><div style="min-width:0">
+              <div class="c-nom">${esc(nombreDe(d))}</div>
+              <div class="c-folio">${esc(s.folio)} · ${new Date(s.cerrado_en||s.actualizado_en).toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'})}</div>
+            </div><span class="badge ${cl}" style="margin:0">${ETQ[s.estado]}</span></div>
+            <div class="c-meta"><span class="tag">${TIPO_L[s.tipo_operacion]}</span>
+              ${r.monto_aprobado?`<span class="tag b">L${fmt(r.monto_aprobado)} · ${r.tasa}%</span>`:''}
+              ${r.motivo_denegacion?`<span class="tag" style="color:var(--error)">${esc(r.motivo_denegacion)}</span>`:''}
+            </div></div>`;
+        }).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+    $$('#h-list [data-toggle]').forEach(b=>b.addEventListener('click',()=>{
+      const k=b.dataset.toggle;
+      abiertos.has(k)?abiertos.delete(k):abiertos.add(k);
+      render();
+    }));
     $$('#h-list .card[data-id]').forEach(c=>c.addEventListener('click',()=>abrir(c.dataset.id)));
   };
   $('#h-q').addEventListener('input',render);
@@ -1102,6 +1297,7 @@ async function pintarPromedios(){
 
   box.innerHTML=`<div class="sec"><div class="sec-h"><h4>Tiempo promedio por área</h4>
       <span class="badge p">${data.n} solicitud${data.n===1?'':'es'}</span></div>
+    <div class="callout" style="margin-bottom:12px">Solo cuenta el <b>horario laboral</b>: L-V de 8:30 a 4:30, sábados de 8:30 a 12:00. Domingos y feriados no suman.</div>
     <div class="tm-barra">
       ${filas.map(f=>`<i style="width:${(f.minutos/suma*100).toFixed(1)}%;background:${f.c}"
         title="${f.n}: ${dur(f.minutos)}"></i>`).join('')}
@@ -1115,6 +1311,280 @@ async function pintarPromedios(){
       <span class="v">${dur(data.total)}</span></div>
   </div>`;
 }
+
+/* ===== MÉTRICAS / DASHBOARD ===== */
+let DASH_FILTRO={modo:'mes', anio:null, mes:null, desde:null, hasta:null};
+
+function mesFiscalActual(){
+  // El mes fiscal va del 9 al 8. Antes del día 9, todavía estamos en el mes fiscal anterior.
+  const h=new Date();
+  let m=h.getMonth(), a=h.getFullYear(); // m: 0-11
+  if(h.getDate()<9){ m-=1; if(m<0){m=11;a-=1;} }
+  return {anio:a, mes:m+1}; // mes 1-12
+}
+function rangoMesFiscal(anio,mes){
+  // mes 1-12. desde = 9 de ese mes; hasta = 8 del mes siguiente
+  const desde=new Date(anio,mes-1,9);
+  const hasta=new Date(anio,mes,8);
+  return {desde:isoFecha(desde), hasta:isoFecha(hasta)};
+}
+function rangoAnioFiscal(anio){
+  // Año fiscal: del 9 ene al 8 ene siguiente (aproximación anual sobre el mismo criterio)
+  return {desde:`${anio}-01-09`, hasta:`${anio+1}-01-08`};
+}
+const isoFecha=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const MESES_L=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function rangoActivo(){
+  const f=DASH_FILTRO;
+  if(f.modo==='mes'){ const mf=mesFiscalActual(); return rangoMesFiscal(f.anio??mf.anio, f.mes??mf.mes); }
+  if(f.modo==='anio'){ const mf=mesFiscalActual(); return rangoAnioFiscal(f.anio??mf.anio); }
+  return {desde:f.desde||null, hasta:f.hasta||null};
+}
+
+async function pintarMetricas(){
+  const cont=$('#cont');
+  const mf=mesFiscalActual();
+  if(DASH_FILTRO.anio===null){ DASH_FILTRO.anio=mf.anio; DASH_FILTRO.mes=mf.mes; }
+  const {desde,hasta}=rangoActivo();
+
+  cont.innerHTML=`
+    <div class="dash-filtros">
+      <div class="dash-seg" id="dash-modo">
+        <button data-m="mes" class="${DASH_FILTRO.modo==='mes'?'on':''}">Mes</button>
+        <button data-m="anio" class="${DASH_FILTRO.modo==='anio'?'on':''}">Año</button>
+        <button data-m="rango" class="${DASH_FILTRO.modo==='rango'?'on':''}">Rango</button>
+      </div>
+      <div id="dash-ctrl"></div>
+      <button class="btn btn-g btn-sm" id="dash-causas" style="flex:none;width:auto">Editar causas</button>
+      <span style="font-size:12px;color:var(--gris);margin-left:auto">${desde||'inicio'} → ${hasta||'hoy'}</span>
+    </div>
+    <div id="dash-body"><div class="dash-empty"><span class="sp"></span> Cargando métricas…</div></div>`;
+
+  pintarDashCtrl();
+  $('#dash-causas')?.addEventListener('click',abrirGestionCausas);
+  $$('#dash-modo button').forEach(b=>b.addEventListener('click',()=>{
+    DASH_FILTRO.modo=b.dataset.m; pintarMetricas();
+  }));
+
+  // Datos del servidor (agregados) + tiempos por área
+  let M, T;
+  try{
+    const [m1,t1]=await Promise.all([
+      sb.rpc('metricas_dashboard',{p_desde:desde,p_hasta:hasta}),
+      sb.rpc('promedios_areas',{p_desde:desde,p_hasta:hasta})
+    ]);
+    if(m1.error) throw m1.error;
+    M=m1.data; T=t1.data||{};
+  }catch(e){ $('#dash-body').innerHTML=`<div class="dash-empty">No se pudieron cargar las métricas: ${esc(e.message||e)}</div>`; return; }
+
+  // Solicitudes del rango (para serie semanal y por día), desde SOLS ya cargado
+  const enRango=SOLS.filter(s=>{
+    const f=(s.creado_en||'').slice(0,10);
+    return (!desde||f>=desde)&&(!hasta||f<=hasta);
+  });
+
+  $('#dash-body').innerHTML=dashBodyHTML(M,T,enRango,desde,hasta);
+  dibujarDonut(M.causas_rechazo);
+}
+
+function pintarDashCtrl(){
+  const box=$('#dash-ctrl'); if(!box) return;
+  const f=DASH_FILTRO, mf=mesFiscalActual();
+  const anios=[]; for(let a=mf.anio;a>=mf.anio-4;a--) anios.push(a);
+  if(f.modo==='mes'){
+    box.innerHTML=`
+      <select id="f-mes">${MESES_L.map((n,i)=>`<option value="${i+1}" ${((f.mes??mf.mes)===i+1)?'selected':''}>${n}</option>`).join('')}</select>
+      <select id="f-anio">${anios.map(a=>`<option ${((f.anio??mf.anio)===a)?'selected':''}>${a}</option>`).join('')}</select>`;
+    $('#f-mes').addEventListener('change',e=>{f.mes=+e.target.value;pintarMetricas();});
+    $('#f-anio').addEventListener('change',e=>{f.anio=+e.target.value;pintarMetricas();});
+  } else if(f.modo==='anio'){
+    box.innerHTML=`<select id="f-anio">${anios.map(a=>`<option ${((f.anio??mf.anio)===a)?'selected':''}>${a}</option>`).join('')}</select>`;
+    $('#f-anio').addEventListener('change',e=>{f.anio=+e.target.value;pintarMetricas();});
+  } else {
+    box.innerHTML=`<div class="dash-rango">
+      <input type="date" id="f-d" value="${f.desde||''}"><span>a</span>
+      <input type="date" id="f-h" value="${f.hasta||''}"></div>`;
+    $('#f-d').addEventListener('change',e=>{f.desde=e.target.value;pintarMetricas();});
+    $('#f-h').addEventListener('change',e=>{f.hasta=e.target.value;pintarMetricas();});
+  }
+}
+
+/* Serie semanal lunes→domingo de la semana actual (aprobadas vs rechazadas) */
+function serieSemana(sols){
+  const h=new Date(); const dow=(h.getDay()+6)%7; // 0=lunes
+  const lunes=new Date(h); lunes.setDate(h.getDate()-dow); lunes.setHours(0,0,0,0);
+  const dias=[]; const L=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  for(let i=0;i<7;i++){ const d=new Date(lunes); d.setDate(lunes.getDate()+i); dias.push({fecha:isoFecha(d),lbl:L[i],ok:0,no:0}); }
+  sols.forEach(s=>{
+    // se cuenta por la fecha de cierre (cuándo se decidió), no de creación
+    const ref=(s.cerrado_en||s.actualizado_en||s.creado_en||'').slice(0,10);
+    const dd=dias.find(x=>x.fecha===ref); if(!dd) return;
+    if(['aprobado','desembolsado'].includes(s.estado)) dd.ok++;
+    else if(s.estado==='denegado') dd.no++;
+  });
+  return dias;
+}
+
+function dashBodyHTML(M,T,sols,desde,hasta){
+  if(!M.total){ return `<div class="dash-empty">No hay solicitudes en este periodo.<br>Probá con otro mes o un rango más amplio.</div>`; }
+  const L=n=>'L '+fmt(Math.round(n||0));
+  // Días del rango para el promedio por día
+  let ndias=1;
+  if(desde&&hasta){ ndias=Math.max(1,Math.round((new Date(hasta)-new Date(desde))/86400000)+1); }
+  const promDia=(M.total/ndias);
+
+  // KPIs
+  const kpis=[
+    {t:'Solicitudes',big:M.total,sub:`${M.abiertas} en proceso`,ic:'azul',svg:ICO.solicitudes},
+    {t:'Aprobadas',big:M.aprobadas,sub:`${M.pct_aceptacion}% de aceptación`,ic:'ok',svg:svgCheck},
+    {t:'Rechazadas',big:M.denegadas,sub:`${M.canceladas} canceladas`,ic:'err',svg:svgX},
+    {t:'Monto colocado',big:L(M.monto_colocado),sub:M.desembolsadas?`ticket ${L(M.ticket_promedio)}`:'sin desembolsos',ic:'amber',svg:svgMoney},
+    {t:'Ingreso promedio',big:L(M.ingreso_promedio),sub:`${M.con_ingreso} con análisis`,ic:'viol',svg:svgTrend},
+    {t:'Límite promedio',big:L(M.limite_promedio),sub:'crédito autorizado',ic:'azul',svg:svgCard},
+    {t:'Solicitudes/día',big:promDia.toFixed(1),sub:`en ${ndias} día(s)`,ic:'ok',svg:svgCal},
+    {t:'Ciclo promedio',big:T.total?dur(T.total):'—',sub:'de inicio a cierre',ic:'amber',svg:svgClock},
+  ];
+  const kpisH=kpis.map(k=>`<div class="kpi-card">
+    <div class="kpi-ico kpi-i-${k.ic}">${k.svg}</div>
+    <div class="kpi-t">${k.t}</div>
+    <div class="kpi-big">${k.big}</div>
+    <div class="kpi-sub">${k.sub}</div></div>`).join('');
+
+  // Semana
+  const sem=serieSemana(sols);
+  const maxSem=Math.max(1,...sem.map(d=>d.ok+d.no));
+  const semH=sem.map(d=>{
+    const tot=d.ok+d.no;
+    const hOk=tot?(d.ok/maxSem*100):0, hNo=tot?(d.no/maxSem*100):0;
+    return `<div class="sem-col">
+      <div class="sem-tot">${tot||''}</div>
+      <div class="sem-bar" title="${d.lbl}: ${d.ok} aprob, ${d.no} rech">
+        ${d.no?`<div class="sem-seg-no" style="height:${hNo}%"></div>`:''}
+        ${d.ok?`<div class="sem-seg-ok" style="height:${hOk}%"></div>`:''}
+      </div>
+      <div class="sem-lbl">${d.lbl}</div></div>`;
+  }).join('');
+
+  // Rubro (barras horizontales)
+  const maxRub=Math.max(1,...M.por_rubro.map(r=>r.n));
+  const rubH=M.por_rubro.length?M.por_rubro.map(r=>`<div class="hbar">
+    <div class="hbar-top"><span class="l">${esc(r.rubro)}</span><span class="v">${r.n}</span></div>
+    <div class="hbar-track"><div class="hbar-fill" style="width:${r.n/maxRub*100}%;background:var(--azul)"></div></div>
+  </div>`).join(''):'<div class="dash-empty">Sin datos</div>';
+
+  // Tiempos por área (dónde nos tardamos)
+  const areasT=[
+    {k:'asesor',n:'Asesor'},{k:'analista_revision',n:'Analista · revisión'},
+    {k:'analista_referencias',n:'Analista · referencias'},{k:'verificador',n:'Verificador'},
+    {k:'espera_cliente',n:'Espera por cliente'},{k:'asesor_espera_docs',n:'Espera de documentos'},
+    {k:'desembolso',n:'Desembolso'}
+  ].map(a=>({...a,min:+T[a.k]||0})).filter(a=>a.min>0).sort((a,b)=>b.min-a.min);
+  const maxT=Math.max(1,...areasT.map(a=>a.min));
+  const cuelloBotella=areasT[0];
+  const tiempoH=areasT.length?areasT.map(a=>`<div class="hbar">
+    <div class="hbar-top"><span class="l">${a.n}</span><span class="v">${dur(a.min)}</span></div>
+    <div class="hbar-track"><div class="hbar-fill" style="width:${a.min/maxT*100}%;background:${a.k===cuelloBotella.k?'var(--error)':'var(--amber)'}"></div></div>
+  </div>`).join(''):'<div class="dash-empty">Aún no hay solicitudes cerradas para medir tiempos.</div>';
+
+  // Embudo de conversión
+  const emb=[
+    {n:'Recibidas',v:M.total,c:'var(--azul)'},
+    {n:'En proceso o más',v:M.total-M.canceladas,c:'#3B82F6'},
+    {n:'Aprobadas',v:M.aprobadas,c:'var(--ok)'},
+    {n:'Desembolsadas',v:M.desembolsadas,c:'#0E9BA8'},
+  ];
+  const maxEmb=Math.max(1,...emb.map(e=>e.v));
+  const embH=emb.map(e=>`<div class="fun-row">
+    <div class="fun-lbl">${e.n}</div>
+    <div class="fun-track"><div class="fun-fill" style="width:${Math.max(e.v/maxEmb*100,e.v?12:0)}%;background:${e.c}">${e.v}</div></div>
+  </div>`).join('');
+
+  return `
+    <div class="kpis-grid">${kpisH}</div>
+
+    <div class="dash-row dash-2">
+      <div class="panel-card">
+        <h3>Aprobadas vs rechazadas · semana actual</h3>
+        <div class="pc-sub">Lunes a domingo · verde aprobadas, rojo rechazadas</div>
+        <div class="semana">${semH}</div>
+      </div>
+      <div class="panel-card">
+        <h3>Causas de rechazo</h3>
+        <div class="pc-sub">Distribución de motivos de denegación</div>
+        <div class="donut-wrap">
+          <svg class="donut" id="donut-svg" viewBox="0 0 42 42"></svg>
+          <div class="donut-leg" id="donut-leg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-row dash-2b">
+      <div class="panel-card">
+        <h3>¿Dónde nos tardamos más?</h3>
+        <div class="pc-sub">Tiempo promedio por área en solicitudes cerradas · solo horas hábiles</div>
+        ${tiempoH}
+        ${cuelloBotella?`<div class="tiempo-hint">⏱ El mayor tiempo se va en <b>${cuelloBotella.n}</b> (${dur(cuelloBotella.min)} en promedio).</div>`:''}
+      </div>
+      <div class="panel-card">
+        <h3>Solicitudes por rubro</h3>
+        <div class="pc-sub">Top rubros en el periodo</div>
+        ${rubH}
+      </div>
+    </div>
+
+    <div class="dash-row dash-2b">
+      <div class="panel-card">
+        <h3>Embudo de conversión</h3>
+        <div class="pc-sub">De solicitud recibida a crédito desembolsado</div>
+        ${embH}
+      </div>
+      <div class="panel-card">
+        <h3>Resumen del periodo</h3>
+        <div class="pc-sub">Indicadores clave</div>
+        <dl class="dl">
+          <dt>Tasa de aceptación</dt><dd style="font-weight:700">${M.pct_aceptacion}%</dd>
+          <dt>Monto colocado</dt><dd>${L(M.monto_colocado)}</dd>
+          <dt>Ticket promedio</dt><dd>${M.desembolsadas?L(M.ticket_promedio):'—'}</dd>
+          <dt>Ingreso promedio</dt><dd>${L(M.ingreso_promedio)}</dd>
+          <dt>Límite promedio</dt><dd>${L(M.limite_promedio)}</dd>
+          <dt>Solicitudes por día</dt><dd>${promDia.toFixed(1)}</dd>
+          <dt>Ciclo promedio</dt><dd>${T.total?dur(T.total):'—'}</dd>
+        </dl>
+      </div>
+    </div>`;
+}
+
+/* Donut de causas de rechazo en SVG (stroke-dasharray sobre un círculo) */
+const DONUT_COLORES=['#D63B3B','#B7791F','#1877F2','#7C5CE0','#1F9D57','#0E9BA8','#94A3B8'];
+function dibujarDonut(causas){
+  const svg=$('#donut-svg'), leg=$('#donut-leg'); if(!svg||!leg) return;
+  const tot=(causas||[]).reduce((a,c)=>a+c.n,0);
+  if(!tot){ svg.innerHTML=''; leg.innerHTML='<div class="dash-empty" style="padding:10px">Sin rechazos en el periodo</div>'; return; }
+  const R=15.915, C=2*Math.PI*R; let off=0; let circ='';
+  causas.forEach((c,i)=>{
+    const frac=c.n/tot, len=frac*C, col=DONUT_COLORES[i%DONUT_COLORES.length];
+    circ+=`<circle cx="21" cy="21" r="${R}" fill="transparent" stroke="${col}" stroke-width="6"
+      stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 21 21)"></circle>`;
+    off+=len;
+  });
+  svg.innerHTML=`<circle cx="21" cy="21" r="${R}" fill="transparent" stroke="#F0F4FA" stroke-width="6"></circle>${circ}
+    <text x="21" y="20" text-anchor="middle" font-size="7" font-weight="700" fill="#0A2A66">${tot}</text>
+    <text x="21" y="26" text-anchor="middle" font-size="3.3" fill="#5B6B82">rechazos</text>`;
+  leg.innerHTML=causas.map((c,i)=>`<div class="leg-i">
+    <span class="leg-dot" style="background:${DONUT_COLORES[i%DONUT_COLORES.length]}"></span>
+    ${esc(c.causa)}<span class="lv">${c.n} · ${Math.round(c.n/tot*100)}%</span></div>`).join('');
+}
+
+/* Íconos pequeños para KPIs */
+const svgCheck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg>';
+const svgX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+const svgMoney='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+const svgTrend='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>';
+const svgCard='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>';
+const svgCal='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+const svgClock='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+
 
 /* ===== PARÁMETROS ===== */
 function pintarParametros(){
@@ -1175,8 +1645,16 @@ function pintarParametros(){
       <input id="rub-new" placeholder="Nombre del rubro nuevo">
       <button class="add" id="rub-add" style="flex:none">+ Agregar</button>
     </div></div>
+  <div class="sec"><div class="sec-h"><h4>Causas de rechazo y cancelación</h4></div>
+    <div class="callout">Son los motivos que elige el analista al cerrar una solicitud. La <b>categoría</b> agrupa las causas en el dashboard. Los cambios se guardan al instante.</div>
+    <div id="causas-editor"></div></div>
+  <div class="sec"><div class="sec-h"><h4>Días feriados</h4></div>
+    <div class="callout">Los tiempos de gestión se miden solo en <b>horario laboral</b>: lunes a viernes de 8:30 a 4:30, sábados de 8:30 a 12:00. Los domingos y los feriados de esta lista no cuentan.</div>
+    <div id="feriados-editor"></div></div>
   <button class="btn btn-b btn-full" id="p-save" style="margin-bottom:20px">Guardar parámetros</button>`;
   renderRubros();
+  renderCausasEditor($('#causas-editor'));
+  renderFeriadosEditor($('#feriados-editor'));
   $('#rub-add').addEventListener('click',async()=>{
     const v=$('#rub-new').value.trim();if(!v)return;
     if(RUBROS.some(r=>r.nombre.toLowerCase()===v.toLowerCase())){toast('Ese rubro ya existe','m');return;}
@@ -1238,6 +1716,120 @@ function renderRubros(){
     await cargarRubros();
   await cargarEquipo(); renderRubros(); toast('Rubro eliminado','k');
   }));
+}
+
+/* Editor del catálogo de causas (usado en Parámetros y en el modal del dashboard).
+   Recibe el contenedor donde se dibuja. Todos los cambios se guardan al instante. */
+const CATEGORIAS_SUGERIDAS=['Referencias','Ingreso insuficiente','Fuera de cobertura',
+  'Documentos/datos','Sobreendeudamiento','Perfil no elegible','Desistió el cliente',
+  'Sin respuesta','Duplicada','Otro'];
+async function renderCausasEditor(box){
+  if(!box) return;
+  const grupo=(tipo,titulo)=>{
+    const list=CAUSAS.filter(c=>c.tipo===tipo);
+    return `<div style="margin-bottom:6px;font-weight:600;font-size:13px;color:var(--tinta)">${titulo}</div>
+      ${list.map(c=>`
+        <div class="u-row" style="padding:8px 10px;gap:8px;flex-wrap:wrap">
+          <input data-ctxt="${c.id}" value="${esc(c.texto)}"
+            style="flex:2;min-width:150px;padding:6px 9px;font-size:12.5px" title="Texto que ve el analista">
+          <input list="cats-dl" data-ccat="${c.id}" value="${esc(c.categoria)}"
+            style="flex:1;min-width:120px;padding:6px 9px;font-size:12.5px" title="Categoría en el dashboard">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--gris);flex:none">
+            <input type="checkbox" data-cact="${c.id}" ${c.activo?'checked':''} style="width:auto"> activa</label>
+          <button class="del" data-cdel="${c.id}" data-txt="${esc(c.texto)}" style="height:30px;width:30px;font-size:15px;flex:none">×</button>
+        </div>`).join('')}
+      <div style="display:flex;gap:8px;margin:8px 0 16px">
+        <input id="cnew-${tipo}" placeholder="Nueva causa de ${tipo==='denegado'?'rechazo':'cancelación'}"
+          style="flex:2;font-size:13px">
+        <input list="cats-dl" id="cnewcat-${tipo}" placeholder="Categoría" style="flex:1;font-size:13px">
+        <button class="add" data-cadd="${tipo}" style="flex:none">+ Agregar</button>
+      </div>`;
+  };
+  box.innerHTML=`
+    <datalist id="cats-dl">${CATEGORIAS_SUGERIDAS.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+    ${grupo('denegado','Rechazo')}
+    ${grupo('cancelado','Cancelación')}`;
+
+  const recargar=async()=>{ await cargarCausas(); renderCausasEditor(box); };
+
+  // Editar texto o categoría (guarda al salir del campo)
+  box.querySelectorAll('[data-ctxt]').forEach(i=>i.addEventListener('change',async e=>{
+    const v=e.target.value.trim(); if(!v) return recargar();
+    const {error}=await sb.from('causas_cierre').update({texto:v}).eq('id',+e.target.dataset.ctxt);
+    if(error){toast(traducir(error.message),'m');return;} await cargarCausas(); toast('Causa actualizada','k');
+  }));
+  box.querySelectorAll('[data-ccat]').forEach(i=>i.addEventListener('change',async e=>{
+    const v=e.target.value.trim()||'Otro';
+    const {error}=await sb.from('causas_cierre').update({categoria:v}).eq('id',+e.target.dataset.ccat);
+    if(error){toast(traducir(error.message),'m');return;} await cargarCausas(); toast('Categoría actualizada','k');
+  }));
+  box.querySelectorAll('[data-cact]').forEach(i=>i.addEventListener('change',async e=>{
+    const {error}=await sb.from('causas_cierre').update({activo:e.target.checked}).eq('id',+e.target.dataset.cact);
+    if(error){toast(traducir(error.message),'m');return;} await cargarCausas();
+  }));
+  box.querySelectorAll('[data-cdel]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm(`¿Quitar la causa "${b.dataset.txt}"?\nLas solicitudes ya cerradas con este motivo no cambian.`)) return;
+    const {error}=await sb.from('causas_cierre').delete().eq('id',+b.dataset.cdel);
+    if(error){toast(traducir(error.message),'m');return;} recargar(); toast('Causa eliminada','k');
+  }));
+  box.querySelectorAll('[data-cadd]').forEach(b=>b.addEventListener('click',async()=>{
+    const tipo=b.dataset.cadd;
+    const txt=$('#cnew-'+tipo).value.trim(), cat=($('#cnewcat-'+tipo).value.trim()||'Otro');
+    if(!txt){toast('Escribí el texto de la causa','m');return;}
+    if(CAUSAS.some(c=>c.tipo===tipo&&c.texto.toLowerCase()===txt.toLowerCase())){toast('Esa causa ya existe','m');return;}
+    const orden=Math.max(0,...CAUSAS.filter(c=>c.tipo===tipo).map(c=>c.orden||0))+1;
+    const {error}=await sb.from('causas_cierre').insert({texto:txt,categoria:cat,tipo,orden});
+    if(error){toast(traducir(error.message),'m');return;} recargar(); toast('Causa agregada','k');
+  }));
+}
+
+/* Modal para gestionar causas desde el dashboard (analista y admin) */
+function abrirGestionCausas(){
+  $('.asig-h h3').textContent='Causas de rechazo y cancelación';
+  $('#asig-body').innerHTML=`
+    <div class="callout">Son los motivos que aparecen al cerrar una solicitud. La categoría agrupa las causas en el dashboard. Se guarda al instante.</div>
+    <div id="causas-editor-modal"></div>
+    <button class="btn btn-b" id="gc-x" style="width:100%;margin-top:8px">Listo</button>`;
+  $('#asig').classList.add('on');
+  renderCausasEditor($('#causas-editor-modal'));
+  $('#gc-x').addEventListener('click',()=>{ $('#asig').classList.remove('on'); if(VISTA==='metricas') pintarMetricas(); });
+}
+
+/* Editor de días feriados. Los tiempos de gestión no cuentan estos días. */
+async function renderFeriadosEditor(box){
+  if(!box) return;
+  box.innerHTML='<p style="font-size:13px;color:var(--gris)">Cargando…</p>';
+  const {data,error}=await sb.from('feriados').select('*').order('fecha');
+  if(error){ box.innerHTML=`<p style="font-size:13px;color:var(--error)">${esc(traducir(error.message))}</p>`; return; }
+  const hoy=new Date().toISOString().slice(0,10);
+  const lista=data||[];
+  const fmtF=f=>{ const [y,m,d]=f.split('-').map(Number);
+    return new Date(y,m-1,d).toLocaleDateString('es-HN',{weekday:'short',day:'numeric',month:'long',year:'numeric'}); };
+  box.innerHTML=`
+    ${lista.length?lista.map(f=>`
+      <div class="u-row" style="padding:8px 10px;gap:8px;${f.fecha<hoy?'opacity:.55':''}">
+        <div class="u-i"><div class="u-n" style="font-size:13.5px;text-transform:capitalize">${fmtF(f.fecha)}</div>
+          <div class="u-m">${esc(f.descripcion||'')}</div></div>
+        <button class="del" data-fdel="${f.fecha}" data-d="${esc(f.descripcion||f.fecha)}"
+          style="height:30px;width:30px;font-size:15px;flex:none">×</button>
+      </div>`).join(''):'<p style="font-size:13px;color:var(--gris)">Sin feriados cargados.</p>'}
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <input type="date" id="fer-fecha" style="flex:none;width:auto">
+      <input id="fer-desc" placeholder="Descripción (ej. Día del Trabajo)" style="flex:1;min-width:150px">
+      <button class="add" id="fer-add" style="flex:none">+ Agregar</button>
+    </div>`;
+  const recargar=()=>renderFeriadosEditor(box);
+  box.querySelectorAll('[data-fdel]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm(`¿Quitar el feriado "${b.dataset.d}"?\nEse día volverá a contar como día hábil.`)) return;
+    const {error}=await sb.from('feriados').delete().eq('fecha',b.dataset.fdel);
+    if(error){toast(traducir(error.message),'m');return;} recargar(); toast('Feriado eliminado','k');
+  }));
+  $('#fer-add')?.addEventListener('click',async()=>{
+    const f=$('#fer-fecha').value, d=$('#fer-desc').value.trim();
+    if(!f){toast('Elegí la fecha','m');return;}
+    const {error}=await sb.from('feriados').insert({fecha:f,descripcion:d});
+    if(error){toast(traducir(error.message),'m');return;} recargar(); toast('Feriado agregado','k');
+  });
 }
 async function guardarParams(){
   const g=id=>parseFloat($('#'+id).value)||0;
@@ -1764,6 +2356,7 @@ async function pintarTiempos(){
 
   box.innerHTML=`<div class="sec"><div class="sec-h"><h4>Tiempos por área</h4>
       <span class="badge ${data.total?.abierto?'a':'k'}">${data.total?.abierto?'en curso':'cerrada'}</span></div>
+    <div style="font-size:11.5px;color:var(--gris);margin-bottom:10px">En horas hábiles (L-V 8:30–4:30 · Sáb 8:30–12:00)</div>
     <div class="tm-barra">
       ${filas.map(f=>`<i style="width:${(f.minutos/suma*100).toFixed(1)}%;background:${f.c}"
         title="${f.n}: ${dur(f.minutos)}"></i>`).join('')}
@@ -2253,14 +2846,8 @@ async function reanudar(){
 }
 
 /* Cerrar una solicitud antes de tiempo: cancelada (el cliente desiste) o
-   rechazada (no procede). Siempre queda registrado el motivo y quién lo hizo. */
-const MOTIVOS={
-  cancelado:['El cliente ya no quiere el préstamo','No contesta / no da seguimiento',
-             'Consiguió el dinero por otro lado','Solicitud duplicada','Otro motivo'],
-  denegado:['Documentos falsos o alterados','No cumple el ingreso mínimo',
-            'Datos que no coinciden con lo verificado','Referencias no confirman',
-            'Ya tiene deudas que no puede cubrir','Otro motivo']
-};
+   rechazada (no procede). Siempre queda registrado el motivo y quién lo hizo.
+   Los motivos vienen del catálogo editable (tabla causas_cierre). */
 function cerrarSolicitud(tipo){
   const esCancelar=tipo==='cancelado';
   $('#asig-body').innerHTML=`
@@ -2272,7 +2859,7 @@ function cerrarSolicitud(tipo){
     <div class="fld"><label>Motivo <span style="color:var(--error)">*</span></label>
       <select id="cs-motivo">
         <option value="">Selecciona…</option>
-        ${MOTIVOS[tipo].map(m=>`<option>${esc(m)}</option>`).join('')}
+        ${causasDe(tipo).map(m=>`<option>${esc(m)}</option>`).join('')}
       </select></div>
     <div class="fld"><label>Detalle<small>Queda guardado en el historial</small></label>
       <textarea id="cs-nota" placeholder="Contá brevemente qué pasó"></textarea></div>

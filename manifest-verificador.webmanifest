@@ -1,0 +1,17 @@
+{
+  "name": "Verificador · Más Pisto",
+  "short_name": "Verificador MP",
+  "description": "Verificación en campo de solicitudes de crédito de Más Pisto Financiera",
+  "start_url": "./verificador.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7FAFF",
+  "theme_color": "#1F9D57",
+  "lang": "es",
+  "icons": [
+    { "src": "icono-v-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icono-v-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icono-v-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

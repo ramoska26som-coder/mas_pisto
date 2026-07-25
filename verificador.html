@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#1877F2">
+<meta name="theme-color" content="#1F9D57">
+<link rel="manifest" href="manifest-verificador.webmanifest">
+<link rel="icon" href="icono-v-192.png">
+<link rel="apple-touch-icon" href="icono-v-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Verificador MP">
 <title>Verificador · Más Pisto</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -334,6 +340,7 @@ async function arrancar(session){
   $('#app').style.display='flex';
   $('#top-s').textContent=YO.nombre;
   await cargar(); vivo(); iniciarGPS();
+  registrarSW(); pedirPermisoNotif();
   try{ AUDIO_CTX = AUDIO_CTX || new (window.AudioContext||window.webkitAudioContext)();
        if(AUDIO_CTX.state==='suspended') AUDIO_CTX.resume(); }catch(e){}
 }
@@ -401,6 +408,30 @@ function avisarVerif(ant,nue){
   while($('#avisos-v').children.length>3) $('#avisos-v').lastElementChild.remove();
 
   if(navigator.vibrate) navigator.vibrate([120,60,120]);   // en el teléfono
+  notificarSistema(esMia?'Te asignaron una visita':'Nueva visita disponible',
+    `${nombreDe(d)} · ${nue.folio}`, nue.id);
+}
+
+/* Notificación del sistema (la de la pantalla del cel). En Android va por el
+   service worker; en escritorio funciona directa. */
+let SW_REG=null;
+async function notificarSistema(titulo,texto,id){
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  const ops={body:texto, tag:'mpv-'+(id||'x'), renotify:true,
+    icon:'icono-v-192.png', badge:'icono-v-192.png'};
+  try{
+    const reg=SW_REG||await navigator.serviceWorker?.getRegistration();
+    if(reg&&reg.showNotification){ reg.showNotification(titulo,ops); return; }
+  }catch(e){}
+  try{ new Notification(titulo,ops); }catch(e){}
+}
+function pedirPermisoNotif(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='default') Notification.requestPermission();
+}
+async function registrarSW(){
+  if(!('serviceWorker' in navigator)) return;
+  try{ SW_REG=await navigator.serviceWorker.register('sw.js'); }catch(e){}
 }
 
 /* ===== TABS ===== */
