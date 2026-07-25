@@ -755,7 +755,10 @@ function calcLimite(prom,tipo,meses){
   else if(meses>=P.mesAlto){pct=P.pctAlto/100;regla=`Antigüedad ≥${P.mesAlto} meses: ${P.pctAlto}%`;}
   else if(meses>P.mesMedio){pct=P.pctMedio/100;regla=`Antigüedad >${P.mesMedio} meses: ${P.pctMedio}%`;}
   else{pct=P.pctNuevo/100;regla=`Antigüedad ≤${P.mesMedio} meses: ${P.pctNuevo}%`;}
-  const red=Math.ceil((prom*pct)/(P.redondeo||1000))*(P.redondeo||1000);
+  // Siempre hacia abajo: nunca se ofrece más crédito del que respalda el ingreso.
+  // Se redondea antes a centavos para que el ruido de coma flotante no tumbe un escalón.
+  const bruto=Math.round(prom*pct*100)/100;
+  const red=Math.floor(bruto/(P.redondeo||1000))*(P.redondeo||1000);
   const fin=Math.min(P.limiteMax,Math.max(P.limiteMin,red));
   return {ok:true,monto:fin,pct,regla,clamped:Math.round(fin)!==Math.round(red)};
 }
@@ -1640,7 +1643,7 @@ function pintarParametros(){
     ${n('p-pref','Ingreso para preferencial (L)',P.ingresoPref,'Con perfil ideal baja la tasa')}
     ${n('p-lmin','Límite mínimo (L)',P.limiteMin)}
     ${n('p-lmax','Límite máximo (L)',P.limiteMax)}
-    ${n('p-red','Redondeo (L)',P.redondeo,'Siempre hacia arriba')}
+    ${n('p-red','Redondeo (L)',P.redondeo,'Siempre hacia abajo')}
   </div></div>
   <div class="sec"><div class="sec-h"><h4>Porcentaje del ingreso</h4></div>
     <div class="callout">El <b>nuevo ingreso</b> siempre usa el porcentaje base, sin importar antigüedad.
