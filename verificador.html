@@ -495,6 +495,7 @@ function cardHTML(s){
            ${d.dir_empresa||d.direccion_trabajo?'<span class="tag">💼 Trabajo</span>':''}
            ${d.ciudad_vivienda?`<span class="tag">${esc(d.ciudad_vivienda)}</span>`:''}`}
       ${items.length?`<span class="tag ${hechos===items.length?'ok':''}">${hechos}/${items.length} puntos</span>`:''}
+      ${s.tipo_desembolso==='efectivo'?'<span class="tag" style="background:#FBF0D6;color:#8A6D00">💵 Efectivo</span>':s.tipo_desembolso==='transferencia'?'<span class="tag">🏦 Transferencia</span>':''}
       ${hecha&&noCumple?`<span class="tag no">${noCumple} no cumple</span>`:''}
     </div></div>`;
 }

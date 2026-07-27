@@ -105,6 +105,8 @@
 
   /* Kanban */
   .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;align-items:start}
+  .kanban-5{grid-template-columns:repeat(5,1fr)}
+  @media(max-width:1100px){.kanban-5{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:1100px){
     .kanban{display:flex;overflow-x:auto;gap:11px;scroll-snap-type:x mandatory;
       margin:0 -18px;padding:0 18px 8px;scrollbar-width:none}
@@ -399,6 +401,8 @@
   .bit-c{flex:1;min-width:0}
   .bit-t{font-size:13px;line-height:1.4}
   .bit-d{font-size:12px;color:var(--gris);margin-top:3px;line-height:1.45}
+  .bit-auto{font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px;
+    background:var(--cielo);color:var(--azul);vertical-align:middle}
   .bit-m{font-size:11.5px;color:var(--gris);margin-top:2px}
 
   /* Tiempos por área */
@@ -1009,8 +1013,9 @@ function notificarCambio(ant,nue){
   const meToca =
     (nue.estado==='pendiente_revision' && (rol('asesor')||esAdmin())) ||
     (nue.estado==='en_analisis'        && (rol('analista')||esAdmin())) ||
-    (nue.estado==='verificado'         && (rol('analista')||esAdmin())) ||
-    (COL_VER.includes(nue.estado)      && (rol('verificador')||esAdmin()));
+    (nue.estado==='llenar_perfil'      && (rol('asesor')||esAdmin())) ||
+    (nue.estado==='verificado'         && (rol('analista')||rol('asesor')||esAdmin())) ||
+    (['por_verificar','en_verificacion'].includes(nue.estado) && (rol('verificador')||esAdmin()));
 
   const cerrada=['aprobado','denegado','desembolsado','cancelado'].includes(nue.estado);
   if(cerrada) sonidoCierre(); else if(meToca) sonidoNueva(); else sonidoCambio();
@@ -1077,24 +1082,26 @@ function sla(s){
   return `<span class="sla ${cls}">${t}</span>`;
 }
 const ETQ={pendiente_revision:'Nuevas',en_revision_asesor:'En revisión',en_analisis:'Análisis',
-  por_verificar:'Por verificar',en_verificacion:'Verificando',verificado:'Decidir',
+  llenar_perfil:'Llenar perfil',
+  por_verificar:'Por verificar',en_verificacion:'Verificando',verificado:'Verificadas',
   en_espera_cliente:'En espera',
   aprobado:'Aprobadas',denegado:'Rechazadas',desembolsado:'Entregadas',cancelado:'Canceladas'};
 const TIPO_L={nuevo:'Nuevo Préstamo',reingreso:'Reingreso',refinanciamiento:'Refinanciamiento'};
+const DESEMB_L={efectivo:'Efectivo',transferencia:'Transferencia'};
 const ESTATUS_L={pendiente_revision:'Sin tomar',en_revision_asesor:'En revisión',
-  en_analisis:'En análisis',por_verificar:'Por verificar',en_verificacion:'En verificación',
-  verificado:'Por decidir',en_espera_cliente:'En espera por cliente',aprobado:'Aprobada',denegado:'Rechazada',
+  en_analisis:'En análisis',llenar_perfil:'Llenar perfil en el sistema',
+  por_verificar:'Por verificar',en_verificacion:'En verificación',
+  verificado:'Verificada',en_espera_cliente:'En espera por cliente',aprobado:'Aprobada',denegado:'Rechazada',
   desembolsado:'Entregada',cancelado:'Cancelada'};
 
 /* Etapa efectiva para ubicar en el kanban: si está en espera, usa el estado previo. */
 const etapaDe=s=>s.estado==='en_espera_cliente'?(s.estado_previo||'en_analisis'):s.estado;
 
-/* Las 3 columnas del kanban */
 /* Columnas por área responsable, no por etapa genérica */
 const COL_PEND=['pendiente_revision'];
-const COL_ASE =['en_revision_asesor'];
-const COL_ANA =['en_analisis','verificado'];   // 'verificado' vuelve al analista a decidir
-const COL_VER =['por_verificar','en_verificacion'];
+const COL_ASE =['en_revision_asesor','llenar_perfil'];  // el asesor transcribe el perfil
+const COL_ANA =['en_analisis'];
+const COL_VER =['por_verificar','en_verificacion','verificado'];  // verificado -> a desembolso
 const COL_FIN =['aprobado','denegado','desembolsado','cancelado'];
 
 function esDeHoy(s){
@@ -1126,8 +1133,9 @@ function pintarSolicitudes(){
   const porFecha=(a,b)=>new Date(a.estado_desde)-new Date(b.estado_desde);
   const pend=SOLS.filter(s=>COL_PEND.includes(etapaDe(s)))
     .sort((a,b)=>new Date(a.creado_en)-new Date(b.creado_en));
-  const ase=SOLS.filter(s=>COL_ASE.includes(etapaDe(s))).sort(porFecha);
+  const ase=SOLS.filter(s=>etapaDe(s)==='en_revision_asesor').sort(porFecha);
   const ana=SOLS.filter(s=>COL_ANA.includes(etapaDe(s))).sort(porFecha);
+  const perfil=SOLS.filter(s=>etapaDe(s)==='llenar_perfil').sort(porFecha);
   const ver=SOLS.filter(s=>COL_VER.includes(etapaDe(s))).sort(porFecha);
   const fin=SOLS.filter(s=>COL_FIN.includes(s.estado)&&esDeHoy(s))
     .sort((a,b)=>new Date(b.cerrado_en||b.actualizado_en)-new Date(a.cerrado_en||a.actualizado_en));
@@ -1139,10 +1147,11 @@ function pintarSolicitudes(){
       ${lista.length?lista.map(kcardHTML).join(''):`<div class="kempty">${vacio}</div>`}
     </div>`;
 
-  $('#cont').innerHTML=`<div class="kanban">
+  $('#cont').innerHTML=`<div class="kanban kanban-5">
     ${col('pend','Pendiente',pend,'Nada pendiente')}
     ${col('ase','Asesor(a)',ase,'Nada con el asesor')}
     ${col('ana','Analista',ana,'Nada con el analista')}
+    ${col('perfil','Llenar perfil',perfil,'Nada por transcribir')}
     ${col('ver','Verificador',ver,'Nada en verificación')}
   </div>
   ${fin.length?`<div style="max-width:100%;margin-top:16px">
@@ -1506,6 +1515,7 @@ function dashBodyHTML(M,T,sols,desde,hasta){
   const areasT=[
     {k:'asesor',n:'Asesor'},{k:'analista_revision',n:'Analista · revisión'},
     {k:'analista_referencias',n:'Analista · referencias'},
+    {k:'llenar_perfil',n:'Llenar perfil'},
     {k:'verificacion_cola',n:'Cola de verificación'},{k:'verificador',n:'Verificador'},
     {k:'espera_cliente',n:'Espera por cliente'},{k:'asesor_espera_docs',n:'Espera de documentos'},
     {k:'desembolso',n:'Desembolso'}
@@ -2060,6 +2070,7 @@ function detalle(){
   const s=ACT,d=s.datos_cliente||{};
   const esAse=['pendiente_revision','en_revision_asesor'].includes(s.estado)&&(rol('asesor')||esAdmin());
   const esAna=s.estado==='en_analisis'&&(rol('analista')||esAdmin());
+  const esPerfil=s.estado==='llenar_perfil'&&(rol('asesor')||esAdmin());
   // Estados abiertos donde todavía tiene sentido sumar referencias
   const REF_ABIERTOS=['pendiente_revision','en_revision_asesor','en_analisis',
     'por_verificar','en_verificacion','verificado','en_espera_cliente'];
@@ -2074,10 +2085,13 @@ function detalle(){
 
   const ra=s.resultado_analisis||{};
   if(s.estado==='denegado' && ra.denegado_automaticamente){
+    const falsa=ra.referencia_falsa;
     izq+=`<div class="sec" style="border-color:#F3C4C4;background:#FFF6F6">
-      <div class="sec-h"><h4 style="color:#A82121">🚫 Rechazo automático</h4></div>
+      <div class="sec-h"><h4 style="color:#A82121">🚫 Rechazo automático${falsa?' · definitivo':''}</h4></div>
       <div class="callout r" style="margin-bottom:0">${esc(ra.motivo_denegacion||'No cumple los requisitos mínimos.')}</div>
-      <p style="font-size:12.5px;color:var(--gris);margin-top:10px">Esta solicitud se rechazó sola por una regla del negocio. Un analista puede reabrirla si el caso lo amerita.</p>
+      <p style="font-size:12.5px;color:var(--gris);margin-top:10px">${falsa
+        ? 'Rechazo <b>definitivo</b> por referencia falsa. No se puede reabrir.'
+        : 'Esta solicitud se rechazó sola por una regla del negocio. Un analista puede reabrirla si el caso lo amerita.'}</p>
     </div>`;
   } else if(ra.excepcion_automatica && ra.motivo_reapertura){
     izq+=`<div class="sec" style="border-color:#EBD9AE;background:#FFFBF2">
@@ -2111,6 +2125,9 @@ function detalle(){
   if(s.fecha_ingreso_cliente)
     izq+=`<dl class="dl" style="margin-top:11px"><dt>Cliente desde</dt>
         <dd>${new Date(s.fecha_ingreso_cliente+'T12:00:00').toLocaleDateString('es-HN')} · ${labelMeses(mesesCliente(s))}</dd></dl>`;
+  if(s.tipo_desembolso)
+    izq+=`<dl class="dl" style="margin-top:11px"><dt>Desembolso</dt>
+        <dd><b>${DESEMB_L[s.tipo_desembolso]||s.tipo_desembolso}</b></dd></dl>`;
   izq+='</div>';
 
   const puedeEditarNom=abierta&&(rol('asesor')||rol('analista')||esAdmin());
@@ -2249,8 +2266,8 @@ function detalle(){
           <div class="ref-d">${esc(r.telefono||'')}${r.parentesco?' · '+esc(r.parentesco):''}</div></div></div></div>`).join('')
         :'<p style="font-size:13.5px;color:var(--gris)">El cliente aún no dio referencias.</p>'}
       <button class="btn btn-g btn-sm" id="add-ref" style="flex:none;margin-top:10px">+ Agregar referencia</button></div>`;
-  } else if(s.analisis_ingresos?.ingreso_promedio && esAna){
-    // El analista ve el análisis de ingresos completo, en SOLO LECTURA.
+  } else if(s.analisis_ingresos?.ingreso_promedio && (esAna||esPerfil)){
+    // Analista (y asesor en el paso de perfil) ven el análisis completo en SOLO LECTURA.
     izq+=ingresosLecturaHTML(s);
   } else if(s.analisis_ingresos?.ingreso_promedio){
     const ai=s.analisis_ingresos;
@@ -2299,7 +2316,20 @@ function detalle(){
           >${its.filter(r=>r.resultado).length}/${its.length}</span></div>
       ${its.length?its.map(refHTML).join(''):'<p style="font-size:13.5px;color:var(--gris)">Este cliente no dio referencias.</p>'}
       <button class="btn btn-g btn-sm" id="add-ref" style="flex:none;margin-top:10px">+ Agregar referencia</button>
-      <div class="callout r" style="margin:10px 0 0">Marcar una referencia como <b>falsa</b> deniega la solicitud de inmediato.</div></div>`;
+      <div class="callout r" style="margin:10px 0 0">Marcar una referencia como <b>falsa</b> deniega la solicitud de inmediato. Marcar <b>"No respondió"</b> mueve el tiempo a "referencias" y deja de contar contra vos.</div></div>`;
+    // Intentos de llamada, para justificar demoras por referencias que no contestan
+    const intentos=s.intentos_referencias||[];
+    der+=`<div class="sec"><div class="sec-h"><h4>Intentos de llamada</h4>
+        <span class="badge p">${intentos.length}</span></div>
+      <div class="callout" style="margin-bottom:11px">Registrá cada intento de llamar a una referencia. Sirve para justificar si la solicitud tarda.</div>
+      <button class="btn btn-g btn-sm" id="add-intento" style="flex:none;margin-bottom:11px">+ Registrar intento</button>
+      ${intentos.length?intentos.slice().reverse().map(it=>`
+        <div class="bit-row"><div class="bit-pt" style="background:var(--amber)"></div>
+          <div class="bit-c"><div class="bit-t"><b>${esc(it.referencia)}</b> · ${esc({sin_respuesta:'No contestó',ocupado:'Ocupado',apagado:'Apagado',contesto:'Contestó',numero_malo:'Número equivocado'}[it.resultado]||it.resultado)}</div>
+            ${it.nota?`<div class="bit-d">${esc(it.nota)}</div>`:''}
+            <div class="bit-m">${esc(it.quien||'—')} · ${it.cuando?new Date(it.cuando).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</div>
+          </div></div>`).join(''):'<p style="font-size:13px;color:var(--gris)">Sin intentos registrados.</p>'}
+    </div>`;
     der+=`<div class="sec"><div class="sec-h"><h4>Resultado</h4></div><div id="res"></div></div>`;
   }
   else if(s.resultado_analisis?.monto_aprobado||s.resultado_analisis?.motivo_denegacion){
@@ -2323,6 +2353,34 @@ function detalle(){
           <div style="font-size:13.5px;font-weight:500">${esc(c.etiqueta)}${c.obligatorio?'':' <span style="font-size:10px;color:var(--gris)">(opcional)</span>'}</div>
           ${c.nota?`<div style="font-size:12px;color:var(--gris);margin-top:2px">${esc(c.nota)}</div>`:''}
         </div></div>`).join('')}
+    </div>`;
+  }
+
+  // Paso del asesor: transcribir perfil al sistema, tipo de desembolso, verificador.
+  if(esPerfil){
+    const ra=s.resultado_analisis||{};
+    const ps=s.perfil_sistema||{};
+    der+=`<div class="sec"><div class="sec-h"><h4>Llenar perfil en el sistema</h4>
+        <span class="badge ${ps.confirmado?'k':'p'}">${ps.confirmado?'confirmado':'pendiente'}</span></div>
+      <div class="callout" style="margin-bottom:12px">Transcribí esta solicitud al sistema de la empresa, elegí el tipo de desembolso y asigná el verificador.</div>
+      <dl class="dl">
+        <dt>Monto aprobado</dt><dd style="font-weight:700">${ra.monto_aprobado?fmtL(ra.monto_aprobado):'—'}</dd>
+        ${ra.tasa?`<dt>Tasa</dt><dd>${ra.tasa}%</dd>`:''}
+      </dl>
+      <div class="fld" style="margin-top:12px"><label>Código en el sistema<small>Opcional</small></label>
+        <input id="pf-codigo" value="${esc(ps.codigo||'')}" placeholder="Ej. SYS-00123"></div>
+      <div class="fld"><label>Tipo de desembolso <span style="color:var(--error)">*</span></label>
+        <select id="pf-desemb">
+          <option value="">Selecciona…</option>
+          <option value="efectivo" ${s.tipo_desembolso==='efectivo'?'selected':''}>Efectivo</option>
+          <option value="transferencia" ${s.tipo_desembolso==='transferencia'?'selected':''}>Transferencia</option>
+        </select></div>
+      <div class="fld"><label>Verificador <span style="color:var(--error)">*</span></label>
+        <select id="pf-verif"><option value="">Cargando…</option></select></div>
+      <label class="chk" style="display:flex;gap:9px;align-items:flex-start;margin-top:6px;cursor:pointer">
+        <input type="checkbox" id="pf-confirmado" ${ps.confirmado?'checked':''} style="width:auto;margin-top:2px">
+        <span style="font-size:13px">Confirmo que <b>transcribí el perfil y creé la solicitud</b> en el sistema de la empresa.</span>
+      </label>
     </div>`;
   }
 
@@ -2350,10 +2408,11 @@ async function pintarBitacora(){
   if(error||!data?.length) return;
 
   const linea=h=>{
+    const auto=h.detalle?.automatico?' <span class="bit-auto">automático</span>':'';
     if(h.accion==='estado'){
       const de=ESTATUS_L[h.estado_anterior]||h.estado_anterior||'—';
       const a=ESTATUS_L[h.estado_nuevo]||h.estado_nuevo;
-      return `Pasó de <b>${esc(de)}</b> a <b>${esc(a)}</b>`
+      return `Pasó de <b>${esc(de)}</b> a <b>${esc(a)}</b>${auto}`
         +(h.detalle?.motivo?`<div class="bit-d">${esc(h.detalle.motivo)}</div>`:'');
     }
     const cs=h.detalle?.cambios||[];
@@ -2383,6 +2442,7 @@ const AREAS=[
   {k:'asesor',              n:'Asesor',                 c:'#1877F2'},
   {k:'analista_revision',   n:'Analista · revisión',    c:'#7C5CE0'},
   {k:'analista_referencias',n:'Analista · referencias', c:'#B7791F'},
+  {k:'llenar_perfil',       n:'Llenar perfil',          c:'#C4569B'},
   {k:'verificacion_cola',   n:'Cola de verificación',   c:'#8FB9A8'},
   {k:'verificador',         n:'Verificador',            c:'#1F9D57'},
   {k:'espera_cliente',      n:'Espera por cliente',     c:'#D9A441'},
@@ -2481,12 +2541,63 @@ function resHTML(r){
     </div></div>`;
 }
 
+/* Registrar un intento de llamada a una referencia (analista) */
+function abrirRegistrarIntento(){
+  const refs=(ACT.checklist_analista?.referencias?.items||[]).map(r=>r.nombre).filter(Boolean);
+  $('.asig-h h3').textContent='Registrar intento de llamada';
+  $('#asig-body').innerHTML=`
+    <div class="fld"><label>Referencia <span style="color:var(--error)">*</span></label>
+      <select id="in-ref">${refs.length?refs.map(n=>`<option>${esc(n)}</option>`).join(''):'<option value="">Sin referencias</option>'}</select></div>
+    <div class="fld"><label>Resultado <span style="color:var(--error)">*</span></label>
+      <select id="in-res">
+        <option value="sin_respuesta">No contestó</option>
+        <option value="ocupado">Ocupado</option>
+        <option value="apagado">Apagado / fuera de servicio</option>
+        <option value="numero_malo">Número equivocado</option>
+        <option value="contesto">Contestó</option>
+      </select></div>
+    <div class="fld"><label>Nota<small>Opcional</small></label>
+      <textarea id="in-nota" placeholder="Ej. sonó y cortó, intento a las 3pm"></textarea></div>
+    <div class="callout r hide" id="in-err"></div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-g" id="in-x" style="flex:1">Volver</button>
+      <button class="btn btn-b" id="in-ok" style="flex:1">Registrar</button>
+    </div>`;
+  $('#asig').classList.add('on');
+  $('#in-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  $('#in-ok').addEventListener('click',async()=>{
+    const ref=$('#in-ref').value, res=$('#in-res').value, nota=$('#in-nota').value.trim();
+    if(!ref){ $('#in-err').textContent='Elegí una referencia.'; $('#in-err').classList.remove('hide'); return; }
+    const b=$('#in-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Guardando';
+    const {error}=await sb.rpc('registrar_intento_referencia',
+      {p_id:ACT.id,p_referencia:ref,p_resultado:res,p_nota:nota});
+    if(error){ b.disabled=false; b.textContent='Registrar';
+      $('#in-err').textContent=traducir(error.message); $('#in-err').classList.remove('hide'); return; }
+    $('#asig').classList.remove('on');
+    toast('Intento registrado','k');
+    await cargar(); ACT=SOLS.find(s=>s.id===ACT.id)||ACT; detalle();
+  });
+}
+
+/* Llena el select de verificadores en el paso de perfil, mostrando la carga de cada uno */
+async function cargarVerifSelect(){
+  const sel=$('#pf-verif'); if(!sel) return;
+  const {data,error}=await sb.rpc('verificadores_disponibles');
+  if(error){ sel.innerHTML='<option value="">No se pudo cargar</option>'; return; }
+  const actual=ACT.verificador_id||'';
+  sel.innerHTML='<option value="">Selecciona…</option>'+
+    (data||[]).map(v=>`<option value="${v.id}" ${v.id===actual?'selected':''}>${esc(v.nombre)} · ${v.activos} en curso</option>`).join('');
+}
+
 function conectar(esAse,esAna){
   // Controles comunes: existen según capacidad, no según columna de trabajo.
   // (p.ej. el asesor puede agregar referencia aunque la solicitud esté en análisis)
   $('#edit-nom')?.addEventListener('click',abrirEditarNombre);
   $('#add-ref')?.addEventListener('click',abrirAgregarReferencia);
   $('#nota-add')?.addEventListener('click',guardarNota);
+  // En el paso de perfil, cargar la lista de verificadores disponibles
+  if($('#pf-verif')) cargarVerifSelect();
+  $('#add-intento')?.addEventListener('click',abrirRegistrarIntento);
   if(esAse){
     $('#conf-docs')?.addEventListener('click',confirmarDocs);
   }
@@ -2804,11 +2915,12 @@ function resultado(){
 }
 
 /* ===== ACCIONES ===== */
-const ABIERTOS=['pendiente_revision','en_revision_asesor','en_analisis',
+const ABIERTOS=['pendiente_revision','en_revision_asesor','en_analisis','llenar_perfil',
                 'por_verificar','en_verificacion','verificado','en_espera_cliente'];
 function pie(){
   const s=ACT;let h='';
   if(s.estado==='denegado' && (s.resultado_analisis||{}).denegado_automaticamente
+     && !(s.resultado_analisis||{}).referencia_falsa
      && (rol('analista')||esAdmin()))
     h=`<button class="btn btn-b" id="a-reabrir">Reabrir solicitud</button>`;
   else if(s.estado==='en_espera_cliente'&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin()))
@@ -2820,12 +2932,14 @@ function pie(){
   else if(s.estado==='en_analisis'&&(rol('analista')||esAdmin())){
     const falsa=(s.checklist_analista?.referencias?.items||[]).some(r=>r.resultado==='falsa');
     h=falsa?`<button class="btn btn-r" id="a6">Denegar por referencia falsa</button>`
-           :`<button class="btn btn-g" id="a4">Guardar</button><button class="btn btn-y" id="a5">Enviar a verificar</button>`;
+           :`<button class="btn btn-g" id="a4">Guardar</button><button class="btn btn-y" id="a5">Enviar a llenar perfil</button>`;
   }
-  else if(s.estado==='verificado'&&(rol('analista')||esAdmin()))
-    h=`<button class="btn btn-r" id="a8">Denegar</button><button class="btn btn-b" id="a7">Aprobar</button>`;
-  else if(s.estado==='aprobado'&&(rol('asesor')||rol('analista')||esAdmin()))
-    h=`<button class="btn btn-b" id="a9">Marcar como entregada</button>`;
+  else if(s.estado==='llenar_perfil'&&(rol('asesor')||esAdmin()))
+    h=`<button class="btn btn-g" id="a-perfil-g">Guardar</button><button class="btn btn-y" id="a-perfil-ok">Completar y enviar a verificar</button>`;
+  else if(s.estado==='verificado'&&(rol('analista')||rol('asesor')||esAdmin()))
+    h=`<button class="btn btn-r" id="a8">Denegar</button><button class="btn btn-b" id="a7">Aprobar para desembolso</button>`;
+  else if(s.estado==='aprobado'&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin()))
+    h=`<button class="btn btn-b" id="a9">Marcar desembolso entregado</button>`;
 
   // Cancelar, rechazar y poner en espera: disponibles mientras siga abierta.
   let extra='';
@@ -2835,7 +2949,6 @@ function pie(){
            <button class="btn btn-g btn-sm" id="a-cancel" style="flex:none">Cancelar</button>
            <button class="btn btn-g btn-sm" id="a-rechaza" style="flex:none;color:var(--error);border-color:#F3C4C4">Rechazar</button>`;
   } else if(s.estado==='en_espera_cliente'&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin())){
-    // Desde la espera también se puede cancelar/rechazar
     extra=`<button class="btn btn-g btn-sm" id="a-cancel" style="flex:none">Cancelar</button>
            <button class="btn btn-g btn-sm" id="a-rechaza" style="flex:none;color:var(--error);border-color:#F3C4C4">Rechazar</button>`;
   }
@@ -2847,8 +2960,10 @@ function pie(){
   $('#a2')?.addEventListener('click',()=>guardar(datosAsesor()));
   $('#a3')?.addEventListener('click',()=>guardar({...datosAsesor(),estado:'en_analisis'}));
   $('#a4')?.addEventListener('click',()=>guardar(datosAnalista()));
-  $('#a5')?.addEventListener('click',asignarYEnviar);
+  $('#a5')?.addEventListener('click',enviarALlenarPerfil);
   $('#a6')?.addEventListener('click',()=>guardar(datosAnalista()));
+  $('#a-perfil-g')?.addEventListener('click',()=>guardarPerfil(false));
+  $('#a-perfil-ok')?.addEventListener('click',()=>guardarPerfil(true));
   $('#a7')?.addEventListener('click',aprobar);
   $('#a8')?.addEventListener('click',denegar);
   $('#a9')?.addEventListener('click',async()=>{
@@ -2978,42 +3093,38 @@ function cerrarSolicitud(tipo){
     toast(esCancelar?'Solicitud cancelada':'Solicitud rechazada','k');
   });
 }
-/* Al enviar a verificar, el analista elige a quién se lo asigna.
-   Puede dejarlo libre para que lo tome el primero que esté disponible. */
-async function asignarYEnviar(){
-  const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
-  const {data:vers,error}=await sb.rpc('verificadores_disponibles');
-  bs.forEach(b=>b.disabled=false);
-  if(error){toast(traducir(error.message),'m');return;}
+/* El analista termina su análisis y manda la solicitud al asesor para que
+   transcriba el perfil al sistema. Ya no asigna verificador aquí. */
+async function enviarALlenarPerfil(){
+  if(!confirm('¿Enviar al asesor para que llene el perfil en el sistema?')) return;
+  await guardar({...datosAnalista(),estado:'llenar_perfil'});
+  toast('Enviada a llenar perfil','k');
+}
 
-  const lista=vers||[];
-  $('#asig-body').innerHTML=`
-    <div class="callout">Elegí quién va a hacer la visita. El número indica cuántas verificaciones tiene en curso.</div>
-    <div id="asig-lista">
-      ${lista.length?lista.map(v=>`
-        <button class="asig-op" data-v="${v.id}" data-n="${esc(v.nombre)}">
-          <div class="u-av">${esc((v.nombre||'?').charAt(0).toUpperCase())}</div>
-          <div class="u-i"><div class="u-n">${esc(v.nombre)}</div>
-            <div class="u-m">${v.activos} en curso</div></div>
-          <span class="tag ${v.activos===0?'ok':''}">${v.activos===0?'libre':v.activos+' activa'+(v.activos>1?'s':'')}</span>
-        </button>`).join('')
-      :'<p style="font-size:13.5px;color:var(--gris)">No hay verificadores activos. Creá uno en Usuarios.</p>'}
-      <button class="asig-op" data-v="" data-n="sin asignar">
-        <div class="u-av" style="background:var(--fondo);color:var(--gris)">?</div>
-        <div class="u-i"><div class="u-n">Dejar libre</div>
-          <div class="u-m">La toma el primer verificador disponible</div></div>
-      </button>
-    </div>`;
-  $('#asig').classList.add('on');
+/* El asesor transcribe el perfil, elige el tipo de desembolso y asigna verificador.
+   Al "completar", valida todo y pasa a por_verificar. */
+async function guardarPerfil(completar){
+  const cod=$('#pf-codigo')?.value.trim()||'';
+  const desemb=$('#pf-desemb')?.value||'';
+  const verId=$('#pf-verif')?.value||'';
+  const confirmado=$('#pf-confirmado')?.checked||false;
 
-  $$('.asig-op').forEach(b=>b.addEventListener('click',async()=>{
-    const vid=b.dataset.v||null;
-    $('#asig').classList.remove('on');
-    const campos={...datosAnalista(),estado:'por_verificar'};
-    if(vid) campos.verificador_id=vid;
-    await guardar(campos);
-    toast(vid?`Asignada a ${b.dataset.n}`:'Enviada a verificar','k');
-  }));
+  const campos={
+    perfil_sistema:{...(ACT.perfil_sistema||{}), codigo:cod, confirmado,
+      confirmado_por:confirmado?YO.nombre:null,
+      confirmado_en:confirmado?new Date().toISOString():null},
+    tipo_desembolso:desemb||null
+  };
+  if(verId) campos.verificador_id=verId;
+
+  if(!completar){ await guardar(campos); toast('Perfil guardado','k'); return; }
+
+  // Validaciones antes de enviar a verificar
+  if(!confirmado){ toast('Confirmá que transcribiste el perfil al sistema','m'); return; }
+  if(!desemb){ toast('Elegí el tipo de desembolso','m'); return; }
+  if(!verId){ toast('Asigná un verificador','m'); return; }
+  await guardar({...campos,estado:'por_verificar'});
+  toast('Perfil completo · enviada a verificar','k');
 }
 $('#asig-x')?.addEventListener('click',()=>$('#asig').classList.remove('on'));
 $('#asig-bg')?.addEventListener('click',()=>$('#asig').classList.remove('on'));
