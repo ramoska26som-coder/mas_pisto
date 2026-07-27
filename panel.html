@@ -144,6 +144,10 @@
   /* Color suave de fondo según el desenlace de la solicitud */
   .kcard.est-denegado{background:#FDF3F3;border-color:#F1C9C9}
   .kcard.est-denegado:hover{border-color:#E39A9A}
+  /* Rechazo automático: rojo más marcado y borde izquierdo para que salte a la vista */
+  .kcard.est-denegado-auto{background:#FBE2E2;border-color:#E08A8A;border-left:4px solid #C22B2B}
+  .kcard.est-denegado-auto:hover{border-color:#C22B2B}
+  .kcard.est-denegado-auto .kc-nom{color:#8E1B1B}
   .kcard.est-cancelado{background:#F5F6F8;border-color:#DDE1E7}
   .kcard.est-cancelado:hover{border-color:#C3CAD3}
   .kcard.est-aprobado,.kcard.est-desembolsado{background:#F1FAF4;border-color:#C4E7D2}
@@ -237,6 +241,13 @@
   /* Comprobantes de ingresos: filas de pago + panel de resultados */
   .ing-cli{font-family:'Poppins';font-weight:600;font-size:15px;color:var(--azul-tinta);
     margin:-4px 0 12px;padding-bottom:10px;border-bottom:1px solid var(--linea)}
+  /* Opciones tipo radio del formulario de nueva solicitud */
+  .ns-radios{display:flex;gap:8px;flex-wrap:wrap}
+  .ns-rad{display:flex;align-items:center;gap:6px;padding:8px 13px;border:1px solid var(--linea);
+    border-radius:10px;background:#fff;cursor:pointer;font-size:13.5px;transition:border-color .15s,background .15s}
+  .ns-rad:hover{border-color:var(--azul)}
+  .ns-rad input{width:auto;margin:0;accent-color:var(--azul)}
+  .ns-rad:has(input:checked){border-color:var(--azul);background:var(--cielo);font-weight:600;color:var(--azul-tinta)}
   .pf-prev{margin:11px 0 0;padding-left:26px;font-size:12.5px;color:var(--tinta);line-height:1.7}
   .pf-prev li{border-bottom:1px solid var(--linea);padding:3px 0;white-space:pre-line}
   .ing-wrap{display:grid;gap:0;border:1px solid var(--linea);border-radius:14px;overflow:hidden;background:#fff}
@@ -1210,7 +1221,9 @@ function pintarSolicitudes(){
 /* Clase de color de la tarjeta según desenlace / señales.
    Prioridad: cerradas (rojo/gris/verde) > en espera > referencias sin responder (morado). */
 function claseTarjeta(s){
-  if(s.estado==='denegado') return 'est-denegado';
+  if(s.estado==='denegado')
+    // El rechazo automático se marca con un rojo más fuerte para distinguirlo
+    return (s.resultado_analisis||{}).denegado_automaticamente ? 'est-denegado-auto' : 'est-denegado';
   if(s.estado==='cancelado') return 'est-cancelado';
   if(s.estado==='aprobado'||s.estado==='desembolsado') return 'est-'+s.estado;
   if(s.estado==='en_espera_cliente') return 'est-espera';
@@ -2012,10 +2025,23 @@ function modalUsuario(){
   });
 }
 
-/* ===== NUEVA SOLICITUD ===== */
+/* ===== NUEVA SOLICITUD =====
+   Para "nuevo" se pide exactamente lo mismo que el formulario del cliente.
+   Para reingreso y refinanciamiento basta el nombre y el monto. */
+const NS_PARENTESCOS=["Madre","Padre","Hermano(a)","Hijo(a)","Abuelo(a)","Cuñado(a)","Primo(a)","Tío(a)","Sobrino(a)"];
+const NS_PARENT_REF=[...NS_PARENTESCOS,"Amigo(a)"];
+const NS_CIUDADES=["San Pedro Sula","Choloma","Villanueva"];
+const NS_CIUDADES_EMP=[...NS_CIUDADES,"Otra"];
+const NS_CANALES=["Facebook","Instagram","Conocido","Amigo","Familiar"];
+const NS_CANAL_PERSONA=["Conocido","Amigo","Familiar"];
+const opt=(arr,sel='')=>arr.map(o=>`<option ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
+const radios=(name,arr)=>arr.map(o=>
+  `<label class="ns-rad"><input type="radio" name="${name}" value="${esc(o)}"> <span>${esc(o)}</span></label>`).join('');
+
 $('#btn-nueva').addEventListener('click',()=>{
   ACT=null;
-  $('#m-t').textContent='Nueva solicitud';$('#m-f').textContent='Registrada por vos';
+  $('#m-t').textContent='Nueva solicitud';
+  $('#m-f').textContent='Registrada por vos';
   $('#m-body').innerHTML=`
   <div class="sec"><div class="sec-h"><h4>Tipo de operación</h4></div>
     <div class="tipo-g" id="ns-tipo">
@@ -2023,80 +2049,242 @@ $('#btn-nueva').addEventListener('click',()=>{
       <button type="button" data-t="reingreso">Reingreso</button>
       <button type="button" data-t="refinanciamiento">Refinanciamiento</button>
     </div>
-    <div class="fld hide" id="ns-fi-wrap" style="margin-top:13px">
-      <label>Fecha de ingreso como cliente<small>Define la antigüedad para el límite</small></label>
-      <input type="date" id="ns-fi"></div>
     <div class="callout" id="ns-nota" style="margin-top:13px;margin-bottom:0">
       Un <b>nuevo ingreso</b> aplica al ${P.pctNuevo}% del ingreso mensual, sin importar antigüedad.</div>
   </div>
-  <div class="sec"><div class="sec-h"><h4>Datos del cliente</h4></div>
-    <div class="fld"><label>Nombre completo</label><input id="ns-nom"></div>
+
+  <!-- Siempre visible -->
+  <div class="sec"><div class="sec-h"><h4>Datos básicos</h4></div>
+    <div class="fld"><label>Nombre completo <span style="color:var(--error)">*</span></label>
+      <input id="ns-nom" placeholder="Nombres y apellidos"></div>
     <div class="g2">
-      <div class="fld"><label>Cédula</label><input id="ns-ced" placeholder="0000-0000-00000"></div>
-      <div class="fld"><label>Teléfono</label><input id="ns-tel" placeholder="0000-0000"></div>
+      <div class="fld"><label>Monto que solicita (L) <span style="color:var(--error)">*</span></label>
+        <input id="ns-monto" inputmode="numeric" placeholder="Ej. 15000"></div>
+      <div class="fld" id="ns-fi-wrap"><label>Cliente desde<small>Define la antigüedad para el límite</small></label>
+        <input type="date" id="ns-fi"></div>
     </div>
-    <div class="g2">
-      <div class="fld"><label>Monto que solicita (L)</label><input id="ns-monto" inputmode="numeric"></div>
-      <div class="fld"><label>Rubro de la empresa</label><select id="ns-rubro">
-        <option value="">Selecciona…</option>
-        ${(RUBROS||[]).map(r=>`<option>${esc(r.nombre)}</option>`).join('')}</select></div>
-    </div>
-    <div class="fld"><label>Empresa</label><input id="ns-emp"></div>
-    <div class="fld"><label>Dirección de la casa</label><textarea id="ns-dcasa"></textarea></div>
-    <div class="fld"><label>Dirección del trabajo</label><textarea id="ns-dtrab"></textarea></div>
     <div class="callout r hide" id="ns-err" style="margin-bottom:0"></div>
   </div>
-  <div class="sec"><div class="sec-h"><h4>Referencias familiares</h4></div>
-    <div class="g2">
-      <div class="fld"><label>Referencia 1</label><input id="ns-r1n" placeholder="Nombre"></div>
-      <div class="fld"><label>Teléfono</label><input id="ns-r1t" placeholder="0000-0000"></div>
+
+  <!-- Solo para NUEVO: mismo contenido que el formulario del cliente -->
+  <div id="ns-completo">
+    <div class="sec"><div class="sec-h"><h4>Datos personales</h4></div>
+      <div class="g2">
+        <div class="fld"><label>Cédula</label><input id="ns-ced" placeholder="0000-0000-00000"></div>
+        <div class="fld"><label>Fecha de nacimiento</label><input type="date" id="ns-nac"></div>
+      </div>
+      <div class="g2">
+        <div class="fld"><label>Teléfono</label><input id="ns-tel" placeholder="0000-0000"></div>
+        <div class="fld"><label>¿Para qué solicita el préstamo?</label><input id="ns-destino" placeholder="Ej. capital de trabajo"></div>
+      </div>
     </div>
-    <div class="g2">
-      <div class="fld"><label>Referencia 2</label><input id="ns-r2n" placeholder="Nombre"></div>
-      <div class="fld"><label>Teléfono</label><input id="ns-r2t" placeholder="0000-0000"></div>
+
+    <div class="sec"><div class="sec-h"><h4>Trabajo e ingresos</h4></div>
+      <div class="g2">
+        <div class="fld"><label>Empresa</label><input id="ns-emp"></div>
+        <div class="fld"><label>Puesto</label><input id="ns-puesto"></div>
+      </div>
+      <div class="g2">
+        <div class="fld"><label>Rubro</label>
+          <select id="ns-rubro"><option value="">Selecciona…</option>
+            ${(RUBROS||[]).map(r=>`<option>${esc(r.nombre)}</option>`).join('')}<option>Otro</option></select></div>
+        <div class="fld hide" id="ns-rubro-otro-w"><label>¿Cuál rubro?</label><input id="ns-rubro-otro"></div>
+      </div>
+      <div class="fld"><label>Dirección de la empresa</label><textarea id="ns-dtrab"></textarea></div>
+      <div class="g2">
+        <div class="fld"><label>Ciudad de la empresa</label>
+          <select id="ns-ciu-emp"><option value="">Selecciona…</option>${opt(NS_CIUDADES_EMP)}</select></div>
+        <div class="fld hide" id="ns-ciu-emp-otra-w"><label>¿Cuál ciudad?</label><input id="ns-ciu-emp-otra"></div>
+      </div>
+      <div class="g2">
+        <div class="fld"><label>Antigüedad · años</label><input type="number" min="0" id="ns-ant-a" value="0"></div>
+        <div class="fld"><label>Antigüedad · meses</label><input type="number" min="0" max="11" id="ns-ant-m" value="0"></div>
+      </div>
+      <div class="g2">
+        <div class="fld"><label>Salario mensual (L)</label><input id="ns-sal" inputmode="numeric"></div>
+        <div class="fld"><label>¿Tiene prestaciones?</label>
+          <div class="ns-radios">${radios('ns_prest',['Sí','No'])}</div></div>
+      </div>
+      <div class="fld"><label>¿Tiene otros ingresos?</label>
+        <div class="ns-radios">${radios('ns_otros',['Sí','No'])}</div></div>
+      <div class="fld hide" id="ns-otros-w"><label>Detalle de otros ingresos</label>
+        <input id="ns-otros-det" placeholder="Ej. alquiler: L2000/mes"></div>
+      <div class="fld"><label>Forma de pago</label>
+        <div class="ns-radios">${radios('ns_metodo',['Transferencia','Depósito'])}</div></div>
+      <div class="fld"><label>Frecuencia de pago</label>
+        <div class="ns-radios">${radios('ns_frec',['Diario','Semanal','Quincenal','Mensual'])}</div></div>
+      <div class="fld hide" id="ns-frec-det-w"><label id="ns-frec-det-l">Detalle</label>
+        <input id="ns-frec-det" placeholder="Ej. viernes / 15 y 30 / día 30"></div>
+    </div>
+
+    <div class="sec"><div class="sec-h"><h4>Vivienda</h4></div>
+      <div class="fld"><label>Dirección de la casa</label><textarea id="ns-dcasa"></textarea></div>
+      <div class="g2">
+        <div class="fld"><label>Ciudad</label>
+          <select id="ns-ciu-viv"><option value="">Selecciona…</option>${opt(NS_CIUDADES)}</select></div>
+        <div class="fld"><label>Tipo de vivienda</label>
+          <select id="ns-tipo-viv"><option value="">Selecciona…</option>${opt(['Propia','Familiar','Alquilada'])}</select></div>
+      </div>
+      <div class="fld hide" id="ns-alq-w"><label>¿Qué tipo de alquiler?</label>
+        <div class="ns-radios">${radios('ns_alq',['Casa','Apartamento'])}</div></div>
+      <div class="g2">
+        <div class="fld"><label>Tiempo ahí · años</label><input type="number" min="0" id="ns-viv-a" value="0"></div>
+        <div class="fld"><label>Tiempo ahí · meses</label><input type="number" min="0" max="11" id="ns-viv-m" value="0"></div>
+      </div>
+    </div>
+
+    <div class="sec"><div class="sec-h"><h4>¿Cómo supo de Más Pisto?</h4></div>
+      <div class="fld"><label>Canal</label>
+        <select id="ns-canal"><option value="">Selecciona…</option>${opt(NS_CANALES)}</select></div>
+      <div id="ns-canal-p" class="hide">
+        <div class="g2">
+          <div class="fld"><label>Nombre de quien lo refirió</label><input id="ns-canal-nom"></div>
+          <div class="fld"><label>Teléfono</label><input id="ns-canal-tel" placeholder="0000-0000"></div>
+        </div>
+        <div class="fld"><label>Parentesco</label>
+          <select id="ns-canal-par"><option value="">Selecciona…</option>${opt(NS_PARENT_REF)}</select></div>
+      </div>
+    </div>
+
+    <div class="sec"><div class="sec-h"><h4>Referencias familiares</h4></div>
+      <div class="callout" style="margin-bottom:12px">Deben ser <b>familiares</b> y poder contestar la llamada. Escribí el <b>nombre completo</b>.</div>
+      <div class="g2">
+        <div class="fld"><label>Referencia 1 · Nombre completo</label><input id="ns-r1n" placeholder="Nombres y apellidos"></div>
+        <div class="fld"><label>Teléfono</label><input id="ns-r1t" placeholder="0000-0000"></div>
+      </div>
+      <div class="fld"><label>Referencia 1 · Parentesco</label>
+        <select id="ns-r1p"><option value="">Selecciona…</option>${opt(NS_PARENTESCOS)}</select></div>
+      <div class="g2">
+        <div class="fld"><label>Referencia 2 · Nombre completo</label><input id="ns-r2n" placeholder="Nombres y apellidos"></div>
+        <div class="fld"><label>Teléfono</label><input id="ns-r2t" placeholder="0000-0000"></div>
+      </div>
+      <div class="fld"><label>Referencia 2 · Parentesco</label>
+        <select id="ns-r2p"><option value="">Selecciona…</option>${opt(NS_PARENTESCOS)}</select></div>
     </div>
   </div>`;
+
   $('#m-pie').innerHTML=`<button class="btn btn-g" id="ns-x">Cancelar</button>
     <button class="btn btn-b" id="ns-ok">Crear solicitud</button>`;
   $('#modal').classList.add('on');
   pushCapa(cerrarModal);
+  nsConectar();
+});
 
-  let tipo='nuevo';
+let NS_TIPO='nuevo';
+function nsConectar(){
+  NS_TIPO='nuevo';
+  const aplicarTipo=()=>{
+    const esNuevo=NS_TIPO==='nuevo';
+    $('#ns-completo').classList.toggle('hide',!esNuevo);
+    $('#ns-fi-wrap').classList.toggle('hide',esNuevo);
+    $('#ns-nota').innerHTML = esNuevo
+      ? `Un <b>nuevo ingreso</b> aplica al ${P.pctNuevo}% del ingreso mensual, sin importar antigüedad.`
+      : `Para un <b>${NS_TIPO}</b> basta el nombre y el monto. El límite sale de la antigüedad como cliente: ≤${P.mesMedio}m → ${P.pctNuevo}%, >${P.mesMedio}m → ${P.pctMedio}%, ≥${P.mesAlto}m → ${P.pctAlto}%.`;
+  };
   $$('#ns-tipo button').forEach(b=>b.addEventListener('click',()=>{
     $$('#ns-tipo button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');tipo=b.dataset.t;
-    $('#ns-fi-wrap').classList.toggle('hide',tipo==='nuevo');
-    $('#ns-nota').innerHTML = tipo==='nuevo'
-      ? `Un <b>nuevo ingreso</b> aplica al ${P.pctNuevo}% del ingreso mensual, sin importar antigüedad.`
-      : `El límite sale de la <b>antigüedad como cliente</b>: ≤${P.mesMedio}m → ${P.pctNuevo}%, >${P.mesMedio}m → ${P.pctMedio}%, ≥${P.mesAlto}m → ${P.pctAlto}%.`;
+    b.classList.add('on'); NS_TIPO=b.dataset.t; aplicarTipo();
   }));
+  aplicarTipo();
+
+  // Campos que aparecen según la respuesta, igual que en el formulario del cliente
+  $('#ns-rubro').addEventListener('change',e=>
+    $('#ns-rubro-otro-w').classList.toggle('hide',e.target.value!=='Otro'));
+  $('#ns-ciu-emp').addEventListener('change',e=>
+    $('#ns-ciu-emp-otra-w').classList.toggle('hide',e.target.value!=='Otra'));
+  $('#ns-tipo-viv').addEventListener('change',e=>
+    $('#ns-alq-w').classList.toggle('hide',e.target.value!=='Alquilada'));
+  $('#ns-canal').addEventListener('change',e=>
+    $('#ns-canal-p').classList.toggle('hide',!NS_CANAL_PERSONA.includes(e.target.value)));
+  $$('input[name="ns_otros"]').forEach(r=>r.addEventListener('change',()=>
+    $('#ns-otros-w').classList.toggle('hide',valRadio('ns_otros')!=='Sí')));
+  $$('input[name="ns_frec"]').forEach(r=>r.addEventListener('change',()=>{
+    const f=valRadio('ns_frec');
+    $('#ns-frec-det-w').classList.toggle('hide',f===''||f==='Diario');
+    $('#ns-frec-det-l').textContent = f==='Semanal'?'¿Qué día de la semana?'
+      : f==='Quincenal'?'¿Qué días? (ej. 15 y 30)' : f==='Mensual'?'¿Qué día del mes?' : 'Detalle';
+  }));
+
   $('#ns-x').addEventListener('click',()=>cerrarPorBoton(cerrarModal));
-  $('#ns-ok').addEventListener('click',async()=>{
-    const err=m=>{$('#ns-err').textContent=m;$('#ns-err').classList.remove('hide');};
-    $('#ns-err').classList.add('hide');
-    const nom=$('#ns-nom').value.trim();
-    if(!nom) return err('Escribí el nombre del cliente.');
-    if(tipo!=='nuevo'&&!$('#ns-fi').value) return err(`Un ${tipo} necesita la fecha de ingreso del cliente.`);
+  $('#ns-ok').addEventListener('click',nsCrear);
+}
+const valRadio=name=>document.querySelector(`input[name="${name}"]:checked`)?.value||'';
+const numDe=id=>parseFloat(String($(id)?.value||'').replace(/[^\d.]/g,''))||0;
+const txtDe=id=>($(id)?.value||'').trim();
+
+async function nsCrear(){
+  const err=m=>{$('#ns-err').textContent=m;$('#ns-err').classList.remove('hide');};
+  $('#ns-err').classList.add('hide');
+  const nom=txtDe('#ns-nom'), monto=numDe('#ns-monto');
+  if(!nom) return err('Escribí el nombre del cliente.');
+  if(monto<=0) return err('Escribí el monto que solicita.');
+
+  // Se arma igual que lo manda el formulario del cliente, para que el panel
+  // y la copia a Excel encuentren los mismos campos.
+  const d={nombre:nom, monto:monto, consentimiento:true, origen_registro:'asesor'};
+
+  if(NS_TIPO==='nuevo'){
+    const rubro = txtDe('#ns-rubro')==='Otro' && txtDe('#ns-rubro-otro')
+      ? txtDe('#ns-rubro-otro')+' (otro)' : txtDe('#ns-rubro');
+    const ciuEmp = txtDe('#ns-ciu-emp')==='Otra' && txtDe('#ns-ciu-emp-otra')
+      ? txtDe('#ns-ciu-emp-otra') : txtDe('#ns-ciu-emp');
+    const frec=valRadio('ns_frec'), det=txtDe('#ns-frec-det');
+    const antA=parseInt($('#ns-ant-a').value)||0, antM=parseInt($('#ns-ant-m').value)||0;
+    const vivA=parseInt($('#ns-viv-a').value)||0, vivM=parseInt($('#ns-viv-m').value)||0;
     const refs=[
-      {nombre:$('#ns-r1n').value.trim(),telefono:$('#ns-r1t').value.trim(),parentesco:''},
-      {nombre:$('#ns-r2n').value.trim(),telefono:$('#ns-r2t').value.trim(),parentesco:''}
+      {nombre:txtDe('#ns-r1n'),telefono:txtDe('#ns-r1t'),parentesco:txtDe('#ns-r1p')},
+      {nombre:txtDe('#ns-r2n'),telefono:txtDe('#ns-r2t'),parentesco:txtDe('#ns-r2p')}
     ].filter(r=>r.nombre&&r.telefono);
-    const b=$('#ns-ok');b.disabled=true;b.innerHTML='<span class="sp"></span>Creando';
-    const {error}=await sb.from('solicitudes').insert({
-      origen:'asesor',estado:'en_revision_asesor',asesor_id:YO.id,
-      tipo_operacion:tipo,tipo_credito:'general',
-      fecha_ingreso_cliente:tipo==='nuevo'?null:$('#ns-fi').value,
-      datos_cliente:{nombre:nom,cedula:$('#ns-ced').value.trim(),telefono:$('#ns-tel').value.trim(),
-        monto:parseFloat($('#ns-monto').value)||0,empresa:$('#ns-emp').value.trim(),
-        rubro:$('#ns-rubro').value,direccion:$('#ns-dcasa').value.trim(),
-        direccion_casa:$('#ns-dcasa').value.trim(),dir_empresa:$('#ns-dtrab').value.trim(),
-        direccion_trabajo:$('#ns-dtrab').value.trim(),consentimiento:true,referencias:refs}
+    const canal=txtDe('#ns-canal');
+    const pidePersona=NS_CANAL_PERSONA.includes(canal);
+
+    Object.assign(d,{
+      cedula:txtDe('#ns-ced'), nacimiento:txtDe('#ns-nac')||null, telefono:txtDe('#ns-tel'),
+      destino:txtDe('#ns-destino'),
+      empresa:txtDe('#ns-emp'), puesto:txtDe('#ns-puesto'), cargo:txtDe('#ns-puesto'),
+      rubro:rubro, dir_empresa:txtDe('#ns-dtrab'), direccion_trabajo:txtDe('#ns-dtrab'),
+      ciudad_empresa:ciuEmp,
+      antiguedad_anios:antA, antiguedad_meses:antM,
+      antiguedad:`${antA} años ${antM} meses`,
+      salario:numDe('#ns-sal'),
+      prestaciones:valRadio('ns_prest'),
+      tiene_otros:valRadio('ns_otros'),
+      otros_ingresos: valRadio('ns_otros')==='Sí' ? (txtDe('#ns-otros-det')||'Sí') : 'No',
+      metodo_pago:valRadio('ns_metodo'),
+      frecuencia_pago:frec,
+      dias_pago: frec==='Semanal'?`Semanal (${det})`
+               : frec==='Quincenal'?`Quincenal (día ${det})`
+               : frec==='Mensual'?`Mensual (día ${det})` : (frec||''),
+      direccion:txtDe('#ns-dcasa'), direccion_casa:txtDe('#ns-dcasa'),
+      ciudad_vivienda:txtDe('#ns-ciu-viv'),
+      tipo_vivienda:txtDe('#ns-tipo-viv'), tipo_alquiler:valRadio('ns_alq'),
+      vivienda_anios:vivA, vivienda_meses:vivM,
+      tiempo_vivienda:`${vivA} años ${vivM} meses`,
+      canal:canal,
+      canal_nombre:pidePersona?txtDe('#ns-canal-nom'):'',
+      canal_tel:pidePersona?txtDe('#ns-canal-tel'):'',
+      canal_parentesco:pidePersona?txtDe('#ns-canal-par'):'',
+      refiere:pidePersona?txtDe('#ns-canal-nom'):'',
+      refiere_tel:pidePersona?txtDe('#ns-canal-tel'):'',
+      refiere_parentesco:pidePersona?txtDe('#ns-canal-par'):'',
+      canal_detalle: pidePersona
+        ? `${canal}: ${txtDe('#ns-canal-nom')} ${txtDe('#ns-canal-tel')?'('+txtDe('#ns-canal-tel')+')':''}`.trim()
+        : canal,
+      referencias:refs
     });
-    b.disabled=false;b.textContent='Crear solicitud';
-    if(error) return err(traducir(error.message));
-    toast('Solicitud creada','k');cerrarModalNav();cargar();
+  }
+
+  const b=$('#ns-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Creando';
+  const {error}=await sb.from('solicitudes').insert({
+    origen:'asesor', estado:'en_revision_asesor', asesor_id:YO.id,
+    tipo_operacion:NS_TIPO, tipo_credito:'general',
+    fecha_ingreso_cliente: NS_TIPO==='nuevo' ? null : (txtDe('#ns-fi')||null),
+    datos_cliente:d
   });
-});
+  b.disabled=false; b.textContent='Crear solicitud';
+  if(error) return err(traducir(error.message));
+  toast('Solicitud creada','k'); cerrarModalNav(); cargar();
+}
 
 /* ===== DETALLE ===== */
 function abrir(id){
