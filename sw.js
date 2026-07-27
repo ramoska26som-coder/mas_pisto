@@ -2,7 +2,7 @@
    Estrategia: RED PRIMERO. Siempre intenta traer la versión más nueva
    (así los cambios subidos a GitHub Pages llegan de inmediato) y solo
    usa la copia guardada si no hay internet. */
-const CACHE = 'mp-v1.1';
+const CACHE = 'mp-v1.2';
 const SHELL = ['./panel.html', './verificador.html', './icono-192.png', './icono-512.png',
                './icono-v-192.png', './icono-v-512.png'];
 
