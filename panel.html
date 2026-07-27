@@ -872,8 +872,14 @@ function ir(v){
   $('#btn-nueva').classList.toggle('hide',v!=='solicitudes'||!(rol('asesor')||esAdmin()));
   ({solicitudes:pintarSolicitudes,historial:pintarHistorial,metricas:pintarMetricas,parametros:pintarParametros,usuarios:pintarUsuarios})[v]();
 }
-const abrirSide=()=>{$('#side').classList.remove('hide');if(innerWidth<=820)$('#scrim').classList.add('on');};
-const cerrarSide=()=>{$('#side').classList.add('hide');$('#scrim').classList.remove('on');};
+const abrirSide=()=>{$('#side').classList.remove('hide');
+  if(innerWidth<=820){$('#scrim').classList.add('on');pushCapa(cerrarSideInterno);}};
+const cerrarSideInterno=()=>{$('#side').classList.add('hide');$('#scrim').classList.remove('on');};
+const cerrarSide=()=>{
+  // Si estaba como overlay (con capa registrada), sincroniza el historial.
+  if(CAPAS.lastIndexOf(cerrarSideInterno)>=0) cerrarPorBoton(cerrarSideInterno);
+  else cerrarSideInterno();
+};
 $('#burger').addEventListener('click',()=>$('#side').classList.contains('hide')?abrirSide():cerrarSide());
 $('#scrim').addEventListener('click',cerrarSide);
 if(innerWidth<=820) cerrarSide();
@@ -1831,9 +1837,9 @@ function abrirGestionCausas(){
     <div class="callout">Son los motivos que aparecen al cerrar una solicitud. La categoría agrupa las causas en el dashboard. Se guarda al instante.</div>
     <div id="causas-editor-modal"></div>
     <button class="btn btn-b" id="gc-x" style="width:100%;margin-top:8px">Listo</button>`;
-  $('#asig').classList.add('on');
+  abrirAsig();
   renderCausasEditor($('#causas-editor-modal'));
-  $('#gc-x').addEventListener('click',()=>{ $('#asig').classList.remove('on'); if(VISTA==='metricas') pintarMetricas(); });
+  $('#gc-x').addEventListener('click',()=>cerrarAsig(()=>{ if(VISTA==='metricas') pintarMetricas(); }));
 }
 
 /* Editor de días feriados. Los tiempos de gestión no cuentan estos días. */
@@ -1945,8 +1951,9 @@ function modalUsuario(){
   $('#m-pie').innerHTML=`<button class="btn btn-g" id="nu-x">Cancelar</button>
     <button class="btn btn-b" id="nu-ok">Crear usuario</button>`;
   $('#modal').classList.add('on');
+  pushCapa(cerrarModal);
   $$('#nu-extra button').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
-  $('#nu-x').addEventListener('click',cerrarModal);
+  $('#nu-x').addEventListener('click',()=>cerrarPorBoton(cerrarModal));
   $('#nu-ok').addEventListener('click',async()=>{
     const err=m=>{$('#nu-err').textContent=m;$('#nu-err').classList.remove('hide');};
     $('#nu-err').classList.add('hide');
@@ -1963,7 +1970,7 @@ function modalUsuario(){
     b.disabled=false;b.textContent='Crear usuario';
     if(error) return err(error.message);
     if(!r?.ok) return err(r?.error||'No se pudo crear.');
-    toast('Usuario creado','k');cerrarModal();pintarUsuarios();
+    toast('Usuario creado','k');cerrarModalNav();pintarUsuarios();
   });
 }
 
@@ -2014,6 +2021,7 @@ $('#btn-nueva').addEventListener('click',()=>{
   $('#m-pie').innerHTML=`<button class="btn btn-g" id="ns-x">Cancelar</button>
     <button class="btn btn-b" id="ns-ok">Crear solicitud</button>`;
   $('#modal').classList.add('on');
+  pushCapa(cerrarModal);
 
   let tipo='nuevo';
   $$('#ns-tipo button').forEach(b=>b.addEventListener('click',()=>{
@@ -2024,7 +2032,7 @@ $('#btn-nueva').addEventListener('click',()=>{
       ? `Un <b>nuevo ingreso</b> aplica al ${P.pctNuevo}% del ingreso mensual, sin importar antigüedad.`
       : `El límite sale de la <b>antigüedad como cliente</b>: ≤${P.mesMedio}m → ${P.pctNuevo}%, >${P.mesMedio}m → ${P.pctMedio}%, ≥${P.mesAlto}m → ${P.pctAlto}%.`;
   }));
-  $('#ns-x').addEventListener('click',cerrarModal);
+  $('#ns-x').addEventListener('click',()=>cerrarPorBoton(cerrarModal));
   $('#ns-ok').addEventListener('click',async()=>{
     const err=m=>{$('#ns-err').textContent=m;$('#ns-err').classList.remove('hide');};
     $('#ns-err').classList.add('hide');
@@ -2048,7 +2056,7 @@ $('#btn-nueva').addEventListener('click',()=>{
     });
     b.disabled=false;b.textContent='Crear solicitud';
     if(error) return err(traducir(error.message));
-    toast('Solicitud creada','k');cerrarModal();cargar();
+    toast('Solicitud creada','k');cerrarModalNav();cargar();
   });
 });
 
@@ -2060,11 +2068,52 @@ function abrir(id){
   $('#m-t').textContent=nombreDe(d);
   $('#m-f').textContent=`${ACT.folio} · ${TIPO_L[ACT.tipo_operacion]}`;
   $('#modal').classList.add('on');
+  pushCapa(cerrarModal);   // el botón "atrás" del cel cerrará el detalle
   detalle();
 }
 function cerrarModal(){$('#modal').classList.remove('on');ACT=null;}
-$('#m-cerrar').addEventListener('click',cerrarModal);
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classList.contains('on'))cerrarModal();});
+/* Cierra el detalle de forma programática (tras una acción) consumiendo su
+   entrada del historial, para que la pila del botón "atrás" quede sincronizada. */
+function cerrarModalNav(){ cerrarPorBoton(cerrarModal); }
+$('#m-cerrar').addEventListener('click',()=>cerrarPorBoton(cerrarModal));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classList.contains('on'))cerrarPorBoton(cerrarModal);});
+
+/* ===== Botón "atrás" del móvil / navegador =====
+   Cada capa que se abre (detalle, modales, menú) registra su forma de cerrarse.
+   Al pulsar "atrás" se cierra solo la capa de encima, sin salir de la app. */
+const CAPAS=[];
+function pushCapa(cerrar){
+  CAPAS.push(cerrar);
+  history.pushState({capa:CAPAS.length},'');
+}
+/* Cierra una capa desde un botón (X, Volver, fondo). Consume su entrada del
+   historial. La bandera evita que el popstate resultante cierre otra capa. */
+let _cerrandoProg=false;
+function cerrarPorBoton(fn){
+  const i=CAPAS.lastIndexOf(fn);
+  if(i>=0) CAPAS.splice(i,1);
+  try{ fn&&fn(); }catch(e){}
+  if(i>=0){ _cerrandoProg=true; history.back(); }
+}
+window.addEventListener('popstate',()=>{
+  // Si el retroceso lo provocamos nosotros al cerrar por botón, no cerramos de más.
+  if(_cerrandoProg){ _cerrandoProg=false; return; }
+  // "Atrás" del usuario: cerramos la capa de encima, sin salir de la app.
+  const cerrar=CAPAS.pop();
+  if(cerrar){ try{ cerrar(); }catch(e){} }
+});
+
+/* El modal secundario (#asig) se abre encima del detalle: también registra capa. */
+function abrirAsig(){
+  $('#asig').classList.add('on');
+  pushCapa(cerrarAsigInterno);
+}
+function cerrarAsigInterno(){ $('#asig').classList.remove('on'); if(_asigLuego){const f=_asigLuego;_asigLuego=null;f();} }
+let _asigLuego=null;
+/* Cierre desde un botón del modal (X, Volver, fondo, o tras completar la acción).
+   'luego' es lógica opcional a correr al cerrar (p.ej. refrescar métricas). */
+function cerrarAsig(luego){ _asigLuego=luego||null; cerrarPorBoton(cerrarAsigInterno); }
+
 
 function detalle(){
   const s=ACT,d=s.datos_cliente||{};
@@ -2563,8 +2612,8 @@ function abrirRegistrarIntento(){
       <button class="btn btn-g" id="in-x" style="flex:1">Volver</button>
       <button class="btn btn-b" id="in-ok" style="flex:1">Registrar</button>
     </div>`;
-  $('#asig').classList.add('on');
-  $('#in-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  abrirAsig();
+  $('#in-x').addEventListener('click',()=>cerrarAsig());
   $('#in-ok').addEventListener('click',async()=>{
     const ref=$('#in-ref').value, res=$('#in-res').value, nota=$('#in-nota').value.trim();
     if(!ref){ $('#in-err').textContent='Elegí una referencia.'; $('#in-err').classList.remove('hide'); return; }
@@ -2573,7 +2622,7 @@ function abrirRegistrarIntento(){
       {p_id:ACT.id,p_referencia:ref,p_resultado:res,p_nota:nota});
     if(error){ b.disabled=false; b.textContent='Registrar';
       $('#in-err').textContent=traducir(error.message); $('#in-err').classList.remove('hide'); return; }
-    $('#asig').classList.remove('on');
+    cerrarAsig();
     toast('Intento registrado','k');
     await cargar(); ACT=SOLS.find(s=>s.id===ACT.id)||ACT; detalle();
   });
@@ -2996,8 +3045,8 @@ function abrirPonerEnEspera(){
       <button class="btn btn-g" id="pe-x" style="flex:1">Volver</button>
       <button class="btn btn-b" id="pe-ok" style="flex:1">Poner en espera</button>
     </div>`;
-  $('#asig').classList.add('on');
-  $('#pe-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  abrirAsig();
+  $('#pe-x').addEventListener('click',()=>cerrarAsig());
   $('#pe-ok').addEventListener('click',async()=>{
     const m=$('#pe-motivo').value;
     if(!m){ $('#pe-err').textContent='Elegí un motivo.'; $('#pe-err').classList.remove('hide'); return; }
@@ -3008,9 +3057,9 @@ function abrirPonerEnEspera(){
     if(error){ b.disabled=false; b.textContent='Poner en espera';
       $('#pe-err').textContent=traducir(error.message); $('#pe-err').classList.remove('hide'); return; }
     await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`En espera por cliente: ${texto}`});
-    $('#asig').classList.remove('on');
+    cerrarAsig();
     toast('Solicitud en espera','k');
-    await cargar(); cerrarModal();
+    await cargar(); cerrarModalNav();
   });
 }
 /* Reabrir un rechazo automático (analista o admin) */
@@ -3027,8 +3076,8 @@ function abrirReabrir(){
       <button class="btn btn-g" id="rb-x" style="flex:1">Volver</button>
       <button class="btn btn-b" id="rb-ok" style="flex:1">Reabrir</button>
     </div>`;
-  $('#asig').classList.add('on');
-  $('#rb-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  abrirAsig();
+  $('#rb-x').addEventListener('click',()=>cerrarAsig());
   $('#rb-ok').addEventListener('click',async()=>{
     const m=$('#rb-motivo').value.trim();
     if(!m){ $('#rb-err').textContent='Escribí el motivo.'; $('#rb-err').classList.remove('hide'); return; }
@@ -3037,9 +3086,9 @@ function abrirReabrir(){
     if(error){ b.disabled=false; b.textContent='Reabrir';
       $('#rb-err').textContent=traducir(error.message); $('#rb-err').classList.remove('hide'); return; }
     await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`Solicitud reabierta tras rechazo automático: ${m}`});
-    $('#asig').classList.remove('on');
+    cerrarAsig();
     toast('Solicitud reabierta','k');
-    await cargar(); cerrarModal();
+    await cargar(); cerrarModalNav();
   });
 }
 
@@ -3050,7 +3099,7 @@ async function reanudar(){
   if(error){ bs.forEach(b=>b.disabled=false); toast(traducir(error.message),'m'); return; }
   await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:'Solicitud reanudada.'});
   toast('Solicitud reanudada','k');
-  await cargar(); cerrarModal();
+  await cargar(); cerrarModalNav();
 }
 
 /* Cerrar una solicitud antes de tiempo: cancelada (el cliente desiste) o
@@ -3078,15 +3127,15 @@ function cerrarSolicitud(tipo){
         ${esCancelar?'Cancelar solicitud':'Rechazar solicitud'}</button>
     </div>`;
   $('.asig-h h3').textContent = esCancelar?'Cancelar solicitud':'Rechazar solicitud';
-  $('#asig').classList.add('on');
+  abrirAsig();
 
-  $('#cs-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  $('#cs-x').addEventListener('click',()=>cerrarAsig());
   $('#cs-ok').addEventListener('click',async()=>{
     const m=$('#cs-motivo').value;
     if(!m){ $('#cs-err').textContent='Elegí un motivo.'; $('#cs-err').classList.remove('hide'); return; }
     const nota=$('#cs-nota').value.trim();
     const texto=nota?`${m} — ${nota}`:m;
-    $('#asig').classList.remove('on');
+    cerrarAsig();
     await guardar({estado:tipo,
       resultado_analisis:{...ACT.resultado_analisis,
         motivo_denegacion:texto, cerrado_por:YO.nombre, cerrado_en:new Date().toISOString()}});
@@ -3126,8 +3175,8 @@ async function guardarPerfil(completar){
   await guardar({...campos,estado:'por_verificar'});
   toast('Perfil completo · enviada a verificar','k');
 }
-$('#asig-x')?.addEventListener('click',()=>$('#asig').classList.remove('on'));
-$('#asig-bg')?.addEventListener('click',()=>$('#asig').classList.remove('on'));
+$('#asig-x')?.addEventListener('click',()=>cerrarAsig());
+$('#asig-bg')?.addEventListener('click',()=>cerrarAsig());
 
 function datosAsesor(){
   const pagos=$$('#pagos .pago-row').map(r=>({
@@ -3188,13 +3237,13 @@ function abrirEditarNombre(){
       <button class="btn btn-g" id="en-x" style="flex:1">Volver</button>
       <button class="btn btn-b" id="en-ok" style="flex:1">Guardar nombre</button>
     </div>`;
-  $('#asig').classList.add('on');
-  $('#en-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  abrirAsig();
+  $('#en-x').addEventListener('click',()=>cerrarAsig());
   $('#en-ok').addEventListener('click',async()=>{
     const nom=$('#en-nom').value.trim();
     if(!nom){ $('#en-err').textContent='Escribí el nombre.'; $('#en-err').classList.remove('hide'); return; }
     const antes=nombreDe(d);
-    if(nom===antes){ $('#asig').classList.remove('on'); return; }
+    if(nom===antes){ cerrarAsig(); return; }
     const b=$('#en-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Guardando';
     // Reconstruyo datos_cliente preservando todo lo demás; unifico en el campo 'nombre'
     const nuevo={...d,nombre:nom};
@@ -3205,7 +3254,7 @@ function abrirEditarNombre(){
       $('#en-err').textContent=traducir(error.message); $('#en-err').classList.remove('hide'); return; }
     // Nota en bitácora del cambio de nombre
     await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`Nombre corregido: "${antes}" → "${nom}"`});
-    $('#asig').classList.remove('on');
+    cerrarAsig();
     toast('Nombre actualizado','k');
     await cargar(); ACT=SOLS.find(s=>s.id===ACT.id)||ACT;
     $('#m-t').textContent=nombreDe(ACT.datos_cliente||{}); detalle();
@@ -3230,8 +3279,8 @@ function abrirAgregarReferencia(){
       <button class="btn btn-g" id="ar-x" style="flex:1">Volver</button>
       <button class="btn btn-b" id="ar-ok" style="flex:1">Agregar referencia</button>
     </div>`;
-  $('#asig').classList.add('on');
-  $('#ar-x').addEventListener('click',()=>$('#asig').classList.remove('on'));
+  abrirAsig();
+  $('#ar-x').addEventListener('click',()=>cerrarAsig());
   $('#ar-ok').addEventListener('click',async()=>{
     const n=$('#ar-n').value.trim(), t=$('#ar-t').value.trim(), p=$('#ar-p').value.trim();
     const err=m=>{ $('#ar-err').textContent=m; $('#ar-err').classList.remove('hide'); };
@@ -3244,7 +3293,7 @@ function abrirAgregarReferencia(){
     if(error){ b.disabled=false; b.textContent='Agregar referencia';
       return err(traducir(error.message)); }
     await sb.rpc('agregar_nota',{p_id:ACT.id,p_texto:`Referencia agregada: ${n} (${t})`});
-    $('#asig').classList.remove('on');
+    cerrarAsig();
     toast('Referencia agregada','k');
     await cargar(); ACT=SOLS.find(s=>s.id===ACT.id)||ACT;
     CUOTAS=ACT.comportamiento_pago?.cuotas||CUOTAS; detalle();
@@ -3350,7 +3399,7 @@ async function guardar(campos){
   toast('Guardado','k');
   await cargar();
   const a=SOLS.find(s=>s.id===ACT.id);
-  if(a&&a.estado!==ACT.estado) cerrarModal();
+  if(a&&a.estado!==ACT.estado) cerrarModalNav();
   else if(a){ACT=a;CUOTAS=a.comportamiento_pago?.cuotas||CUOTAS;detalle();}
 }
 function traducir(m){
