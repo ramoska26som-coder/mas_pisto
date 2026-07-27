@@ -105,13 +105,14 @@
 
   /* Kanban */
   .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;align-items:start}
-  /* 5 columnas: ancho fijo cómodo y scroll horizontal si no caben, para que las
-     tarjetas nunca queden apretadas sin importar el ancho de la pantalla. */
-  .kanban-5{display:flex;overflow-x:auto;gap:13px;padding-bottom:10px;scrollbar-width:thin;align-items:start}
-  .kanban-5 .kcol{flex:0 0 320px}
-  @media(max-width:900px){
+  /* 5 columnas flexibles: llenan todo el ancho para ver todos los estados de un vistazo.
+     minmax(0,1fr) evita que un texto largo desborde la columna. */
+  .kanban-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;align-items:start}
+  @media(max-width:1100px){
+    .kanban-5{display:flex;overflow-x:auto;gap:11px;scroll-snap-type:x mandatory;
+      margin:0 -18px;padding:0 18px 10px;scrollbar-width:none}
+    .kanban-5::-webkit-scrollbar{display:none}
     .kanban-5 .kcol{flex:0 0 82vw;max-width:340px;scroll-snap-align:start}
-    .kanban-5{scroll-snap-type:x mandatory;margin:0 -18px;padding:0 18px 10px}
   }
   @media(max-width:1100px){
     .kanban{display:flex;overflow-x:auto;gap:11px;scroll-snap-type:x mandatory;
@@ -119,11 +120,11 @@
     .kanban::-webkit-scrollbar{display:none}
     .kcol{flex:0 0 78vw;scroll-snap-align:start;max-width:300px}
   }
-  .kcol{background:var(--fondo);border:1px solid var(--linea);border-radius:16px;padding:10px;min-height:110px}
-  .kcol-h{display:flex;align-items:center;gap:8px;padding:5px 8px 11px}
-  .kcol-t{font-family:'Poppins';font-weight:700;font-size:13.5px}
-  .kcol-n{margin-left:auto;font-family:'Poppins';font-weight:700;font-size:12px;color:#fff;
-    min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 7px}
+  .kcol{background:var(--fondo);border:1px solid var(--linea);border-radius:14px;padding:8px;min-height:100px}
+  .kcol-h{display:flex;align-items:center;gap:6px;padding:4px 6px 9px}
+  .kcol-t{font-family:'Poppins';font-weight:700;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kcol-n{margin-left:auto;font-family:'Poppins';font-weight:700;font-size:11px;color:#fff;
+    min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 6px;flex:none}
   .kdot{width:9px;height:9px;border-radius:50%;flex:none}
   .kcol.pend .kdot,.kcol.pend .kcol-n{background:var(--amber)}
   .kcol.ase  .kdot,.kcol.ase  .kcol-n{background:var(--azul)}
@@ -136,8 +137,8 @@
   .fin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
 
   /* Tarjeta kanban */
-  .kcard{background:#fff;border:1px solid var(--linea);border-radius:13px;box-shadow:var(--sombra-sm);
-    padding:13px;margin-bottom:9px;cursor:pointer;transition:border-color .15s,transform .1s}
+  .kcard{background:#fff;border:1px solid var(--linea);border-radius:12px;box-shadow:var(--sombra-sm);
+    padding:11px;margin-bottom:7px;cursor:pointer;transition:border-color .15s,transform .1s}
   .kcard:hover{border-color:var(--azul)}
   .kcard:active{transform:scale(.99)}
   /* Color suave de fondo según el desenlace de la solicitud */
@@ -153,9 +154,9 @@
   /* En espera por cliente: ámbar muy tenue con borde punteado */
   .kcard.est-espera{background:#FFFBF2;border-color:#EBD9AE;border-style:dashed}
   .kcard.est-espera:hover{border-color:#DBBE73}
-  .kc-espera{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;
+  .kc-espera{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;
     background:#FBF0D6;color:#8A6D00;border:1px solid #EBD9AE}
-  .kc-coinc{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;
+  .kc-coinc{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;
     background:#FDECEC;color:#B02525;border:1px solid #F3C4C4}
   /* Cruce de datos (posibles duplicados) */
   .co-sec{border:1px solid #F3C4C4;background:#FFF6F6;border-radius:14px;padding:15px 16px;margin-bottom:15px}
@@ -173,19 +174,19 @@
   .co-alto{background:#FDECEC;color:#B02525}
   .co-medio{background:#FFF6E5;color:#8A6D00}
   .co-bajo{background:#F0F4FA;color:var(--gris)}
-  .kc-nom{font-family:'Poppins';font-weight:600;font-size:14.5px;line-height:1.25}
-  .kc-folio{font-size:11px;color:var(--azul);font-weight:600;margin-top:1px}
-  .kc-fecha{font-size:11.5px;color:var(--gris);margin-top:8px;display:flex;align-items:center;gap:5px}
-  .kc-row{display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap}
-  .kc-estado{font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;background:var(--cielo);color:var(--azul);border:1px solid #C7DFFB}
-  .kc-tipo{font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px}
+  .kc-nom{font-family:'Poppins';font-weight:600;font-size:13.5px;line-height:1.25;overflow-wrap:anywhere}
+  .kc-folio{font-size:10.5px;color:var(--azul);font-weight:600;margin-top:1px}
+  .kc-fecha{font-size:11px;color:var(--gris);margin-top:6px;display:flex;align-items:center;gap:4px;white-space:nowrap}
+  .kc-row{display:flex;align-items:center;gap:4px;margin-top:7px;flex-wrap:wrap}
+  .kc-estado{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--cielo);color:var(--azul);border:1px solid #C7DFFB}
+  .kc-tipo{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px}
   .kc-tipo.nuevo{background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
   .kc-tipo.reingreso{background:#FFF8DC;color:#8A6D00;border:1px solid #F2E08A}
   .kc-tipo.refinanciamiento{background:#F0E9FF;color:#6D4AB5;border:1px solid #D9C9F5}
-  .kc-resp{font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;
+  .kc-resp{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;
     background:var(--fondo);color:var(--gris);border:1px solid var(--linea)}
   .kc-resp.libre{background:var(--amber-lt);color:var(--amber);border-color:#F2E08A}
-  .kc-transc{margin-left:auto;font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px;white-space:nowrap}
+  .kc-transc{margin-left:auto;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;white-space:nowrap}
   .kc-transc.ok{background:var(--ok-lt);color:var(--ok)}
   .kc-transc.md{background:var(--amber-lt);color:var(--amber)}
   .kc-transc.no{background:var(--error-lt);color:var(--error)}
@@ -1151,6 +1152,12 @@ function fechaHora(iso){
   return d.toLocaleDateString('es-HN',{day:'2-digit',month:'2-digit',year:'2-digit'})+
     ' · '+d.toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'});
 }
+/* Versión corta para las tarjetas del kanban: cabe en una sola línea. */
+function fechaCorta(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString('es-HN',{day:'2-digit',month:'2-digit'})+
+    ' '+d.toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
 function transcurrido(s){
   // Tiempo desde que se creó la solicitud
   const min=Math.floor((Date.now()-new Date(s.creado_en))/6e4);
@@ -1227,7 +1234,7 @@ function kcardHTML(s){
     <div class="kc-folio">${esc(s.folio)}</div>
     <div class="kc-fecha">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      ${fechaHora(s.creado_en)}
+      ${fechaCorta(s.creado_en)}
     </div>
     <div class="kc-row">
       <span class="kc-tipo ${tipo}">${TIPO_L[tipo]}</span>
