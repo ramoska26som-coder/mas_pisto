@@ -105,14 +105,14 @@
 
   /* Kanban */
   .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;align-items:start}
-  .kanban-5{grid-template-columns:repeat(5,1fr)}
-  /* Con 5 columnas, si no hay ancho para que las tarjetas se lean cómodas,
-     se pasa a scroll horizontal con columnas de ancho fijo en vez de apretarlas. */
-  @media(min-width:1101px) and (max-width:1700px){
-    .kanban-5{display:flex;overflow-x:auto;gap:12px;padding-bottom:10px;scrollbar-width:thin}
-    .kanban-5 .kcol{flex:0 0 300px}
+  /* 5 columnas: ancho fijo cómodo y scroll horizontal si no caben, para que las
+     tarjetas nunca queden apretadas sin importar el ancho de la pantalla. */
+  .kanban-5{display:flex;overflow-x:auto;gap:13px;padding-bottom:10px;scrollbar-width:thin;align-items:start}
+  .kanban-5 .kcol{flex:0 0 320px}
+  @media(max-width:900px){
+    .kanban-5 .kcol{flex:0 0 82vw;max-width:340px;scroll-snap-align:start}
+    .kanban-5{scroll-snap-type:x mandatory;margin:0 -18px;padding:0 18px 10px}
   }
-  @media(max-width:1100px){.kanban-5{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:1100px){
     .kanban{display:flex;overflow-x:auto;gap:11px;scroll-snap-type:x mandatory;
       margin:0 -18px;padding:0 18px 8px;scrollbar-width:none}
@@ -670,6 +670,28 @@ const SB_URL='https://qmxkmslxydxjlojxhzhb.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFteGttc2x4eWR4amxvanhoemhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTM0NTYsImV4cCI6MjA5OTc4OTQ1Nn0.TF1Fvaa5B_eT_qHdM1NpVGMqOub758I0f7NGpm2_mfY';
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+
+/* ===== Botón "atrás" del móvil / navegador =====
+   Se define arriba porque el arranque (menú lateral en móvil) ya lo usa.
+   Cada capa que se abre (detalle, modales, menú) registra su forma de cerrarse;
+   al pulsar "atrás" se cierra solo la capa de encima, sin salir de la app. */
+const CAPAS=[];
+let _cerrandoProg=false;
+function pushCapa(cerrar){
+  CAPAS.push(cerrar);
+  history.pushState({capa:CAPAS.length},'');
+}
+function cerrarPorBoton(fn){
+  const i=CAPAS.lastIndexOf(fn);
+  if(i>=0) CAPAS.splice(i,1);
+  try{ fn&&fn(); }catch(e){}
+  if(i>=0){ _cerrandoProg=true; history.back(); }
+}
+window.addEventListener('popstate',()=>{
+  if(_cerrandoProg){ _cerrandoProg=false; return; }
+  const cerrar=CAPAS.pop();
+  if(cerrar){ try{ cerrar(); }catch(e){} }
+});
 
 let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[],RUBROS=[],EQUIPO={},CAUSAS=[],COINC={};
 
@@ -2087,31 +2109,6 @@ function cerrarModalNav(){ cerrarPorBoton(cerrarModal); }
 $('#m-cerrar').addEventListener('click',()=>cerrarPorBoton(cerrarModal));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classList.contains('on'))cerrarPorBoton(cerrarModal);});
 
-/* ===== Botón "atrás" del móvil / navegador =====
-   Cada capa que se abre (detalle, modales, menú) registra su forma de cerrarse.
-   Al pulsar "atrás" se cierra solo la capa de encima, sin salir de la app. */
-const CAPAS=[];
-function pushCapa(cerrar){
-  CAPAS.push(cerrar);
-  history.pushState({capa:CAPAS.length},'');
-}
-/* Cierra una capa desde un botón (X, Volver, fondo). Consume su entrada del
-   historial. La bandera evita que el popstate resultante cierre otra capa. */
-let _cerrandoProg=false;
-function cerrarPorBoton(fn){
-  const i=CAPAS.lastIndexOf(fn);
-  if(i>=0) CAPAS.splice(i,1);
-  try{ fn&&fn(); }catch(e){}
-  if(i>=0){ _cerrandoProg=true; history.back(); }
-}
-window.addEventListener('popstate',()=>{
-  // Si el retroceso lo provocamos nosotros al cerrar por botón, no cerramos de más.
-  if(_cerrandoProg){ _cerrandoProg=false; return; }
-  // "Atrás" del usuario: cerramos la capa de encima, sin salir de la app.
-  const cerrar=CAPAS.pop();
-  if(cerrar){ try{ cerrar(); }catch(e){} }
-});
-
 /* El modal secundario (#asig) se abre encima del detalle: también registra capa. */
 function abrirAsig(){
   $('#asig').classList.add('on');
@@ -2418,14 +2415,6 @@ function detalle(){
   if(esPerfil){
     const ra=s.resultado_analisis||{};
     const ps=s.perfil_sistema||{};
-    const filas=filasPerfilExcel(s);
-    der+=`<div class="sec"><div class="sec-h"><h4>Copiar datos para el sistema</h4></div>
-      <div class="callout" style="margin-bottom:11px">Copiá los datos en el orden del formulario y pegalos en una columna del Excel. Cada dato cae en su propia fila.</div>
-      <button class="btn btn-b" id="pf-copiar" style="width:100%">📋 Copiar todos los datos</button>
-      <details style="margin-top:11px"><summary style="cursor:pointer;font-size:13px;color:var(--azul);font-weight:600">Ver lo que se va a copiar</summary>
-        <ol class="pf-prev">${filas.map(v=>`<li>${esc(v||'—')}</li>`).join('')}</ol>
-      </details>
-    </div>`;
     der+=`<div class="sec"><div class="sec-h"><h4>Llenar perfil en el sistema</h4>
         <span class="badge ${ps.confirmado?'k':'p'}">${ps.confirmado?'confirmado':'pendiente'}</span></div>
       <div class="callout" style="margin-bottom:12px">Transcribí esta solicitud al sistema de la empresa, elegí el tipo de desembolso y asigná el verificador.</div>
@@ -2448,6 +2437,18 @@ function detalle(){
         <span style="font-size:13px">Confirmo que <b>transcribí el perfil y creé la solicitud</b> en el sistema de la empresa.</span>
       </label>
     </div>`;
+  }
+
+  // Copiar datos para el sistema: disponible en CUALQUIER estado, para asesor/analista/admin.
+  if(rol('asesor')||rol('analista')||esAdmin()){
+    const filas=filasPerfilExcel(s);
+    const copiarSec=`<div class="sec"><div class="sec-h"><h4>Copiar datos para el sistema</h4></div>
+      <div class="callout" style="margin-bottom:11px">Copiá los datos en el orden del formulario y pegalos en una columna del Excel. Cada dato cae en su propia fila.</div>
+      <button class="btn btn-b" id="pf-copiar" style="width:100%">📋 Copiar todos los datos</button>
+      <details style="margin-top:11px"><summary style="cursor:pointer;font-size:13px;color:var(--azul);font-weight:600">Ver lo que se va a copiar</summary>
+        <ol class="pf-prev">${filas.map(v=>`<li>${esc(v||'—')}</li>`).join('')}</ol>
+      </details></div>`;
+    if(der) der+=copiarSec; else izq+=copiarSec;
   }
 
   // Notas (bitácora): asesor y analista pueden escribir; todos las ven.
