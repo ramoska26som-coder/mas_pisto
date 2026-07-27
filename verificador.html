@@ -554,6 +554,19 @@ function detalle(){
     <div class="gps-t">Buscando ubicación…</div></div>
     <div class="gps-c" style="margin-top:5px;margin-left:22px">—</div></div>`;
 
+  // Qué hay que actualizar en esta visita (lo marcan asesor y analista)
+  const rq=s.requisitos_actualizacion||{};
+  const pts=[];
+  if(rq.domicilio) pts.push('🏠 Actualizar verificación de <b>domicilio</b>');
+  if(rq.trabajo)   pts.push('💼 Actualizar verificación de <b>trabajo</b>');
+  if(rq.foto)      pts.push('📷 Tomar <b>foto actualizada</b> del cliente');
+  if(pts.length){
+    h+=`<div class="sec" style="border-color:#EBD9AE;background:#FFFBF2">
+      <div class="sec-h"><h4 style="color:#8A6D00">Actualizar en esta visita</h4></div>
+      ${pts.map(p=>`<div style="font-size:14px;padding:7px 0;border-bottom:1px solid #F0E4C8">${p}</div>`).join('')}
+      </div>`;
+  }
+
   // Cliente + direcciones
   h+=`<div class="sec"><div class="sec-h"><h4>Cliente</h4></div><dl class="dl">
     <dt>Cédula</dt><dd>${esc(d.cedula||d.identidad||'—')}</dd>
@@ -567,6 +580,21 @@ function detalle(){
     <div style="margin-top:9px"><a class="btn btn-g btn-sm btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dirTrab+', Honduras')}" target="_blank" rel="noopener">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Ir al trabajo</a></div></div>`:''}
   </div>`;
+
+  // Cuánto se le entrega al cliente (clave si el desembolso es en efectivo)
+  if(s.monto_aceptado || s.tipo_desembolso){
+    const ra=s.resultado_analisis||{};
+    const libre = ra.monto_libre!=null ? ra.monto_libre : s.monto_aceptado;
+    const lps=n=>'L '+Number(n||0).toLocaleString('es-HN');
+    h+=`<div class="sec"><div class="sec-h"><h4>Desembolso</h4>
+        ${s.tipo_desembolso?`<span class="tag">${s.tipo_desembolso==='efectivo'?'💵 Efectivo':'🏦 Transferencia'}</span>`:''}</div>
+      <dl class="dl">
+        ${s.monto_aceptado?`<dt>Monto aceptado</dt><dd>${lps(s.monto_aceptado)}</dd>`:''}
+        ${s.tipo_operacion!=='nuevo'&&ra.saldo_capital!=null?`<dt>Saldo capital</dt><dd>−${lps(ra.saldo_capital)}</dd>`:''}
+        ${s.tipo_operacion!=='nuevo'&&ra.saldo_intereses!=null?`<dt>Saldo intereses</dt><dd>−${lps(ra.saldo_intereses)}</dd>`:''}
+        ${libre!=null?`<dt><b>A entregar</b></dt><dd style="font-weight:700;color:var(--ok)">${lps(libre)}</dd>`:''}
+      </dl></div>`;
+  }
 
   if(!editable){
     // Solo tomar, o solo lectura

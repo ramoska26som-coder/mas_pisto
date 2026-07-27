@@ -248,6 +248,11 @@
   .ns-rad:hover{border-color:var(--azul)}
   .ns-rad input{width:auto;margin:0;accent-color:var(--azul)}
   .ns-rad:has(input:checked){border-color:var(--azul);background:var(--cielo);font-weight:600;color:var(--azul-tinta)}
+  .ns-chk{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--linea);
+    border-radius:11px;background:#fff;cursor:pointer;font-size:13.5px;margin-bottom:8px;transition:border-color .15s,background .15s}
+  .ns-chk:hover{border-color:var(--azul)}
+  .ns-chk input{width:auto;margin:0;accent-color:var(--azul)}
+  .ns-chk:has(input:checked){border-color:var(--azul);background:var(--cielo)}
   .pf-prev{margin:11px 0 0;padding-left:26px;font-size:12.5px;color:var(--tinta);line-height:1.7}
   .pf-prev li{border-bottom:1px solid var(--linea);padding:3px 0;white-space:pre-line}
   .ing-wrap{display:grid;gap:0;border:1px solid var(--linea);border-radius:14px;overflow:hidden;background:#fff}
@@ -2066,6 +2071,13 @@ $('#btn-nueva').addEventListener('click',()=>{
     <div class="callout r hide" id="ns-err" style="margin-bottom:0"></div>
   </div>
 
+  <!-- Solo para REINGRESO / REFINANCIAMIENTO: qué debe actualizar el verificador -->
+  <div class="sec hide" id="ns-actualiza"><div class="sec-h"><h4>¿Qué hay que actualizar en campo?</h4></div>
+    <div class="callout" style="margin-bottom:12px">Marcá lo que el verificador debe volver a comprobar en la visita. El analista puede agregar más puntos después.</div>
+    <label class="ns-chk"><input type="checkbox" id="ns-act-dom"> <span>Verificación de <b>domicilio</b></span></label>
+    <label class="ns-chk"><input type="checkbox" id="ns-act-tra"> <span>Verificación de <b>trabajo</b></span></label>
+  </div>
+
   <!-- Solo para NUEVO: mismo contenido que el formulario del cliente -->
   <div id="ns-completo">
     <div class="sec"><div class="sec-h"><h4>Datos personales</h4></div>
@@ -2176,6 +2188,7 @@ function nsConectar(){
   const aplicarTipo=()=>{
     const esNuevo=NS_TIPO==='nuevo';
     $('#ns-completo').classList.toggle('hide',!esNuevo);
+    $('#ns-actualiza').classList.toggle('hide',esNuevo);
     $('#ns-fi-wrap').classList.toggle('hide',esNuevo);
     $('#ns-nota').innerHTML = esNuevo
       ? `Un <b>nuevo ingreso</b> aplica al ${P.pctNuevo}% del ingreso mensual, sin importar antigüedad.`
@@ -2218,6 +2231,9 @@ async function nsCrear(){
   const nom=txtDe('#ns-nom'), monto=numDe('#ns-monto');
   if(!nom) return err('Escribí el nombre del cliente.');
   if(monto<=0) return err('Escribí el monto que solicita.');
+  // La antigüedad como cliente define el % del límite, por eso es obligatoria
+  if(NS_TIPO!=='nuevo' && !txtDe('#ns-fi'))
+    return err(`Un ${NS_TIPO} necesita la fecha de "cliente desde" para calcular su límite.`);
 
   // Se arma igual que lo manda el formulario del cliente, para que el panel
   // y la copia a Excel encuentren los mismos campos.
@@ -2279,6 +2295,11 @@ async function nsCrear(){
     origen:'asesor', estado:'en_revision_asesor', asesor_id:YO.id,
     tipo_operacion:NS_TIPO, tipo_credito:'general',
     fecha_ingreso_cliente: NS_TIPO==='nuevo' ? null : (txtDe('#ns-fi')||null),
+    requisitos_actualizacion: NS_TIPO==='nuevo' ? {} : {
+      domicilio: $('#ns-act-dom')?.checked||false,
+      trabajo:   $('#ns-act-tra')?.checked||false,
+      foto:      false
+    },
     datos_cliente:d
   });
   b.disabled=false; b.textContent='Crear solicitud';
@@ -2580,6 +2601,28 @@ function detalle(){
             <div class="bit-m">${esc(it.quien||'—')} · ${it.cuando?new Date(it.cuando).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</div>
           </div></div>`).join(''):'<p style="font-size:13px;color:var(--gris)">Sin intentos registrados.</p>'}
     </div>`;
+    // Saldos del crédito vigente: definen cuánto se le entrega libre al cliente
+    if(s.tipo_operacion!=='nuevo'){
+      const ra=s.resultado_analisis||{};
+      der+=`<div class="sec"><div class="sec-h"><h4>Saldos del crédito actual</h4>
+          <span class="badge ${ra.saldo_capital!=null?'k':'p'}">${ra.saldo_capital!=null?'listo':'pendiente'}</span></div>
+        <div class="callout" style="margin-bottom:12px">Con estos saldos se calcula <b>cuánto recibe libre</b> el cliente: monto aceptado menos capital menos intereses.</div>
+        <div class="g2">
+          <div class="fld"><label>Saldo de capital (L)</label>
+            <input id="sa-cap" inputmode="numeric" value="${ra.saldo_capital!=null?ra.saldo_capital:''}" placeholder="0"></div>
+          <div class="fld"><label>Saldo de intereses (L)</label>
+            <input id="sa-int" inputmode="numeric" value="${ra.saldo_intereses!=null?ra.saldo_intereses:''}" placeholder="0"></div>
+        </div>
+        <div id="sa-libre" class="callout" style="margin-bottom:0"></div></div>`;
+    }
+    // Puntos que el verificador debe actualizar en campo
+    const rq=s.requisitos_actualizacion||{};
+    der+=`<div class="sec"><div class="sec-h"><h4>Actualizar en la visita</h4></div>
+      <div class="callout" style="margin-bottom:12px">Guía para el verificador: marcá qué debe volver a comprobar o actualizar.</div>
+      <label class="ns-chk"><input type="checkbox" id="rq-dom" ${rq.domicilio?'checked':''}> <span>Verificación de <b>domicilio</b></span></label>
+      <label class="ns-chk"><input type="checkbox" id="rq-tra" ${rq.trabajo?'checked':''}> <span>Verificación de <b>trabajo</b></span></label>
+      <label class="ns-chk"><input type="checkbox" id="rq-fot" ${rq.foto?'checked':''}> <span>Actualizar <b>foto</b> del cliente</span></label>
+    </div>`;
     der+=`<div class="sec"><div class="sec-h"><h4>Resultado</h4></div><div id="res"></div></div>`;
   }
   else if(s.resultado_analisis?.monto_aprobado||s.resultado_analisis?.motivo_denegacion){
@@ -2616,7 +2659,14 @@ function detalle(){
       <dl class="dl">
         <dt>Monto aprobado</dt><dd style="font-weight:700">${ra.monto_aprobado?fmtL(ra.monto_aprobado):'—'}</dd>
         ${ra.tasa?`<dt>Tasa</dt><dd>${ra.tasa}%</dd>`:''}
+        ${s.tipo_operacion!=='nuevo'?`
+          <dt>Saldo de capital</dt><dd>${ra.saldo_capital!=null?fmtL(ra.saldo_capital):'—'}</dd>
+          <dt>Saldo de intereses</dt><dd>${ra.saldo_intereses!=null?fmtL(ra.saldo_intereses):'—'}</dd>`:''}
       </dl>
+      <div class="fld" style="margin-top:12px"><label>Monto que aceptó el cliente (L) <span style="color:var(--error)">*</span>
+        <small>No puede pasar de ${ra.monto_aprobado?fmtL(ra.monto_aprobado):'lo aprobado'}</small></label>
+        <input id="pf-aceptado" inputmode="numeric" value="${s.monto_aceptado||''}" placeholder="Ej. ${ra.monto_aprobado||''}"></div>
+      <div id="pf-libre" class="callout" style="margin-bottom:0"></div>
       <div class="fld" style="margin-top:12px"><label>Código en el sistema<small>Opcional</small></label>
         <input id="pf-codigo" value="${esc(ps.codigo||'')}" placeholder="Ej. SYS-00123"></div>
       <div class="fld"><label>Tipo de desembolso <span style="color:var(--error)">*</span></label>
@@ -2841,6 +2891,42 @@ function abrirRegistrarIntento(){
   });
 }
 
+/* Cuánto recibe libre el cliente: monto aceptado − saldo capital − saldo intereses */
+function calcLibre(aceptado,cap,int){
+  const libre=(Number(aceptado)||0)-(Number(cap)||0)-(Number(int)||0);
+  return Math.round(libre*100)/100;
+}
+/* Vista del analista: usa el monto aprobado como referencia (aún no hay aceptado) */
+function pintarLibreAnalista(){
+  const box=$('#sa-libre'); if(!box||!ACT) return;
+  const aprob=(ACT.resultado_analisis||{}).monto_aprobado||0;
+  const cap=numDe('#sa-cap'), int=numDe('#sa-int');
+  const libre=calcLibre(aprob,cap,int);
+  box.innerHTML = aprob
+    ? `Si el cliente acepta el límite completo de <b>${fmtL(aprob)}</b>, recibiría libre <b style="color:${libre<0?'var(--error)':'var(--ok)'}">${fmtL(libre)}</b>.
+       ${libre<0?'<br><b>Los saldos superan el límite aprobado.</b>':''}`
+    : 'Calculá primero el monto aprobado para ver cuánto recibiría libre.';
+}
+/* Vista del asesor al llenar el perfil: usa el monto que aceptó el cliente */
+function pintarLibrePerfil(){
+  const box=$('#pf-libre'); if(!box||!ACT) return;
+  const ra=ACT.resultado_analisis||{};
+  const aprob=ra.monto_aprobado||0;
+  const acep=numDe('#pf-aceptado');
+  const cap=Number(ra.saldo_capital)||0, int=Number(ra.saldo_intereses)||0;
+  if(acep>aprob){
+    box.className='callout r'; box.style.marginBottom='0';
+    box.innerHTML=`El monto aceptado no puede pasar del aprobado (<b>${fmtL(aprob)}</b>).`;
+    return;
+  }
+  const libre=calcLibre(acep,cap,int);
+  box.className='callout'; box.style.marginBottom='0';
+  box.innerHTML = ACT.tipo_operacion==='nuevo'
+    ? `El cliente recibe <b>${fmtL(acep)}</b>.`
+    : `<b>${fmtL(acep)}</b> aceptado − ${fmtL(cap)} capital − ${fmtL(int)} intereses =
+       <b style="color:${libre<0?'var(--error)':'var(--ok)'}">${fmtL(libre)}</b> libres a entregar.`;
+}
+
 /* Llena el select de verificadores en el paso de perfil, mostrando la carga de cada uno */
 async function cargarVerifSelect(){
   const sel=$('#pf-verif'); if(!sel) return;
@@ -2861,6 +2947,16 @@ function conectar(esAse,esAna){
   if($('#pf-verif')) cargarVerifSelect();
   $('#pf-copiar')?.addEventListener('click',()=>copiarPerfil(ACT));
   $('#add-intento')?.addEventListener('click',abrirRegistrarIntento);
+  // Saldos del analista: recalcula el libre a entregar mientras escribe
+  if($('#sa-cap')){
+    ['#sa-cap','#sa-int'].forEach(id=>$(id).addEventListener('input',pintarLibreAnalista));
+    pintarLibreAnalista();
+  }
+  // Monto aceptado del asesor: recalcula el libre y valida el tope
+  if($('#pf-aceptado')){
+    $('#pf-aceptado').addEventListener('input',pintarLibrePerfil);
+    pintarLibrePerfil();
+  }
   if(esAse){
     $('#conf-docs')?.addEventListener('click',confirmarDocs);
   }
@@ -3446,6 +3542,10 @@ async function guardarPerfil(completar){
   const desemb=$('#pf-desemb')?.value||'';
   const verId=$('#pf-verif')?.value||'';
   const confirmado=$('#pf-confirmado')?.checked||false;
+  const acep=numDe('#pf-aceptado');
+  const ra=ACT.resultado_analisis||{};
+  const aprob=ra.monto_aprobado||0;
+  const libre=calcLibre(acep,ra.saldo_capital,ra.saldo_intereses);
 
   const campos={
     perfil_sistema:{...(ACT.perfil_sistema||{}), codigo:cod, confirmado,
@@ -3453,12 +3553,17 @@ async function guardarPerfil(completar){
       confirmado_en:confirmado?new Date().toISOString():null},
     tipo_desembolso:desemb||null
   };
+  if(acep>0) campos.monto_aceptado=acep;
   if(verId) campos.verificador_id=verId;
+  // Deja registrado cuánto se entrega libre, para el verificador y el desembolso
+  if(acep>0) campos.resultado_analisis={...ra, monto_libre:libre};
 
   if(!completar){ await guardar(campos); toast('Perfil guardado','k'); return; }
 
   // Validaciones antes de enviar a verificar
   if(!confirmado){ toast('Confirmá que transcribiste el perfil al sistema','m'); return; }
+  if(acep<=0){ toast('Ingresá el monto que aceptó el cliente','m'); return; }
+  if(acep>aprob){ toast(`El monto aceptado no puede pasar de ${fmtL(aprob)}`,'m'); return; }
   if(!desemb){ toast('Elegí el tipo de desembolso','m'); return; }
   if(!verId){ toast('Asigná un verificador','m'); return; }
   await guardar({...campos,estado:'por_verificar'});
@@ -3511,6 +3616,17 @@ function datosAnalista(){
     out.resultado_analisis={...ACT.resultado_analisis,monto_aprobado:lim.monto,tasa:t.tasa,
       categoria_tasa:t.tipoTasa,razon:`${lim.regla} · ${t.regla}`,calculado_en:new Date().toISOString()};
   }
+
+  // Saldos del crédito vigente (solo reingreso / refinanciamiento)
+  if(ACT.tipo_operacion!=='nuevo' && $('#sa-cap')){
+    const cap=numDe('#sa-cap'), int=numDe('#sa-int');
+    out.resultado_analisis={...(out.resultado_analisis||ACT.resultado_analisis||{}),
+      saldo_capital:cap, saldo_intereses:int};
+  }
+  // Puntos a actualizar en la visita (guía para el verificador)
+  if($('#rq-dom')) out.requisitos_actualizacion={
+    domicilio:$('#rq-dom').checked, trabajo:$('#rq-tra').checked, foto:$('#rq-fot').checked};
+
   return out;
 }
 /* ===== EDITAR NOMBRE DEL CLIENTE (asesor / analista) ===== */
