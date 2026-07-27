@@ -710,7 +710,7 @@ window.addEventListener('popstate',()=>{
   if(cerrar){ try{ cerrar(); }catch(e){} }
 });
 
-let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[],RUBROS=[],EQUIPO={},CAUSAS=[],COINC={};
+let YO=null,P=null,SOLS=[],ACT=null,VISTA='solicitudes',FILTRO=null,CUOTAS=[],RUBROS=[],EQUIPO={},CAUSAS=[],COINC={},REQS=[];
 
 const fmt=n=>new Intl.NumberFormat('es-HN',{maximumFractionDigits:0}).format(n||0);
 const fmtL=n=>'L '+new Intl.NumberFormat('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);
@@ -779,6 +779,13 @@ async function cargarCausas(){
     .order('tipo').order('orden').order('id');
   CAUSAS=data||[];
 }
+/* Catálogo de requisitos que llena el verificador en campo */
+async function cargarRequisitos(){
+  const {data}=await sb.from('requisitos_tipo').select('*').eq('activo',true).order('orden');
+  REQS=data||[];
+}
+const GRUPO_L={domicilio:'Verificación de domicilio',trabajo:'Verificación de trabajo',generales:'Generales'};
+
 /* Textos activos de un tipo, para el selector del analista */
 function causasDe(tipo){
   const l=CAUSAS.filter(c=>c.tipo===tipo&&c.activo).map(c=>c.texto);
@@ -873,6 +880,7 @@ async function arrancar(session){
   P=par.valores;
   await cargarRubros();
   await cargarCausas();
+  await cargarRequisitos();
   await cargarEquipo();
   $('#login').style.display='none';
   $('#app').style.display='block';
@@ -2071,11 +2079,10 @@ $('#btn-nueva').addEventListener('click',()=>{
     <div class="callout r hide" id="ns-err" style="margin-bottom:0"></div>
   </div>
 
-  <!-- Solo para REINGRESO / REFINANCIAMIENTO: qué debe actualizar el verificador -->
-  <div class="sec hide" id="ns-actualiza"><div class="sec-h"><h4>¿Qué hay que actualizar en campo?</h4></div>
-    <div class="callout" style="margin-bottom:12px">Marcá lo que el verificador debe volver a comprobar en la visita. El analista puede agregar más puntos después.</div>
-    <label class="ns-chk"><input type="checkbox" id="ns-act-dom"> <span>Verificación de <b>domicilio</b></span></label>
-    <label class="ns-chk"><input type="checkbox" id="ns-act-tra"> <span>Verificación de <b>trabajo</b></span></label>
+  <!-- Solo para REINGRESO / REFINANCIAMIENTO: qué requisitos debe llenar el verificador -->
+  <div class="sec hide" id="ns-actualiza"><div class="sec-h"><h4>¿Qué debe llenar el verificador?</h4></div>
+    <div class="callout" style="margin-bottom:12px">En un cliente nuevo se piden todos. Acá marcá solo los que hagan falta actualizar. El analista puede ajustarlos después.</div>
+    <div id="ns-reqs"></div>
   </div>
 
   <!-- Solo para NUEVO: mismo contenido que el formulario del cliente -->
@@ -2220,7 +2227,23 @@ function nsConectar(){
 
   $('#ns-x').addEventListener('click',()=>cerrarPorBoton(cerrarModal));
   $('#ns-ok').addEventListener('click',nsCrear);
+  // Lista de requisitos para elegir (reingreso / refinanciamiento)
+  if($('#ns-reqs')) $('#ns-reqs').innerHTML=reqsCheckHTML([], 'nsq');
 }
+/* Dibuja el catálogo de requisitos agrupado, con casillas para elegir cuáles aplican.
+   'sel' son las claves ya marcadas; 'pref' evita que choquen los ids entre pantallas. */
+function reqsCheckHTML(sel,pref){
+  const grupos={};
+  (REQS||[]).forEach(r=>{ (grupos[r.grupo||'generales']=grupos[r.grupo||'generales']||[]).push(r); });
+  return Object.keys(grupos).map(g=>`
+    <div style="margin-bottom:12px">
+      <div style="font-family:'Poppins';font-weight:600;font-size:13px;color:var(--azul-tinta);margin-bottom:7px">${esc(GRUPO_L[g]||g)}</div>
+      ${grupos[g].map(r=>`
+        <label class="ns-chk"><input type="checkbox" data-${pref}="${esc(r.clave)}"
+          ${sel.includes(r.clave)?'checked':''}> <span>${esc(r.etiqueta)}${r.obligatorio?'':' <i style="color:var(--gris)">(opcional)</i>'}</span></label>`).join('')}
+    </div>`).join('');
+}
+const reqsMarcados=pref=>$$(`[data-${pref}]`).filter(c=>c.checked).map(c=>c.dataset[pref]);
 const valRadio=name=>document.querySelector(`input[name="${name}"]:checked`)?.value||'';
 const numDe=id=>parseFloat(String($(id)?.value||'').replace(/[^\d.]/g,''))||0;
 const txtDe=id=>($(id)?.value||'').trim();
@@ -2295,11 +2318,7 @@ async function nsCrear(){
     origen:'asesor', estado:'en_revision_asesor', asesor_id:YO.id,
     tipo_operacion:NS_TIPO, tipo_credito:'general',
     fecha_ingreso_cliente: NS_TIPO==='nuevo' ? null : (txtDe('#ns-fi')||null),
-    requisitos_actualizacion: NS_TIPO==='nuevo' ? {} : {
-      domicilio: $('#ns-act-dom')?.checked||false,
-      trabajo:   $('#ns-act-tra')?.checked||false,
-      foto:      false
-    },
+    requisitos_actualizacion: NS_TIPO==='nuevo' ? {} : {claves:reqsMarcados('nsq')},
     datos_cliente:d
   });
   b.disabled=false; b.textContent='Crear solicitud';
@@ -2615,14 +2634,19 @@ function detalle(){
         </div>
         <div id="sa-libre" class="callout" style="margin-bottom:0"></div></div>`;
     }
-    // Puntos que el verificador debe actualizar en campo
+    // Requisitos que debe llenar el verificador en campo
     const rq=s.requisitos_actualizacion||{};
-    der+=`<div class="sec"><div class="sec-h"><h4>Actualizar en la visita</h4></div>
-      <div class="callout" style="margin-bottom:12px">Guía para el verificador: marcá qué debe volver a comprobar o actualizar.</div>
-      <label class="ns-chk"><input type="checkbox" id="rq-dom" ${rq.domicilio?'checked':''}> <span>Verificación de <b>domicilio</b></span></label>
-      <label class="ns-chk"><input type="checkbox" id="rq-tra" ${rq.trabajo?'checked':''}> <span>Verificación de <b>trabajo</b></span></label>
-      <label class="ns-chk"><input type="checkbox" id="rq-fot" ${rq.foto?'checked':''}> <span>Actualizar <b>foto</b> del cliente</span></label>
-    </div>`;
+    const selRq=rq.claves||[];
+    if(s.tipo_operacion==='nuevo'){
+      der+=`<div class="sec"><div class="sec-h"><h4>Requisitos del verificador</h4>
+          <span class="badge k">todos</span></div>
+        <div class="callout" style="margin-bottom:0">Es un <b>cliente nuevo</b>: el verificador debe llenar todos los puntos del checklist.</div></div>`;
+    } else {
+      der+=`<div class="sec"><div class="sec-h"><h4>Requisitos del verificador</h4>
+          <span class="badge ${selRq.length?'k':'p'}">${selRq.length||'sin'} ${selRq.length===1?'punto':'puntos'}</span></div>
+        <div class="callout" style="margin-bottom:12px">Marcá qué debe llenar el verificador en esta visita. Si no marcás nada, se le piden todos.</div>
+        <div id="an-reqs">${reqsCheckHTML(selRq,'anq')}</div></div>`;
+    }
     der+=`<div class="sec"><div class="sec-h"><h4>Resultado</h4></div><div id="res"></div></div>`;
   }
   else if(s.resultado_analisis?.monto_aprobado||s.resultado_analisis?.motivo_denegacion){
@@ -3623,9 +3647,8 @@ function datosAnalista(){
     out.resultado_analisis={...(out.resultado_analisis||ACT.resultado_analisis||{}),
       saldo_capital:cap, saldo_intereses:int};
   }
-  // Puntos a actualizar en la visita (guía para el verificador)
-  if($('#rq-dom')) out.requisitos_actualizacion={
-    domicilio:$('#rq-dom').checked, trabajo:$('#rq-tra').checked, foto:$('#rq-fot').checked};
+  // Requisitos que llenará el verificador (solo reingreso / refinanciamiento)
+  if($('#an-reqs')) out.requisitos_actualizacion={claves:reqsMarcados('anq')};
 
   return out;
 }

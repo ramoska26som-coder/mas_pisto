@@ -129,6 +129,15 @@
   .addr b{font-family:'Poppins';font-weight:600;font-size:11px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
 
   /* CHECKLIST */
+  .chk-grupo{font-family:'Poppins';font-weight:700;font-size:13px;color:var(--azul);
+    text-transform:uppercase;letter-spacing:.3px;margin:14px 0 9px;padding-bottom:6px;
+    border-bottom:1px solid var(--linea)}
+  .chk-grupo:first-child{margin-top:0}
+  .chk-auto{font-size:12px;color:var(--gris);text-align:center;margin-top:10px;
+    padding:7px;border-radius:9px;background:var(--fondo);transition:background .2s,color .2s}
+  .chk-auto.guardando{background:var(--cielo);color:var(--azul)}
+  .chk-auto.ok{background:#EAF7EF;color:#1F7A45}
+  .chk-auto.error{background:#FDECEC;color:#B02525}
   .chk{border:1px solid var(--linea);border-radius:13px;padding:13px;margin-bottom:10px}
   .chk.done{border-color:var(--ok);background:var(--ok-lt)}
   .chk.fail{border-color:var(--error);background:var(--error-lt)}
@@ -527,9 +536,14 @@ function abrir(id){
   if(guardado&&guardado.length){ CHK=JSON.parse(JSON.stringify(guardado)); }
   else {
     const reqs=REQS.filter(r=>r.tipo_credito===(ACT.tipo_credito||'general'));
-    const base=reqs.length?reqs:REQS.filter(r=>r.tipo_credito==='general');
+    let base=reqs.length?reqs:REQS.filter(r=>r.tipo_credito==='general');
+    // En reingreso y refinanciamiento solo se piden los puntos que marcó
+    // el asesor o el analista. Si no marcaron ninguno, se piden todos.
+    const sel=ACT.requisitos_actualizacion?.claves||[];
+    if(ACT.tipo_operacion!=='nuevo' && sel.length)
+      base=base.filter(r=>sel.includes(r.clave));
     CHK=base.map(r=>({clave:r.clave,etiqueta:r.etiqueta,obligatorio:r.obligatorio,
-      orden:r.orden,resultado:'',nota:''}));
+      orden:r.orden,grupo:r.grupo||'generales',resultado:'',nota:''}));
   }
   const d=ACT.datos_cliente||{};
   $('#m-t').textContent=nombreDe(d);
@@ -620,9 +634,22 @@ function detalle(){
   if(editable) conectarChecklist();
 }
 
+const GRUPO_L={domicilio:'Verificación de domicilio',trabajo:'Verificación de trabajo',generales:'Generales'};
 function checklistHTML(editable){
-  return `<div class="sec"><div class="sec-h"><h4>Puntos verificados</h4></div>
-    ${CHK.map((c,i)=>chkHTML(c,i,editable)).join('')}</div>`;
+  const hechos=CHK.filter(c=>c.resultado).length;
+  const listo=CHK.every(c=>!c.obligatorio||c.resultado);
+  // Se agrupan respetando el orden del catálogo
+  const grupos={};
+  CHK.forEach((c,i)=>{ const g=c.grupo||'generales'; (grupos[g]=grupos[g]||[]).push({c,i}); });
+  const orden=['domicilio','trabajo','generales'];
+  const claves=[...orden.filter(g=>grupos[g]),...Object.keys(grupos).filter(g=>!orden.includes(g))];
+  return `<div class="sec"><div class="sec-h"><h4>Puntos verificados</h4>
+      <span class="badge ${listo?'k':'p'}">${hechos}/${CHK.length}</span></div>
+    ${claves.map(g=>`
+      <div class="chk-grupo">${esc(GRUPO_L[g]||g)}</div>
+      ${grupos[g].map(({c,i})=>chkHTML(c,i,editable)).join('')}`).join('')}
+    ${editable?'<div class="chk-auto" id="chk-auto">El avance se guarda solo al marcar cada punto.</div>':''}
+  </div>`;
 }
 function chkHTML(c,i,editable=true){
   const cls=c.resultado==='si'?'done':c.resultado==='no'?'fail':'';
@@ -649,8 +676,40 @@ function conectarChecklist(){
     card.className='chk '+(CHK[i].resultado==='si'?'done':CHK[i].resultado==='no'?'fail':'');
     $$(`.chk[data-i="${i}"] .chk-btns button`).forEach(x=>x.classList.toggle('on',x.dataset.r===CHK[i].resultado));
     actualizarBadge();
+    guardarAvance();          // el avance queda guardado al instante
   }));
-  $$('[data-nota]').forEach(t=>t.addEventListener('input',e=>{CHK[+e.target.dataset.nota].nota=e.target.value;}));
+  // Las observaciones se guardan poco después de dejar de escribir
+  $$('[data-nota]').forEach(t=>t.addEventListener('input',e=>{
+    CHK[+e.target.dataset.nota].nota=e.target.value; guardarAvance(1200);
+  }));
+}
+
+/* Guarda el avance en segundo plano, sin recargar la pantalla ni perder el foco.
+   Se agrupa con un pequeño retraso para no escribir en cada tecla. */
+let _avanceT=null, _avanceOn=false;
+function guardarAvance(espera=250){
+  if(!ACT || ACT.estado!=='en_verificacion' || ACT.verificador_id!==YO.id) return;
+  clearTimeout(_avanceT);
+  const av=$('#chk-auto'); if(av){ av.textContent='Guardando avance…'; av.className='chk-auto guardando'; }
+  _avanceT=setTimeout(async()=>{
+    if(_avanceOn) return guardarAvance(400);
+    _avanceOn=true;
+    try{
+      const {error}=await sb.from('solicitudes').update({
+        requisitos_verificacion:{items:limpiarChkParaGuardar(),
+          actualizado_en:new Date().toISOString(), gps_ultimo:POS||null}
+      }).eq('id',ACT.id);
+      const a=$('#chk-auto');
+      if(a){
+        if(error){ a.textContent='No se pudo guardar. Revisá tu señal.'; a.className='chk-auto error'; }
+        else { a.textContent='Avance guardado ✓'; a.className='chk-auto ok'; }
+      }
+      if(!error && ACT) ACT.requisitos_verificacion={...(ACT.requisitos_verificacion||{}),items:limpiarChkParaGuardar()};
+    }catch(e){
+      const a=$('#chk-auto');
+      if(a){ a.textContent='Sin conexión: el avance se guardará al reintentar.'; a.className='chk-auto error'; }
+    }finally{ _avanceOn=false; }
+  },espera);
 }
 function actualizarBadge(){
   const b=$('.sec-h .badge');
@@ -711,11 +770,18 @@ async function guardar(cerrar){
 async function finalizar(){
   // Validar obligatorios en el cliente antes de mandar
   const faltan=CHK.filter(c=>c.obligatorio&&!c.resultado);
-  if(faltan.length){ toast(`Faltan ${faltan.length} punto(s) obligatorio(s)`,'m'); return; }
+  if(faltan.length){
+    toast(`Falta marcar: ${faltan.map(c=>c.etiqueta).join(', ')}`,'m');
+    return;
+  }
   const rechazos=CHK.filter(c=>c.resultado==='no');
-  const msg=rechazos.length
+  const efectivo=ACT.tipo_desembolso==='efectivo';
+  const cola=efectivo
+    ? '\n\nComo el desembolso es en EFECTIVO, quedás a la espera de que autoricen la entrega.'
+    : '';
+  const msg=(rechazos.length
     ? `Hay ${rechazos.length} punto(s) que NO cumplen. El analista lo verá al decidir. ¿Finalizar la verificación?`
-    : '¿Finalizar y enviar la verificación al analista?';
+    : '¿Finalizar y enviar la verificación al analista?')+cola;
   if(!confirm(msg)) return;
 
   const bs=$$('#m-pie .btn');bs.forEach(b=>b.disabled=true);
