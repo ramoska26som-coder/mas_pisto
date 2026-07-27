@@ -106,6 +106,12 @@
   /* Kanban */
   .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;align-items:start}
   .kanban-5{grid-template-columns:repeat(5,1fr)}
+  /* Con 5 columnas, si no hay ancho para que las tarjetas se lean cómodas,
+     se pasa a scroll horizontal con columnas de ancho fijo en vez de apretarlas. */
+  @media(min-width:1101px) and (max-width:1700px){
+    .kanban-5{display:flex;overflow-x:auto;gap:12px;padding-bottom:10px;scrollbar-width:thin}
+    .kanban-5 .kcol{flex:0 0 300px}
+  }
   @media(max-width:1100px){.kanban-5{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:1100px){
     .kanban{display:flex;overflow-x:auto;gap:11px;scroll-snap-type:x mandatory;
@@ -122,6 +128,7 @@
   .kcol.pend .kdot,.kcol.pend .kcol-n{background:var(--amber)}
   .kcol.ase  .kdot,.kcol.ase  .kcol-n{background:var(--azul)}
   .kcol.ana  .kdot,.kcol.ana  .kcol-n{background:#7C5CE0}
+  .kcol.perfil .kdot,.kcol.perfil .kcol-n{background:#C4569B}
   .kcol.ver  .kdot,.kcol.ver  .kcol-n{background:#0E9BA8}
   .kcol.fin  .kdot,.kcol.fin  .kcol-n{background:var(--ok)}
   .kempty{text-align:center;padding:22px 10px;color:var(--gris);font-size:12.5px}
@@ -229,6 +236,8 @@
   /* Comprobantes de ingresos: filas de pago + panel de resultados */
   .ing-cli{font-family:'Poppins';font-weight:600;font-size:15px;color:var(--azul-tinta);
     margin:-4px 0 12px;padding-bottom:10px;border-bottom:1px solid var(--linea)}
+  .pf-prev{margin:11px 0 0;padding-left:26px;font-size:12.5px;color:var(--tinta);line-height:1.7}
+  .pf-prev li{border-bottom:1px solid var(--linea);padding:3px 0;white-space:pre-line}
   .ing-wrap{display:grid;gap:0;border:1px solid var(--linea);border-radius:14px;overflow:hidden;background:#fff}
   /* El panel de resultados solo va al lado si de verdad hay espacio */
   @media(min-width:1180px){ .ing-wrap{grid-template-columns:minmax(0,1fr) 220px} }
@@ -2409,6 +2418,14 @@ function detalle(){
   if(esPerfil){
     const ra=s.resultado_analisis||{};
     const ps=s.perfil_sistema||{};
+    const filas=filasPerfilExcel(s);
+    der+=`<div class="sec"><div class="sec-h"><h4>Copiar datos para el sistema</h4></div>
+      <div class="callout" style="margin-bottom:11px">Copiá los datos en el orden del formulario y pegalos en una columna del Excel. Cada dato cae en su propia fila.</div>
+      <button class="btn btn-b" id="pf-copiar" style="width:100%">📋 Copiar todos los datos</button>
+      <details style="margin-top:11px"><summary style="cursor:pointer;font-size:13px;color:var(--azul);font-weight:600">Ver lo que se va a copiar</summary>
+        <ol class="pf-prev">${filas.map(v=>`<li>${esc(v||'—')}</li>`).join('')}</ol>
+      </details>
+    </div>`;
     der+=`<div class="sec"><div class="sec-h"><h4>Llenar perfil en el sistema</h4>
         <span class="badge ${ps.confirmado?'k':'p'}">${ps.confirmado?'confirmado':'pendiente'}</span></div>
       <div class="callout" style="margin-bottom:12px">Transcribí esta solicitud al sistema de la empresa, elegí el tipo de desembolso y asigná el verificador.</div>
@@ -2646,6 +2663,7 @@ function conectar(esAse,esAna){
   $('#nota-add')?.addEventListener('click',guardarNota);
   // En el paso de perfil, cargar la lista de verificadores disponibles
   if($('#pf-verif')) cargarVerifSelect();
+  $('#pf-copiar')?.addEventListener('click',()=>copiarPerfil(ACT));
   $('#add-intento')?.addEventListener('click',abrirRegistrarIntento);
   if(esAse){
     $('#conf-docs')?.addEventListener('click',confirmarDocs);
@@ -3148,6 +3166,81 @@ async function enviarALlenarPerfil(){
   if(!confirm('¿Enviar al asesor para que llene el perfil en el sistema?')) return;
   await guardar({...datosAnalista(),estado:'llenar_perfil'});
   toast('Enviada a llenar perfil','k');
+}
+
+/* Arma los valores del perfil en el MISMO orden del formulario de la empresa,
+   para copiar y pegar en una columna de Excel (cada valor en su fila). */
+function filasPerfilExcel(s){
+  const d=s.datos_cliente||{}, ra=s.resultado_analisis||{}, ai=s.analisis_ingresos||{};
+  const nac=d.nacimiento
+    ? new Date(d.nacimiento+'T12:00:00').toLocaleDateString('es-HN')
+    : (d.edad?`${d.edad} años`:'');
+  const monto = ra.monto_aprobado || d.monto || '';
+  const gana  = ai.ingreso_promedio || d.salario || '';
+  const puesto = d.puesto || d.cargo || '';
+  const rubro = d.rubro==='Otro'||d.rubro==='otro' ? (d.rubro_otro||d.rubro) : (d.rubro||'');
+  const referente = d.canal_detalle || d.canal || d.canal_nombre || '';
+  const domicilio = d.direccion_casa || d.direccion || '';
+  const antiguedadCasa = d.tiempo_vivienda
+    || [d.vivienda_anios?`${d.vivienda_anios} años`:'', d.vivienda_meses?`${d.vivienda_meses} meses`:''].filter(Boolean).join(' ');
+  const vivienda = d.tipo_vivienda==='Alquilada'||d.tipo_vivienda==='alquila'
+    ? `Alquila${d.tipo_alquiler?'/'+d.tipo_alquiler:''}`
+    : (d.tipo_vivienda||'');
+  const refs=(d.referencias&&d.referencias.length?d.referencias:[
+      {nombre:d.ref1_nombre,telefono:d.ref1_tel,parentesco:d.ref1_parentesco},
+      {nombre:d.ref2_nombre,telefono:d.ref2_tel,parentesco:d.ref2_parentesco}
+    ]).filter(r=>r&&(r.nombre||r.telefono));
+  const refsTxt = refs.map(r=>`${r.nombre||''}${r.telefono?' '+r.telefono:''}${r.parentesco?' · '+r.parentesco:''}`.trim()).join('\n');
+
+  const fmtMonto=n=>n?('L '+Number(n).toLocaleString('es-HN')):'';
+  // Orden EXACTO del formulario de la empresa
+  return [
+    d.nombre||'',
+    d.cedula||'',
+    fmtMonto(monto),
+    nac,
+    d.empresa||'',
+    rubro,
+    d.dir_empresa||d.direccion_trabajo||'',
+    puesto,
+    d.antiguedad||'',
+    fmtMonto(gana),
+    d.prestaciones||'',
+    d.otros_ingresos||d.tiene_otros||'',
+    d.metodo_pago||d.forma_pago||'',
+    d.dias_pago||d.frecuencia_pago||'',
+    d.destino||'',
+    referente,
+    d.telefono||'',
+    domicilio,
+    antiguedadCasa,
+    vivienda,
+    refsTxt
+  ];
+}
+
+/* Copia los valores en una columna (un valor por línea = una celda por fila en Excel).
+   Las referencias, que llevan varias líneas, van entre comillas para que Excel las
+   mantenga en una sola celda al pegar. */
+async function copiarPerfil(s){
+  const filas=filasPerfilExcel(s);
+  const texto=filas.map(v=>{
+    v=String(v||'');
+    // Si el valor tiene saltos de línea o tabs, se encierra en comillas (formato TSV)
+    return /[\n\t"]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+  }).join('\n');
+  try{
+    await navigator.clipboard.writeText(texto);
+    toast('Datos copiados · pegalos en Excel','k');
+  }catch(e){
+    // Respaldo para navegadores viejos o sin permiso de portapapeles
+    const ta=document.createElement('textarea');
+    ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast('Datos copiados · pegalos en Excel','k'); }
+    catch(_){ toast('No se pudo copiar automáticamente','m'); }
+    ta.remove();
+  }
 }
 
 /* El asesor transcribe el perfil, elige el tipo de desembolso y asigna verificador.
