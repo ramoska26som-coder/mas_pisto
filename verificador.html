@@ -265,6 +265,9 @@
       <rect x="46" y="35" width="10" height="42" rx="1" fill="#1877F2"/>
     </svg>
     <div class="top-i"><div class="top-t" id="top-t">Mis verificaciones</div><div class="top-s" id="top-s">—</div></div>
+    <button class="icon-btn" id="btn-notif" title="Notificaciones" style="position:relative">🔔
+      <span id="notif-dot" style="position:absolute;top:0;right:0;width:9px;height:9px;border-radius:50%;background:var(--error);border:2px solid #fff;display:none"></span>
+    </button>
     <button class="icon-btn" id="salir" title="Salir">⏻</button>
   </div>
 
@@ -367,13 +370,36 @@ async function cargar(){
     s.estado==='por_verificar' || s.verificador_id===YO.id || YO.rol==='admin');
   render();
 }
+/* Tiempo real con reconexión y respaldo por sondeo (en campo la señal falla). */
+let CANAL=null, RT_OK=false, RT_INTENTOS=0, RT_TIMER=null;
 function vivo(){
-  sb.channel('verif')
+  if(CANAL){ try{ sb.removeChannel(CANAL); }catch(e){} CANAL=null; }
+  CANAL=sb.channel('verif-'+Date.now())
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'solicitudes'},
       p=>{ cargar(); avisarVerif(p.old,p.new); })
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'solicitudes'},cargar)
-    .subscribe();
+    .subscribe(estado=>{
+      const antes=RT_OK;
+      RT_OK = estado==='SUBSCRIBED';
+      if(RT_OK){
+        RT_INTENTOS=0;
+        if(!antes) cargar();
+        sondeo(60000);
+      } else if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(estado)){
+        sondeo(15000);
+        RT_INTENTOS++;
+        setTimeout(()=>{ if(!RT_OK) vivo(); }, Math.min(30000,2000*RT_INTENTOS));
+      }
+    });
+  sondeo(RT_OK?60000:15000);
 }
+function sondeo(ms){
+  clearInterval(RT_TIMER);
+  RT_TIMER=setInterval(()=>{ if(!document.hidden && !RT_OK) cargar(); }, ms);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){ cargar(); if(!RT_OK) vivo(); }
+});
 
 /* ===== AVISOS ===== */
 let AUDIO_CTX=null, SONIDO_ON=localStorage.getItem('mp_sonido')!=='0';
@@ -434,10 +460,34 @@ async function notificarSistema(titulo,texto,id){
   }catch(e){}
   try{ new Notification(titulo,ops); }catch(e){}
 }
-function pedirPermisoNotif(){
-  if(!('Notification' in window)) return;
-  if(Notification.permission==='default') Notification.requestPermission();
+/* El navegador solo concede el permiso si lo pide un clic del usuario. */
+function pedirPermisoNotif(){ pintarBotonNotif(); }
+function pintarBotonNotif(){
+  const b=$('#btn-notif'), dot=$('#notif-dot'); if(!b) return;
+  if(!('Notification' in window)){ b.style.display='none'; return; }
+  const p=Notification.permission;
+  b.style.opacity = p==='granted' ? '1' : '.65';
+  b.title = p==='granted' ? 'Notificaciones activadas'
+          : p==='denied'  ? 'Bloqueadas por el navegador'
+          : 'Tocá para activar las notificaciones';
+  if(dot) dot.style.display = p==='granted' ? 'none' : 'block';
 }
+async function activarNotif(){
+  if(!('Notification' in window)){ toast('Este navegador no soporta notificaciones','m'); return; }
+  if(Notification.permission==='denied'){
+    toast('Bloqueadas. Activalas desde los ajustes del navegador','m'); return; }
+  if(Notification.permission==='granted'){
+    notificarSistema('Notificaciones activas','Así se verán tus avisos','prueba');
+    toast('Ya están activadas','k'); return; }
+  const r=await Notification.requestPermission();
+  pintarBotonNotif();
+  if(r==='granted'){
+    await registrarSW();
+    notificarSistema('Notificaciones activadas','Te avisaremos de cada visita asignada','prueba');
+    toast('Notificaciones activadas','k');
+  } else toast('No se activaron','m');
+}
+$('#btn-notif')?.addEventListener('click',activarNotif);
 async function registrarSW(){
   if(!('serviceWorker' in navigator)) return;
   try{ SW_REG=await navigator.serviceWorker.register('sw.js'); }catch(e){}

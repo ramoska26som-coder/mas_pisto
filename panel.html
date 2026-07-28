@@ -648,6 +648,13 @@
             <path d="M19 5a10 10 0 0 1 0 14" class="onda"/>
           </svg>
         </button>
+        <button class="icon-btn" id="btn-notif" title="Notificaciones del navegador" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--linea);background:#fff;cursor:pointer;display:grid;place-items:center;flex:none;color:var(--gris);position:relative">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span id="notif-dot" style="position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--error);border:2px solid #fff;display:none"></span>
+        </button>
         <button class="btn btn-b btn-sm hide" id="btn-nueva" style="flex:none">+ Nueva</button>
       </div>
       <div class="cont"><div class="cont-in" id="cont"></div></div>
@@ -956,25 +963,96 @@ async function cargar(){
   else if(VISTA==='historial') pintarHistorial();
   else if(VISTA==='metricas') pintarMetricas();
 }
+/* ===== TIEMPO REAL =====
+   Se vigila el estado de la conexión: si falla, reintenta sola y mientras tanto
+   refresca por sondeo, para que el panel nunca quede desactualizado en silencio. */
+let CANALES=[], RT_OK=false, RT_INTENTOS=0, RT_TIMER=null;
+
 function vivo(){
-  sb.channel('sols')
+  cerrarCanales();   // evita suscripciones duplicadas al reconectar
+
+  const chSols=sb.channel('sols-'+Date.now())
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'solicitudes'},
       p=>{ cargar(); notificarNueva(p.new); })
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'solicitudes'},
       p=>{ cargar(); notificarCambio(p.old,p.new); refrescarModalSiAplica(p.new); })
-    .subscribe();
-  // Notas: si alguien más agrega una nota a la solicitud que tenés abierta, aparece sola.
-  sb.channel('notas')
+    .subscribe(estado=>manejarEstadoRT(estado));
+
+  const chNotas=sb.channel('notas-'+Date.now())
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'notas_solicitud'},
       p=>{ if(ACT&&$('#modal').classList.contains('on')&&p.new.solicitud_id===ACT.id) pintarNotas(); })
     .subscribe();
-  // Catálogo de causas: se mantiene al día sin refrescar.
-  sb.channel('causas')
+
+  const chCausas=sb.channel('causas-'+Date.now())
     .on('postgres_changes',{event:'*',schema:'public',table:'causas_cierre'},
       ()=>cargarCausas())
     .subscribe();
-  setInterval(()=>{if(!$('#modal').classList.contains('on')&&VISTA==='solicitudes')pintarSolicitudes();},60000);
+
+  CANALES=[chSols,chNotas,chCausas];
+
+  // Respaldo: si el tiempo real no está conectado, se refresca por sondeo.
+  clearInterval(RT_TIMER);
+  RT_TIMER=setInterval(()=>{
+    if(document.hidden) return;
+    if($('#modal').classList.contains('on')) return;
+    if(!RT_OK) cargar();                 // sin tiempo real: traer datos seguido
+    else if(VISTA==='solicitudes') pintarSolicitudes();   // solo refrescar relojes
+  }, RT_OK?60000:15000);
 }
+
+function cerrarCanales(){
+  CANALES.forEach(c=>{ try{ sb.removeChannel(c); }catch(e){} });
+  CANALES=[];
+}
+
+function manejarEstadoRT(estado){
+  const antes=RT_OK;
+  RT_OK = estado==='SUBSCRIBED';
+  pintarEstadoRT(estado);
+  if(RT_OK){
+    RT_INTENTOS=0;
+    if(!antes){ cargar(); }             // al reconectar, ponerse al día
+    vivoIntervalo(60000);
+  } else if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(estado)){
+    vivoIntervalo(15000);               // mientras tanto, sondeo más seguido
+    RT_INTENTOS++;
+    const espera=Math.min(30000, 2000*RT_INTENTOS);
+    setTimeout(()=>{ if(!RT_OK) vivo(); }, espera);
+  }
+}
+function vivoIntervalo(ms){
+  clearInterval(RT_TIMER);
+  RT_TIMER=setInterval(()=>{
+    if(document.hidden) return;
+    if($('#modal').classList.contains('on')) return;
+    if(!RT_OK) cargar();
+    else if(VISTA==='solicitudes') pintarSolicitudes();
+  }, ms);
+}
+
+/* Aviso discreto cuando el panel pierde la conexión en vivo */
+function pintarEstadoRT(estado){
+  let el=$('#rt-aviso');
+  if(RT_OK){ if(el) el.remove(); return; }
+  if(!el){
+    el=document.createElement('div');
+    el.id='rt-aviso';
+    el.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);'+
+      'background:#FBF0D6;color:#8A6D00;border:1px solid #EBD9AE;padding:8px 15px;'+
+      'border-radius:11px;font-size:12.5px;font-weight:600;z-index:200;box-shadow:var(--sombra-sm);'+
+      'display:flex;align-items:center;gap:8px;cursor:pointer';
+    el.title='Tocá para reconectar';
+    el.addEventListener('click',()=>{ toast('Reconectando…','k'); vivo(); });
+    document.body.appendChild(el);
+  }
+  el.innerHTML='<span class="sp" style="width:12px;height:12px;border-width:2px"></span>'+
+    'Sin conexión en vivo · actualizando cada 15s';
+}
+
+// Al volver a la pestaña, ponerse al día de inmediato
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){ cargar(); if(!RT_OK) vivo(); }
+});
 
 /* Si tenés abierta la solicitud que cambió, el detalle se actualiza solo.
    Solo se redibuja cuando cambió el ESTADO (para no pisar lo que estés escribiendo);
@@ -1108,9 +1186,44 @@ async function notificarSistema(titulo,texto,id){
   }catch(e){}
   try{ new Notification(titulo,ops); }catch(e){}
 }
+/* El permiso de notificaciones SOLO se concede si lo pide un clic del usuario.
+   Por eso hay un botón en la barra: muestra el estado y lo solicita al tocarlo. */
 function pedirPermisoNotif(){
-  if(!('Notification' in window)) return;
-  if(Notification.permission==='default') Notification.requestPermission();
+  pintarBotonNotif();
+}
+function pintarBotonNotif(){
+  const b=$('#btn-notif'), dot=$('#notif-dot'); if(!b) return;
+  if(!('Notification' in window)){
+    b.style.display='none'; return;
+  }
+  const p=Notification.permission;
+  b.style.color = p==='granted' ? 'var(--ok)' : p==='denied' ? 'var(--error)' : 'var(--gris)';
+  b.style.borderColor = p==='granted' ? '#BFE4CD' : p==='denied' ? '#F3C4C4' : 'var(--linea)';
+  b.title = p==='granted' ? 'Notificaciones activadas'
+          : p==='denied'  ? 'Notificaciones bloqueadas por el navegador'
+          : 'Tocá para activar las notificaciones';
+  if(dot) dot.style.display = p==='granted' ? 'none' : 'block';
+}
+async function activarNotif(){
+  if(!('Notification' in window)){ toast('Este navegador no soporta notificaciones','m'); return; }
+  if(Notification.permission==='denied'){
+    toast('Están bloqueadas. Activalas desde el candado 🔒 de la barra de direcciones','m');
+    return;
+  }
+  if(Notification.permission==='granted'){
+    notificarSistema('Notificaciones activas','Así se verán los avisos de Más Pisto','prueba');
+    toast('Ya están activadas · te mandé una de prueba','k');
+    return;
+  }
+  const r=await Notification.requestPermission();   // requiere el clic del usuario
+  pintarBotonNotif();
+  if(r==='granted'){
+    await registrarSW();
+    notificarSistema('Notificaciones activadas','Vas a recibir los avisos aunque estés en otra pestaña','prueba');
+    toast('Notificaciones activadas','k');
+  } else {
+    toast('No se activaron las notificaciones','m');
+  }
 }
 
 /* Registrar el service worker: habilita instalar la app en el celular
@@ -1135,6 +1248,7 @@ $('#btn-sonido')?.addEventListener('click',()=>{
   if(SONIDO_ON) sonidoCambio();   // confirmación audible
   toast(SONIDO_ON?'Sonido activado':'Sonido silenciado','k');
 });
+$('#btn-notif')?.addEventListener('click',activarNotif);
 function sla(s){
   const hrs=(Date.now()-new Date(s.estado_desde))/36e5;
   const lim=(P.sla_horas||{})[s.estado]||24;
@@ -1970,10 +2084,15 @@ async function pintarUsuarios(){
           <div class="u-n">${esc(u.nombre)}${u.id===YO.id?' <span class="tag b" style="font-size:10px">vos</span>':''}</div>
           <div class="u-m">${esc(u.email)} · ${esc([u.rol,...(u.roles_extra||[])].join(', '))}</div>
         </div>
+        <button class="btn btn-g btn-sm" data-ed="${u.id}">Editar</button>
         <button class="btn btn-g btn-sm" data-pw="${u.id}">Clave</button>
         <button class="btn btn-g btn-sm" data-act="${u.id}" data-a="${u.activo}">${u.activo?'Desactivar':'Activar'}</button>
       </div>`).join('')}</div>`;
-  $('#u-new').addEventListener('click',modalUsuario);
+  $('#u-new').addEventListener('click',()=>modalUsuario(null));
+  $$('[data-ed]').forEach(b=>b.addEventListener('click',()=>{
+    const u=(data||[]).find(x=>x.id===b.dataset.ed);
+    if(u) modalUsuario(u);
+  }));
   $$('[data-pw]').forEach(b=>b.addEventListener('click',async()=>{
     const p=prompt('Nueva contraseña (mínimo 8 caracteres):');
     if(!p) return;
@@ -1988,32 +2107,43 @@ async function pintarUsuarios(){
     toast(on?'Usuario activado':'Usuario desactivado','k');pintarUsuarios();
   }));
 }
-function modalUsuario(){
+/* Un solo modal para crear y para editar. Si recibe 'u', está editando. */
+function modalUsuario(u){
   ACT=null;
-  $('#m-t').textContent='Crear usuario';$('#m-f').textContent='Acceso al panel';
+  const editar=!!u;
+  const rolesU=editar?[u.rol,...(u.roles_extra||[])]:[];
+  $('#m-t').textContent=editar?'Editar usuario':'Crear usuario';
+  $('#m-f').textContent=editar?esc(u.email||''):'Acceso al panel';
   $('#m-body').innerHTML=`<div class="sec">
-    <div class="fld"><label>Nombre completo</label><input id="nu-nom" placeholder="María Fernández"></div>
+    <div class="fld"><label>Nombre completo</label>
+      <input id="nu-nom" placeholder="María Fernández" value="${editar?esc(u.nombre||''):''}"></div>
     <div class="g2">
-      <div class="fld"><label>Usuario</label><input id="nu-usr" placeholder="mfernandez"></div>
-      <div class="fld"><label>Teléfono</label><input id="nu-tel" placeholder="9999-8888"></div>
+      <div class="fld"><label>Usuario</label>
+        <input id="nu-usr" placeholder="mfernandez" value="${editar?esc(u.usuario||''):''}"></div>
+      <div class="fld"><label>Teléfono</label>
+        <input id="nu-tel" placeholder="9999-8888" value="${editar?esc(u.telefono||''):''}"></div>
     </div>
     <div class="fld"><label>Correo<small>Con este entra al panel</small></label>
-      <input id="nu-mail" type="email" placeholder="maria@maspisto.hn"></div>
-    <div class="fld"><label>Contraseña<small>Mínimo 8 caracteres</small></label>
-      <input id="nu-pass" type="text" placeholder="Clave temporal"></div>
+      <input id="nu-mail" type="email" placeholder="maria@maspisto.hn" value="${editar?esc(u.email||''):''}"></div>
+    ${editar?'':`<div class="fld"><label>Contraseña<small>Mínimo 8 caracteres</small></label>
+      <input id="nu-pass" type="text" placeholder="Clave temporal"></div>`}
     <div class="fld"><label>Rol principal</label><select id="nu-rol">
-      <option value="asesor">Asesor</option><option value="analista">Analista</option>
-      <option value="verificador">Verificador</option><option value="admin">Administrador</option>
+      <option value="asesor" ${editar&&u.rol==='asesor'?'selected':''}>Asesor</option>
+      <option value="analista" ${editar&&u.rol==='analista'?'selected':''}>Analista</option>
+      <option value="verificador" ${editar&&u.rol==='verificador'?'selected':''}>Verificador</option>
+      <option value="admin" ${editar&&u.rol==='admin'?'selected':''}>Administrador</option>
     </select></div>
     <div class="fld"><label>Roles adicionales<small>Un asesor puede además ser analista</small></label>
       <div class="tipo-g" id="nu-extra">
-        <button type="button" data-x="asesor">Asesor</button>
-        <button type="button" data-x="analista">Analista</button>
-        <button type="button" data-x="verificador">Verificador</button>
+        <button type="button" data-x="asesor" class="${rolesU.includes('asesor')&&u?.rol!=='asesor'?'on':''}">Asesor</button>
+        <button type="button" data-x="analista" class="${rolesU.includes('analista')&&u?.rol!=='analista'?'on':''}">Analista</button>
+        <button type="button" data-x="verificador" class="${rolesU.includes('verificador')&&u?.rol!=='verificador'?'on':''}">Verificador</button>
+        <button type="button" data-x="admin" class="${rolesU.includes('admin')&&u?.rol!=='admin'?'on':''}">Administrador</button>
       </div></div>
+    ${editar?'<div class="callout" style="margin-bottom:0">Para cambiar la contraseña usá el botón <b>Clave</b> de la lista.</div>':''}
     <div class="callout r hide" id="nu-err"></div></div>`;
   $('#m-pie').innerHTML=`<button class="btn btn-g" id="nu-x">Cancelar</button>
-    <button class="btn btn-b" id="nu-ok">Crear usuario</button>`;
+    <button class="btn btn-b" id="nu-ok">${editar?'Guardar cambios':'Crear usuario'}</button>`;
   $('#modal').classList.add('on');
   pushCapa(cerrarModal);
   $$('#nu-extra button').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
@@ -2021,20 +2151,37 @@ function modalUsuario(){
   $('#nu-ok').addEventListener('click',async()=>{
     const err=m=>{$('#nu-err').textContent=m;$('#nu-err').classList.remove('hide');};
     $('#nu-err').classList.add('hide');
-    const nom=$('#nu-nom').value.trim(),usr=$('#nu-usr').value.trim();
-    const mail=$('#nu-mail').value.trim(),pass=$('#nu-pass').value;
-    if(!nom||!usr||!mail||!pass) return err('Completá todos los campos.');
-    if(pass.length<8) return err('La contraseña debe tener al menos 8 caracteres.');
+    const nom=$('#nu-nom').value.trim(), usr=$('#nu-usr').value.trim();
+    const mail=$('#nu-mail').value.trim(), tel=$('#nu-tel').value.trim()||null;
     const principal=$('#nu-rol').value;
     const extra=$$('#nu-extra button.on').map(b=>b.dataset.x).filter(x=>x!==principal);
-    const b=$('#nu-ok');b.disabled=true;b.innerHTML='<span class="sp"></span>Creando';
+    const b=$('#nu-ok'); b.disabled=true;
+
+    if(editar){
+      if(!nom||!usr) return (b.disabled=false, err('El nombre y el usuario son obligatorios.'));
+      b.innerHTML='<span class="sp"></span>Guardando';
+      const {data:r,error}=await sb.rpc('actualizar_usuario_panel',{
+        p_user_id:u.id, p_nombre:nom, p_usuario:usr, p_email:mail,
+        p_rol:principal, p_roles_extra:extra, p_telefono:tel});
+      b.disabled=false; b.textContent='Guardar cambios';
+      if(error) return err(traducir(error.message));
+      if(!r?.ok) return err(r?.error||'No se pudo guardar.');
+      toast('Usuario actualizado','k'); cerrarModalNav(); pintarUsuarios();
+      if(u.id===YO.id) toast('Cambiaste tus propios datos: volvé a entrar para verlos','k');
+      return;
+    }
+
+    const pass=$('#nu-pass').value;
+    if(!nom||!usr||!mail||!pass) return (b.disabled=false, err('Completá todos los campos.'));
+    if(pass.length<8) return (b.disabled=false, err('La contraseña debe tener al menos 8 caracteres.'));
+    b.innerHTML='<span class="sp"></span>Creando';
     const {data:r,error}=await sb.rpc('crear_usuario_panel',{
       p_email:mail,p_password:pass,p_usuario:usr,p_nombre:nom,
-      p_rol:principal,p_roles_extra:extra,p_telefono:$('#nu-tel').value.trim()||null});
-    b.disabled=false;b.textContent='Crear usuario';
-    if(error) return err(error.message);
+      p_rol:principal,p_roles_extra:extra,p_telefono:tel});
+    b.disabled=false; b.textContent='Crear usuario';
+    if(error) return err(traducir(error.message));
     if(!r?.ok) return err(r?.error||'No se pudo crear.');
-    toast('Usuario creado','k');cerrarModalNav();pintarUsuarios();
+    toast('Usuario creado','k'); cerrarModalNav(); pintarUsuarios();
   });
 }
 
