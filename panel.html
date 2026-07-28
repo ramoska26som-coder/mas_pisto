@@ -2601,9 +2601,11 @@ function detalle(){
       <div class="callout w" style="margin:12px 0 0">La central <b>no deniega por sí sola</b>. Solo informa la decisión.</div></div>`;
 
     const its=ck.referencias?.items||[];
+    const refsObliga=s.tipo_operacion==='nuevo';
     der+=`<div class="sec"><div class="sec-h"><h4>Referencias</h4>
-        <span class="badge ${ck.referencias?.estado==='realizado'?'k':ck.referencias?.estado==='rechazado'?'m':'p'}"
-          >${its.filter(r=>r.resultado).length}/${its.length}</span></div>
+        <span class="badge ${!refsObliga?'p':ck.referencias?.estado==='realizado'?'k':ck.referencias?.estado==='rechazado'?'m':'p'}"
+          >${refsObliga?`${its.filter(r=>r.resultado).length}/${its.length}`:'opcional'}</span></div>
+      ${!refsObliga?`<div class="callout" style="margin-bottom:12px">En un <b>${TIPO_L[s.tipo_operacion]}</b> las referencias no son obligatorias: lo que define el caso es el <b>comportamiento de pago</b>. Podés llamarlas igual si querés.</div>`:''}
       ${its.length?its.map(refHTML).join(''):'<p style="font-size:13.5px;color:var(--gris)">Este cliente no dio referencias.</p>'}
       <button class="btn btn-g btn-sm" id="add-ref" style="flex:none;margin-top:10px">+ Agregar referencia</button>
       <div class="callout r" style="margin:10px 0 0">Marcar una referencia como <b>falsa</b> deniega la solicitud de inmediato. Marcar <b>"No respondió"</b> mueve el tiempo a "referencias" y deja de contar contra vos.</div></div>`;
@@ -3831,13 +3833,17 @@ async function guardar(campos){
   else if(a){ACT=a;CUOTAS=a.comportamiento_pago?.cuotas||CUOTAS;detalle();}
 }
 function traducir(m){
-  if(m.includes('comportamiento de pago')) return 'Falta completar el comportamiento de pago.';
-  if(m.includes('referencias')) return 'Faltan referencias por llamar.';
-  if(m.includes('ingresos')) return 'Falta capturar los ingresos del cliente.';
-  if(m.includes('fecha de ingreso')) return 'Un reingreso necesita la fecha de ingreso del cliente.';
-  if(m.includes('analista')) return 'Debe asignarse un analista.';
-  if(m.includes('verificador')) return 'Debe asignarse un verificador.';
-  if(m.includes('row-level security')) return 'No tenés permiso para esta acción.';
+  if(!m) return 'Ocurrió un error.';
+  // Errores técnicos: se traducen a algo entendible
+  if(m.includes('row-level security')||m.includes('permission denied'))
+    return 'No tenés permiso para esta acción.';
+  if(m.includes('duplicate key')) return 'Ese registro ya existe.';
+  if(m.includes('violates foreign key')) return 'Falta un dato relacionado.';
+  if(m.includes('null value in column')) return 'Falta llenar un campo obligatorio.';
+  if(m.includes('invalid input syntax')) return 'Hay un dato con formato inválido.';
+  if(m.includes('Failed to fetch')||m.includes('NetworkError'))
+    return 'Sin conexión. Revisá tu señal e intentá de nuevo.';
+  // El resto ya son mensajes del negocio, escritos para que se entiendan tal cual.
   return m;
 }
 async function aprobar(){
