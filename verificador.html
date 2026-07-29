@@ -423,28 +423,52 @@ const sonidoAsignada=()=>tono([[660,0,.16],[880,.14,.30]]);
 
 function avisarVerif(ant,nue){
   if(ant.estado===nue.estado && ant.verificador_id===nue.verificador_id) return;
-  // Solo me interesa lo que me asignan a mí o lo que queda libre para tomar
   const esMia = nue.verificador_id===YO.id;
   const quedaLibre = nue.estado==='por_verificar' && !nue.verificador_id;
   if(!esMia && !quedaLibre) return;
-  if(!['por_verificar','en_verificacion'].includes(nue.estado)) return;
+
+  // Qué avisar según lo que pasó
+  let titulo=null, icono='📍';
+  if(nue.estado==='por_verificar'){
+    titulo = esMia ? 'Te asignaron una visita' : 'Nueva visita disponible';
+  } else if(nue.estado==='en_verificacion' && esMia){
+    titulo = 'Verificación iniciada';
+  } else if(nue.estado==='aprobado' && esMia){
+    // Lo importante para el verificador: ya puede entregar el efectivo
+    titulo = nue.tipo_desembolso==='efectivo'
+      ? '💵 Desembolso autorizado · entregar efectivo'
+      : 'Desembolso autorizado';
+    icono='✅';
+  } else if(nue.estado==='desembolsado' && esMia){
+    titulo='Desembolso entregado'; icono='✅';
+  } else if(nue.estado==='denegado' && esMia){
+    titulo='Solicitud rechazada'; icono='🚫';
+  } else if(nue.estado==='cancelado' && esMia){
+    titulo='Solicitud cancelada'; icono='⚪';
+  }
+  if(!titulo) return;
 
   const d=nue.datos_cliente||{};
+  const ra=nue.resultado_analisis||{};
+  const libre = nue.monto_desembolsado ?? ra.monto_libre ?? nue.monto_aceptado;
+  const detalleTxt = nue.estado==='aprobado' && libre!=null
+    ? `${nombreDe(d)} · L ${Number(libre).toLocaleString('es-HN')}`
+    : `${nombreDe(d)} · ${nue.folio}`;
+
   sonidoAsignada();
   const el=document.createElement('div');
   el.className='aviso-v';
-  el.innerHTML=`<div class="av-ic">📍</div>
-    <div class="av-c"><div class="av-t">${esMia?'Te asignaron una visita':'Nueva visita disponible'}</div>
-    <div class="av-x">${esc(nombreDe(d))} · ${esc(nue.folio)}</div></div>`;
+  el.innerHTML=`<div class="av-ic">${icono}</div>
+    <div class="av-c"><div class="av-t">${esc(titulo)}</div>
+    <div class="av-x">${esc(detalleTxt)}</div></div>`;
   $('#avisos-v').prepend(el);
   requestAnimationFrame(()=>el.classList.add('on'));
   el.addEventListener('click',()=>{el.remove(); abrir(nue.id);});
   setTimeout(()=>{el.classList.remove('on');setTimeout(()=>el.remove(),300);},9000);
   while($('#avisos-v').children.length>3) $('#avisos-v').lastElementChild.remove();
 
-  if(navigator.vibrate) navigator.vibrate([120,60,120]);   // en el teléfono
-  notificarSistema(esMia?'Te asignaron una visita':'Nueva visita disponible',
-    `${nombreDe(d)} · ${nue.folio}`, nue.id);
+  if(navigator.vibrate) navigator.vibrate([120,60,120]);
+  notificarSistema(titulo, detalleTxt, nue.id);
 }
 
 /* Notificación del sistema (la de la pantalla del cel). En Android va por el
@@ -612,12 +636,6 @@ function detalle(){
   const editable=s.estado==='en_verificacion'&&s.verificador_id===YO.id;
   let h='';
 
-  // GPS
-  h+=`<div class="gps" id="gps-box"><div class="gps-row">
-    <span class="gps-dot"></span>
-    <div class="gps-t">Buscando ubicación…</div></div>
-    <div class="gps-c" style="margin-top:5px;margin-left:22px">—</div></div>`;
-
   // Qué hay que actualizar en esta visita (lo marcan asesor y analista)
   const rq=s.requisitos_actualizacion||{};
   const pts=[];
@@ -775,6 +793,9 @@ function pie(){
   } else if(s.estado==='en_verificacion'&&s.verificador_id===YO.id){
     h=`<button class="btn btn-g btn-sm" id="guardar" style="flex:none">Guardar</button>
        <button class="btn btn-y" id="finalizar">Finalizar y enviar</button>`;
+  } else if(s.estado==='aprobado'&&s.verificador_id===YO.id&&s.tipo_desembolso==='efectivo'){
+    h=`<button class="btn btn-g btn-sm" id="cerrar2" style="flex:none">Cerrar</button>
+       <button class="btn btn-b" id="entregar">Marcar efectivo entregado</button>`;
   } else {
     h=`<button class="btn btn-g btn-full" id="cerrar2">Cerrar</button>`;
   }
@@ -782,7 +803,26 @@ function pie(){
   $('#tomar')?.addEventListener('click',tomar);
   $('#guardar')?.addEventListener('click',()=>guardar(false));
   $('#finalizar')?.addEventListener('click',finalizar);
+  $('#entregar')?.addEventListener('click',entregarEfectivo);
   $('#cerrar2')?.addEventListener('click',cerrarModal);
+}
+
+/* El verificador confirma que entregó el efectivo al cliente */
+async function entregarEfectivo(){
+  const ra=ACT.resultado_analisis||{};
+  const sug = ra.monto_libre ?? ACT.monto_aceptado ?? 0;
+  const txt=prompt(`¿Cuánto entregaste al cliente? (L)\n\nSegún el sistema le corresponden L ${Number(sug).toLocaleString('es-HN')}`,
+    sug||'');
+  if(txt===null) return;
+  const m=parseFloat(String(txt).replace(/[^\d.]/g,''))||0;
+  if(m<=0){ toast('Ingresá el monto entregado','m'); return; }
+  const bs=$$('#m-pie .btn'); bs.forEach(b=>b.disabled=true);
+  const {error}=await sb.from('solicitudes')
+    .update({monto_desembolsado:m, estado:'desembolsado'}).eq('id',ACT.id);
+  bs.forEach(b=>b.disabled=false);
+  if(error){ toast(traducir(error.message),'m'); return; }
+  toast('Desembolso registrado','k');
+  await cargar(); cerrarModal();
 }
 
 async function tomar(){

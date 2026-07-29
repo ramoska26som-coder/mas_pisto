@@ -1661,7 +1661,7 @@ function dashBodyHTML(M,T,sols,desde,hasta){
     {t:'Solicitudes',big:M.total,sub:`${M.abiertas} en proceso`,ic:'azul',svg:ICO.solicitudes},
     {t:'Aprobadas',big:M.aprobadas,sub:`${M.pct_aceptacion}% de aceptación`,ic:'ok',svg:svgCheck},
     {t:'Rechazadas',big:M.denegadas,sub:`${M.canceladas} canceladas`,ic:'err',svg:svgX},
-    {t:'Monto colocado',big:L(M.monto_colocado),sub:M.desembolsadas?`ticket ${L(M.ticket_promedio)}`:'sin desembolsos',ic:'amber',svg:svgMoney},
+    {t:'Monto colocado',big:L(M.monto_colocado),sub:M.monto_entregado?`entregado ${L(M.monto_entregado)}`:`ticket ${L(M.ticket_promedio)}`,ic:'amber',svg:svgMoney},
     {t:'Ingreso promedio',big:L(M.ingreso_promedio),sub:`${M.con_ingreso} con análisis`,ic:'viol',svg:svgTrend},
     {t:'Límite promedio',big:L(M.limite_promedio),sub:'crédito autorizado',ic:'azul',svg:svgCard},
     {t:'Solicitudes/día',big:promDia.toFixed(1),sub:`en ${ndias} día(s)`,ic:'ok',svg:svgCal},
@@ -1768,7 +1768,8 @@ function dashBodyHTML(M,T,sols,desde,hasta){
         <div class="pc-sub">Indicadores clave</div>
         <dl class="dl">
           <dt>Tasa de aceptación</dt><dd style="font-weight:700">${M.pct_aceptacion}%</dd>
-          <dt>Monto colocado</dt><dd>${L(M.monto_colocado)}</dd>
+          <dt>Monto colocado<small>libre entregado</small></dt><dd>${L(M.monto_colocado)}</dd>
+          <dt>Monto ya entregado</dt><dd>${L(M.monto_entregado||0)}</dd>
           <dt>Ticket promedio</dt><dd>${M.desembolsadas?L(M.ticket_promedio):'—'}</dd>
           <dt>Ingreso promedio</dt><dd>${L(M.ingreso_promedio)}</dd>
           <dt>Límite promedio</dt><dd>${L(M.limite_promedio)}</dd>
@@ -2507,7 +2508,7 @@ function detalle(){
   const s=ACT,d=s.datos_cliente||{};
   const esAse=['pendiente_revision','en_revision_asesor'].includes(s.estado)&&(rol('asesor')||esAdmin());
   const esAna=s.estado==='en_analisis'&&(rol('analista')||esAdmin());
-  const esPerfil=s.estado==='llenar_perfil'&&(rol('asesor')||esAdmin());
+  const esPerfil=s.estado==='llenar_perfil'&&(rol('asesor')||rol('analista')||esAdmin());
   // Estados abiertos donde todavía tiene sentido sumar referencias
   const REF_ABIERTOS=['pendiente_revision','en_revision_asesor','en_analisis',
     'por_verificar','en_verificacion','verificado','en_espera_cliente'];
@@ -2565,6 +2566,12 @@ function detalle(){
   if(s.tipo_desembolso)
     izq+=`<dl class="dl" style="margin-top:11px"><dt>Desembolso</dt>
         <dd><b>${DESEMB_L[s.tipo_desembolso]||s.tipo_desembolso}</b></dd></dl>`;
+  if(s.monto_aceptado||s.monto_desembolsado)
+    izq+=`<dl class="dl" style="margin-top:11px">
+      ${s.monto_aceptado?`<dt>Monto aceptado</dt><dd>${fmtL(s.monto_aceptado)}</dd>`:''}
+      ${(s.resultado_analisis||{}).monto_libre!=null?`<dt>Libre a entregar</dt><dd>${fmtL(s.resultado_analisis.monto_libre)}</dd>`:''}
+      ${s.monto_desembolsado?`<dt><b>Entregado</b></dt><dd style="font-weight:700;color:var(--ok)">${fmtL(s.monto_desembolsado)}</dd>`:''}
+    </dl>`;
   izq+='</div>';
 
   const puedeEditarNom=abierta&&(rol('asesor')||rol('analista')||esAdmin());
@@ -2756,18 +2763,11 @@ function detalle(){
       ${its.length?its.map(refHTML).join(''):'<p style="font-size:13.5px;color:var(--gris)">Este cliente no dio referencias.</p>'}
       <button class="btn btn-g btn-sm" id="add-ref" style="flex:none;margin-top:10px">+ Agregar referencia</button>
       <div class="callout r" style="margin:10px 0 0">Marcar una referencia como <b>falsa</b> deniega la solicitud de inmediato. Marcar <b>"No respondió"</b> mueve el tiempo a "referencias" y deja de contar contra vos.</div></div>`;
-    // Intentos de llamada, para justificar demoras por referencias que no contestan
-    const intentos=s.intentos_referencias||[];
-    der+=`<div class="sec"><div class="sec-h"><h4>Intentos de llamada</h4>
-        <span class="badge p">${intentos.length}</span></div>
-      <div class="callout" style="margin-bottom:11px">Registrá cada intento de llamar a una referencia. Sirve para justificar si la solicitud tarda.</div>
-      <button class="btn btn-g btn-sm" id="add-intento" style="flex:none;margin-bottom:11px">+ Registrar intento</button>
-      ${intentos.length?intentos.slice().reverse().map(it=>`
-        <div class="bit-row"><div class="bit-pt" style="background:var(--amber)"></div>
-          <div class="bit-c"><div class="bit-t"><b>${esc(it.referencia)}</b> · ${esc({sin_respuesta:'No contestó',ocupado:'Ocupado',apagado:'Apagado',contesto:'Contestó',numero_malo:'Número equivocado'}[it.resultado]||it.resultado)}</div>
-            ${it.nota?`<div class="bit-d">${esc(it.nota)}</div>`:''}
-            <div class="bit-m">${esc(it.quien||'—')} · ${it.cuando?new Date(it.cuando).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</div>
-          </div></div>`).join(''):'<p style="font-size:13px;color:var(--gris)">Sin intentos registrados.</p>'}
+    // Historial de llamadas: se llena solo al marcar cada referencia
+    der+=`<div class="sec"><div class="sec-h"><h4>Historial de llamadas</h4>
+        <span class="badge p">${(s.intentos_referencias||[]).length}</span></div>
+      <div class="callout" style="margin-bottom:11px">Cada vez que marcás el resultado de una referencia queda registrado acá con la hora. Sirve para justificar si la solicitud tarda.</div>
+      <div id="intentos-box"></div>
     </div>`;
     // Saldos del crédito vigente: definen cuánto se le entrega libre al cliente
     if(s.tipo_operacion!=='nuevo'){
@@ -2883,7 +2883,7 @@ function detalle(){
          <div id="tiempos-box"></div></div></div>`
     : `<div class="det" style="grid-template-columns:minmax(0,1fr);max-width:760px">
          <div class="det-col">${izq}<div id="tiempos-box"></div></div></div>`;
-  pie(); conectar(esAse,esAna); conectarArchivos(); pintarTiempos(); pintarBitacora(); pintarNotas(); pintarCoincidencias();
+  pie(); conectar(esAse,esAna); conectarArchivos(); pintarTiempos(); pintarBitacora(); pintarNotas(); pintarCoincidencias(); pintarIntentos();
 }
 
 /* Bitácora: quién hizo cada cambio y cuándo */
@@ -3026,80 +3026,6 @@ function resHTML(r){
     </div></div>`;
 }
 
-/* Registrar un intento de llamada a una referencia (analista) */
-function abrirRegistrarIntento(){
-  const refs=(ACT.checklist_analista?.referencias?.items||[]).map(r=>r.nombre).filter(Boolean);
-  $('.asig-h h3').textContent='Registrar intento de llamada';
-  $('#asig-body').innerHTML=`
-    <div class="fld"><label>Referencia <span style="color:var(--error)">*</span></label>
-      <select id="in-ref">${refs.length?refs.map(n=>`<option>${esc(n)}</option>`).join(''):'<option value="">Sin referencias</option>'}</select></div>
-    <div class="fld"><label>Resultado <span style="color:var(--error)">*</span></label>
-      <select id="in-res">
-        <option value="sin_respuesta">No contestó</option>
-        <option value="ocupado">Ocupado</option>
-        <option value="apagado">Apagado / fuera de servicio</option>
-        <option value="numero_malo">Número equivocado</option>
-        <option value="contesto">Contestó</option>
-      </select></div>
-    <div class="fld"><label>Nota<small>Opcional</small></label>
-      <textarea id="in-nota" placeholder="Ej. sonó y cortó, intento a las 3pm"></textarea></div>
-    <div class="callout r hide" id="in-err"></div>
-    <div style="display:flex;gap:9px;margin-top:14px">
-      <button class="btn btn-g" id="in-x" style="flex:1">Volver</button>
-      <button class="btn btn-b" id="in-ok" style="flex:1">Registrar</button>
-    </div>`;
-  abrirAsig();
-  $('#in-x').addEventListener('click',()=>cerrarAsig());
-  $('#in-ok').addEventListener('click',async()=>{
-    const ref=$('#in-ref').value, res=$('#in-res').value, nota=$('#in-nota').value.trim();
-    if(!ref){ $('#in-err').textContent='Elegí una referencia.'; $('#in-err').classList.remove('hide'); return; }
-    const b=$('#in-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Guardando';
-    const {error}=await sb.rpc('registrar_intento_referencia',
-      {p_id:ACT.id,p_referencia:ref,p_resultado:res,p_nota:nota});
-    if(error){ b.disabled=false; b.textContent='Registrar';
-      $('#in-err').textContent=traducir(error.message); $('#in-err').classList.remove('hide'); return; }
-    cerrarAsig();
-    toast('Intento registrado','k');
-    await cargar(); ACT=SOLS.find(s=>s.id===ACT.id)||ACT; detalle();
-  });
-}
-
-/* Cuánto recibe libre el cliente: monto aceptado − saldo capital − saldo intereses */
-function calcLibre(aceptado,cap,int){
-  const libre=(Number(aceptado)||0)-(Number(cap)||0)-(Number(int)||0);
-  return Math.round(libre*100)/100;
-}
-/* Vista del analista: usa el monto aprobado como referencia (aún no hay aceptado) */
-function pintarLibreAnalista(){
-  const box=$('#sa-libre'); if(!box||!ACT) return;
-  const aprob=(ACT.resultado_analisis||{}).monto_aprobado||0;
-  const cap=numDe('#sa-cap'), int=numDe('#sa-int');
-  const libre=calcLibre(aprob,cap,int);
-  box.innerHTML = aprob
-    ? `Si el cliente acepta el límite completo de <b>${fmtL(aprob)}</b>, recibiría libre <b style="color:${libre<0?'var(--error)':'var(--ok)'}">${fmtL(libre)}</b>.
-       ${libre<0?'<br><b>Los saldos superan el límite aprobado.</b>':''}`
-    : 'Calculá primero el monto aprobado para ver cuánto recibiría libre.';
-}
-/* Vista del asesor al llenar el perfil: usa el monto que aceptó el cliente */
-function pintarLibrePerfil(){
-  const box=$('#pf-libre'); if(!box||!ACT) return;
-  const ra=ACT.resultado_analisis||{};
-  const aprob=ra.monto_aprobado||0;
-  const acep=numDe('#pf-aceptado');
-  const cap=Number(ra.saldo_capital)||0, int=Number(ra.saldo_intereses)||0;
-  if(acep>aprob){
-    box.className='callout r'; box.style.marginBottom='0';
-    box.innerHTML=`El monto aceptado no puede pasar del aprobado (<b>${fmtL(aprob)}</b>).`;
-    return;
-  }
-  const libre=calcLibre(acep,cap,int);
-  box.className='callout'; box.style.marginBottom='0';
-  box.innerHTML = ACT.tipo_operacion==='nuevo'
-    ? `El cliente recibe <b>${fmtL(acep)}</b>.`
-    : `<b>${fmtL(acep)}</b> aceptado − ${fmtL(cap)} capital − ${fmtL(int)} intereses =
-       <b style="color:${libre<0?'var(--error)':'var(--ok)'}">${fmtL(libre)}</b> libres a entregar.`;
-}
-
 /* Llena el select de verificadores en el paso de perfil, mostrando la carga de cada uno */
 async function cargarVerifSelect(){
   const sel=$('#pf-verif'); if(!sel) return;
@@ -3119,7 +3045,6 @@ function conectar(esAse,esAna){
   // En el paso de perfil, cargar la lista de verificadores disponibles
   if($('#pf-verif')) cargarVerifSelect();
   $('#pf-copiar')?.addEventListener('click',()=>copiarPerfil(ACT));
-  $('#add-intento')?.addEventListener('click',abrirRegistrarIntento);
   // Saldos del analista: recalcula el libre a entregar mientras escribe
   if($('#sa-cap')){
     ['#sa-cap','#sa-int'].forEach(id=>$(id).addEventListener('input',pintarLibreAnalista));
@@ -3161,15 +3086,19 @@ function conectar(esAse,esAna){
       const v=parseInt(e.target.value);
       $('#cr-c').value=v?(catEquifax(v)||''):'';resultado();
     });
-    $$('.res').forEach(b=>b.addEventListener('click',()=>{
+    $$('.res').forEach(b=>b.addEventListener('click',async()=>{
       const i=+b.dataset.ri,v=b.dataset.r;
       const its=ACT.checklist_analista.referencias.items;
       if(v==='falsa'&&its[i].resultado!=='falsa'){
         if(!confirm(`¿Marcar a ${its[i].nombre} como referencia FALSA?\n\nEsto DENIEGA la solicitud de inmediato y no se puede deshacer.`)) return;
       }
+      const antes=its[i].resultado;
       its[i].resultado=its[i].resultado===v?null:v;
       $$(`.res[data-ri="${i}"]`).forEach(x=>x.classList.toggle('on',x.dataset.r===its[i].resultado));
       resultado();pie();
+      // Cada marca queda registrada sola como intento de llamada, con su hora.
+      if(its[i].resultado && its[i].resultado!==antes)
+        registrarIntentoAuto(its[i].nombre, its[i].resultado, its[i].comentario||'');
     }));
     $$('.r-c').forEach(t=>t.addEventListener('input',e=>{
       ACT.checklist_analista.referencias.items[+e.target.dataset.ci].comentario=e.target.value;
@@ -3466,12 +3395,23 @@ function pie(){
     h=falsa?`<button class="btn btn-r" id="a6">Denegar por referencia falsa</button>`
            :`<button class="btn btn-g" id="a4">Guardar</button><button class="btn btn-y" id="a5">Enviar a llenar perfil</button>`;
   }
-  else if(s.estado==='llenar_perfil'&&(rol('asesor')||esAdmin()))
-    h=`<button class="btn btn-g" id="a-perfil-g">Guardar</button><button class="btn btn-y" id="a-perfil-ok">Completar y enviar a verificar</button>`;
+  else if(s.estado==='llenar_perfil'&&(rol('asesor')||rol('analista')||esAdmin())){
+    // Atajo: reingreso/refinanciamiento por transferencia y sin requisitos de
+    // campo no necesita visita; el analista aprueba el desembolso directo.
+    const sinVerif = s.tipo_operacion!=='nuevo' && s.tipo_desembolso==='transferencia'
+      && !((s.requisitos_actualizacion||{}).claves||[]).length;
+    h=`<button class="btn btn-g" id="a-perfil-g">Guardar</button>`
+      +(sinVerif&&(rol('analista')||esAdmin())
+        ? `<button class="btn btn-b" id="a-directo">Aprobar desembolso sin visita</button>`
+        : '')
+      +`<button class="btn btn-y" id="a-perfil-ok">Completar y enviar a verificar</button>`;
+  }
   else if(s.estado==='verificado'&&(rol('analista')||rol('asesor')||esAdmin()))
     h=`<button class="btn btn-r" id="a8">Denegar</button><button class="btn btn-b" id="a7">Aprobar para desembolso</button>`;
   else if(s.estado==='aprobado'&&(rol('asesor')||rol('analista')||rol('verificador')||esAdmin()))
     h=`<button class="btn btn-b" id="a9">Marcar desembolso entregado</button>`;
+  else if(s.estado==='desembolsado'&&(rol('asesor')||rol('analista')||esAdmin()))
+    h=`<button class="btn btn-g" id="a-monto-des">${s.monto_desembolsado?'Corregir monto entregado':'Agregar monto entregado'}</button>`;
 
   // Cancelar, rechazar y poner en espera: disponibles mientras siga abierta.
   let extra='';
@@ -3496,13 +3436,11 @@ function pie(){
   $('#a6')?.addEventListener('click',()=>guardar(datosAnalista()));
   $('#a-perfil-g')?.addEventListener('click',()=>guardarPerfil(false));
   $('#a-perfil-ok')?.addEventListener('click',()=>guardarPerfil(true));
+  $('#a-directo')?.addEventListener('click',aprobarSinVisita);
   $('#a7')?.addEventListener('click',aprobar);
   $('#a8')?.addEventListener('click',denegar);
-  $('#a9')?.addEventListener('click',async()=>{
-    const r=ACT.resultado_analisis||{};
-    if(!confirm(`¿Confirmar que ya se entregó el desembolso de L${fmt(r.monto_aprobado)}?`)) return;
-    await guardar({estado:'desembolsado'});
-  });
+  $('#a9')?.addEventListener('click',abrirDesembolso);
+  $('#a-monto-des')?.addEventListener('click',abrirDesembolso);
   $('#a-espera')?.addEventListener('click',abrirPonerEnEspera);
   $('#a-reabrir')?.addEventListener('click',abrirReabrir);
   $('#a-reanudar')?.addEventListener('click',reanudar);
@@ -3967,6 +3905,104 @@ async function pintarCoincidencias(){
     if(otra) abrir(otra.id);
     else toast('Esa solicitud no está en tu lista visible','m');
   }));
+}
+
+/* Cada vez que el analista marca el resultado de una referencia, queda guardado
+   solo como intento de llamada (con hora y quién), sin pasos extra. */
+async function registrarIntentoAuto(nombre,resultado,nota){
+  if(!nombre) return;
+  try{
+    const {data,error}=await sb.rpc('registrar_intento_referencia',
+      {p_id:ACT.id,p_referencia:nombre,p_resultado:resultado,p_nota:nota||''});
+    if(error) return;
+    if(data){ ACT.intentos_referencias=data.intentos_referencias;
+      ACT.referencias_iniciadas_en=data.referencias_iniciadas_en; }
+    pintarIntentos();
+  }catch(e){}
+}
+/* Redibuja solo la lista de intentos, sin recargar todo el detalle */
+function pintarIntentos(){
+  const box=$('#intentos-box'); if(!box||!ACT) return;
+  const its=ACT.intentos_referencias||[];
+  const L={sin_respuesta:'No contestó',ocupado:'Ocupado',apagado:'Apagado',
+    contesto:'Contestó',numero_malo:'Número equivocado',
+    ok:'Confirmó',no_respondio:'No respondió',negativa:'Negativa',falsa:'FALSA'};
+  box.innerHTML = its.length
+    ? its.slice().reverse().map(it=>`
+      <div class="bit-row"><div class="bit-pt" style="background:var(--amber)"></div>
+        <div class="bit-c"><div class="bit-t"><b>${esc(it.referencia)}</b> · ${esc(L[it.resultado]||it.resultado)}</div>
+          ${it.nota?`<div class="bit-d">${esc(it.nota)}</div>`:''}
+          <div class="bit-m">${esc(it.quien||'—')} · ${it.cuando?new Date(it.cuando).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</div>
+        </div></div>`).join('')
+    : '<p style="font-size:13px;color:var(--gris)">Todavía no marcaste ninguna referencia.</p>';
+}
+
+/* Reingreso o refinanciamiento por transferencia, sin requisitos de campo:
+   no hace falta visita, se aprueba el desembolso directo. */
+async function aprobarSinVisita(){
+  const cod=$('#pf-codigo')?.value.trim()||'';
+  const acep=numDe('#pf-aceptado');
+  const ra=ACT.resultado_analisis||{};
+  const aprob=ra.monto_aprobado||0;
+  if(!$('#pf-confirmado')?.checked){ toast('Confirmá que transcribiste el perfil al sistema','m'); return; }
+  if(acep<=0){ toast('Ingresá el monto que aceptó el cliente','m'); return; }
+  if(acep>aprob){ toast(`El monto aceptado no puede pasar de ${fmtL(aprob)}`,'m'); return; }
+  const libre=calcLibre(acep,ra.saldo_capital,ra.saldo_intereses);
+  if(!confirm(`Se aprueba el desembolso por transferencia SIN visita de verificación.\n\n`
+    +`Se entregarían ${fmtL(libre)} libres.\n\n¿Continuar?`)) return;
+  await guardar({
+    perfil_sistema:{...(ACT.perfil_sistema||{}),codigo:cod,confirmado:true,
+      confirmado_por:YO.nombre,confirmado_en:new Date().toISOString()},
+    monto_aceptado:acep,
+    resultado_analisis:{...ra,monto_libre:libre,sin_verificacion:true},
+    estado:'aprobado'
+  });
+  await sb.rpc('agregar_nota',{p_id:ACT.id,
+    p_texto:'Aprobada sin visita: transferencia sin requisitos de verificación en campo.'});
+  toast('Aprobada para desembolso','k');
+}
+
+/* Registrar (o corregir) el monto que se entregó al cliente */
+function abrirDesembolso(){
+  const s=ACT, ra=s.resultado_analisis||{};
+  const sugerido = s.monto_desembolsado
+    ?? (ra.monto_libre!=null ? ra.monto_libre : s.monto_aceptado) ?? ra.monto_aprobado ?? '';
+  const yaEntregada = s.estado==='desembolsado';
+  $('.asig-h h3').textContent = yaEntregada?'Monto entregado':'Confirmar desembolso';
+  $('#asig-body').innerHTML=`
+    <div class="callout">${yaEntregada
+      ? 'Corregí o completá lo que realmente se le entregó al cliente. Esto es lo que cuenta como colocado en las métricas.'
+      : 'Confirmá cuánto se le entregó al cliente. Este monto es el que cuenta como colocado.'}</div>
+    <dl class="dl" style="margin:12px 0">
+      ${s.monto_aceptado?`<dt>Monto aceptado</dt><dd>${fmtL(s.monto_aceptado)}</dd>`:''}
+      ${s.tipo_operacion!=='nuevo'&&ra.saldo_capital!=null?`<dt>Saldo capital</dt><dd>−${fmtL(ra.saldo_capital)}</dd>`:''}
+      ${s.tipo_operacion!=='nuevo'&&ra.saldo_intereses!=null?`<dt>Saldo intereses</dt><dd>−${fmtL(ra.saldo_intereses)}</dd>`:''}
+      ${ra.monto_libre!=null?`<dt><b>Libre a entregar</b></dt><dd style="font-weight:700">${fmtL(ra.monto_libre)}</dd>`:''}
+      ${s.tipo_desembolso?`<dt>Forma</dt><dd>${DESEMB_L[s.tipo_desembolso]}</dd>`:''}
+    </dl>
+    <div class="fld"><label>Monto entregado (L) <span style="color:var(--error)">*</span></label>
+      <input id="de-monto" inputmode="numeric" value="${sugerido}"></div>
+    <div class="callout r hide" id="de-err"></div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-g" id="de-x" style="flex:1">Volver</button>
+      <button class="btn btn-b" id="de-ok" style="flex:1">${yaEntregada?'Guardar':'Confirmar entrega'}</button>
+    </div>`;
+  abrirAsig();
+  $('#de-x').addEventListener('click',()=>cerrarAsig());
+  $('#de-ok').addEventListener('click',async()=>{
+    const m=numDe('#de-monto');
+    if(m<=0){ $('#de-err').textContent='Ingresá el monto entregado.'; $('#de-err').classList.remove('hide'); return; }
+    const b=$('#de-ok'); b.disabled=true; b.innerHTML='<span class="sp"></span>Guardando';
+    const campos = yaEntregada ? {monto_desembolsado:m} : {monto_desembolsado:m,estado:'desembolsado'};
+    const {error}=await sb.from('solicitudes').update(campos).eq('id',ACT.id);
+    if(error){ b.disabled=false; b.textContent='Guardar';
+      $('#de-err').textContent=traducir(error.message); $('#de-err').classList.remove('hide'); return; }
+    cerrarAsig();
+    toast(yaEntregada?'Monto actualizado':'Desembolso registrado','k');
+    await cargar();
+    const a=SOLS.find(x=>x.id===ACT.id);
+    if(a){ ACT=a; detalle(); } else cerrarModalNav();
+  });
 }
 
 async function guardar(campos){
